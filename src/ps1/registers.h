@@ -1,0 +1,427 @@
+/*
+ * ps1-bare-metal - (C) 2023 spicyjpeg
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#pragma once
+
+#include <stdint.h>
+
+#define _ADDR8(addr)  ((volatile uint8_t *) (addr))
+#define _ADDR16(addr) ((volatile uint16_t *) (addr))
+#define _ADDR32(addr) ((volatile uint32_t *) (addr))
+#define _MMIO8(addr)  (*_ADDR8(addr))
+#define _MMIO16(addr) (*_ADDR16(addr))
+#define _MMIO32(addr) (*_ADDR32(addr))
+
+/* Constants */
+
+#define F_CPU      33868800
+#define F_GPU_NTSC 53693175
+#define F_GPU_PAL  53203425
+
+typedef enum {
+	DEV0_BASE = 0xbf000000,
+	EXP1_BASE = 0xbf000000,
+	IO_BASE   = 0xbf800000,
+	EXP2_BASE = 0xbf802000,
+	EXP3_BASE = 0xbfa00000
+} BaseAddress;
+
+/* Bus interface */
+
+typedef enum {
+	BIU_CTRL_WRITE_DELAY_BITMASK = 15 <<  0,
+	BIU_CTRL_READ_DELAY_BITMASK  = 15 <<  4,
+	BIU_CTRL_RECOVERY            =  1 <<  8,
+	BIU_CTRL_HOLD                =  1 <<  9,
+	BIU_CTRL_FLOAT               =  1 << 10,
+	BIU_CTRL_PRESTROBE           =  1 << 11,
+	BIU_CTRL_WIDTH_8             =  0 << 12,
+	BIU_CTRL_WIDTH_16            =  1 << 12,
+	BIU_CTRL_AUTO_INCR           =  1 << 13,
+	BIU_CTRL_SIZE_BITMASK        = 31 << 16,
+	BIU_CTRL_DMA_DELAY_BITMASK   = 15 << 24,
+	BIU_CTRL_ADDR_ERROR          =  1 << 28,
+	BIU_CTRL_DMA_DELAY           =  1 << 29,
+	BIU_CTRL_DMA32               =  1 << 30,
+	BIU_CTRL_WAIT                =  1 << 31
+} BIUControlFlag;
+
+#define BIU_DEV0_ADDR _MMIO32(IO_BASE | 0x1000) // PIO/573
+#define BIU_EXP2_ADDR _MMIO32(IO_BASE | 0x1004) // PIO/debug
+#define BIU_DEV0_CTRL _MMIO32(IO_BASE | 0x1008) // PIO/573
+#define BIU_EXP3_CTRL _MMIO32(IO_BASE | 0x100c) // PIO/debug
+#define BIU_DEV2_CTRL _MMIO32(IO_BASE | 0x1010) // BIOS ROM
+#define BIU_DEV4_CTRL _MMIO32(IO_BASE | 0x1014) // SPU
+#define BIU_DEV5_CTRL _MMIO32(IO_BASE | 0x1018) // CD-ROM
+#define BIU_EXP2_CTRL _MMIO32(IO_BASE | 0x101c) // PIO/debug
+#define BIU_COM_DELAY _MMIO32(IO_BASE | 0x1020)
+
+/* Serial interfaces */
+
+typedef enum {
+	SIO_STAT_TX_NOT_FULL   = 1 << 0,
+	SIO_STAT_RX_NOT_EMPTY  = 1 << 1,
+	SIO_STAT_TX_EMPTY      = 1 << 2,
+	SIO_STAT_RX_PARITY_ERR = 1 << 3,
+	SIO_STAT_RX_OVERRUN    = 1 << 4, // SIO1 only
+	SIO_STAT_RX_STOP_ERR   = 1 << 5, // SIO1 only
+	SIO_STAT_RX_INVERT     = 1 << 6, // SIO1 only
+	SIO_STAT_DSR           = 1 << 7, // DSR is /ACK on SIO0
+	SIO_STAT_CTS           = 1 << 8, // SIO1 only
+	SIO_STAT_IRQ           = 1 << 9
+} SIOStatusFlag;
+
+typedef enum {
+	SIO_MODE_BAUD_BITMASK   = 3 << 0,
+	SIO_MODE_BAUD_DIV1      = 1 << 0,
+	SIO_MODE_BAUD_DIV16     = 2 << 0,
+	SIO_MODE_BAUD_DIV64     = 3 << 0,
+	SIO_MODE_DATA_BITMASK   = 3 << 2,
+	SIO_MODE_DATA_5         = 0 << 2,
+	SIO_MODE_DATA_6         = 1 << 2,
+	SIO_MODE_DATA_7         = 2 << 2,
+	SIO_MODE_DATA_8         = 3 << 2,
+	SIO_MODE_PARITY_BITMASK = 3 << 4,
+	SIO_MODE_PARITY_NONE    = 0 << 4,
+	SIO_MODE_PARITY_EVEN    = 1 << 4,
+	SIO_MODE_PARITY_ODD     = 3 << 4,
+	SIO_MODE_STOP_BITMASK   = 3 << 6, // SIO1 only
+	SIO_MODE_STOP_1         = 1 << 6, // SIO1 only
+	SIO_MODE_STOP_1_5       = 2 << 6, // SIO1 only
+	SIO_MODE_STOP_2         = 3 << 6, // SIO1 only
+	SIO_MODE_SCK_INVERT     = 1 << 8  // SIO0 only
+} SIOModeFlag;
+
+typedef enum {
+	SIO_CTRL_TX_ENABLE      = 1 <<  0,
+	SIO_CTRL_DTR            = 1 <<  1, // DTR is /CS on SIO0
+	SIO_CTRL_RX_ENABLE      = 1 <<  2,
+	SIO_CTRL_TX_INVERT      = 1 <<  3, // SIO1 only
+	SIO_CTRL_ACKNOWLEDGE    = 1 <<  4,
+	SIO_CTRL_RTS            = 1 <<  5, // SIO1 only
+	SIO_CTRL_RESET          = 1 <<  6,
+	SIO_CTRL_TX_IRQ_ENABLE  = 1 << 10,
+	SIO_CTRL_RX_IRQ_ENABLE  = 1 << 11,
+	SIO_CTRL_DSR_IRQ_ENABLE = 1 << 12, // DSR is /ACK on SIO0
+	SIO_CTRL_CS_PORT_1      = 0 << 13, // SIO0 only
+	SIO_CTRL_CS_PORT_2      = 1 << 13  // SIO0 only
+} SIOControlFlag;
+
+// SIO_DATA is a 32-bit register, but some emulators do not implement it
+// correctly and break if it's read more than 8 bits at a time.
+#define SIO_DATA(N) _MMIO8 ((IO_BASE | 0x1040) + (16 * (N)))
+#define SIO_STAT(N) _MMIO16((IO_BASE | 0x1044) + (16 * (N)))
+#define SIO_MODE(N) _MMIO16((IO_BASE | 0x1048) + (16 * (N)))
+#define SIO_CTRL(N) _MMIO16((IO_BASE | 0x104a) + (16 * (N)))
+#define SIO_BAUD(N) _MMIO16((IO_BASE | 0x104e) + (16 * (N)))
+
+/* DRAM controller */
+
+typedef enum {
+	DRAM_CTRL_UNKNOWN     = 1 <<  3,
+	DRAM_CTRL_FETCH_DELAY = 1 <<  7,
+	DRAM_CTRL_SIZE_MUL1   = 0 <<  9,
+	DRAM_CTRL_SIZE_MUL4   = 1 <<  9,
+	DRAM_CTRL_COUNT_1     = 0 << 10, // 1 DRAM bank (single RAS)
+	DRAM_CTRL_COUNT_2     = 1 << 10, // 2 DRAM banks (dual RAS)
+	DRAM_CTRL_SIZE_1MB    = 0 << 11, // 1MB chips (4MB with MUL4)
+	DRAM_CTRL_SIZE_2MB    = 1 << 11  // 2MB chips (8MB with MUL4)
+} DRAMControlFlag;
+
+#define DRAM_CTRL _MMIO32(IO_BASE | 0x1060)
+
+/* IRQ controller */
+
+typedef enum {
+	IRQ_VSYNC  =  0,
+	IRQ_GPU    =  1,
+	IRQ_CDROM  =  2,
+	IRQ_DMA    =  3,
+	IRQ_TIMER0 =  4,
+	IRQ_TIMER1 =  5,
+	IRQ_TIMER2 =  6,
+	IRQ_SIO0   =  7,
+	IRQ_SIO1   =  8,
+	IRQ_SPU    =  9,
+	IRQ_GUN    = 10,
+	IRQ_PIO    = 10
+} IRQChannel;
+
+#define IRQ_STAT _MMIO16(IO_BASE | 0x1070)
+#define IRQ_MASK _MMIO16(IO_BASE | 0x1074)
+
+/* DMA */
+
+typedef enum {
+	DMA_MDEC_IN  = 0,
+	DMA_MDEC_OUT = 1,
+	DMA_GPU      = 2,
+	DMA_CDROM    = 3,
+	DMA_SPU      = 4,
+	DMA_PIO      = 5,
+	DMA_OTC      = 6
+} DMAChannel;
+
+typedef enum {
+	DMA_CHCR_READ             = 0 <<  0,
+	DMA_CHCR_WRITE            = 1 <<  0,
+	DMA_CHCR_CHOPPING         = 1 <<  8,
+	DMA_CHCR_MODE_BITMASK     = 3 <<  9,
+	DMA_CHCR_MODE_BURST       = 0 <<  9,
+	DMA_CHCR_MODE_SLICE       = 1 <<  9,
+	DMA_CHCR_MODE_LIST        = 2 <<  9,
+	DMA_CHCR_DMA_TIME_BITMASK = 7 << 16,
+	DMA_CHCR_CPU_TIME_BITMASK = 7 << 20,
+	DMA_CHCR_ENABLE           = 1 << 24,
+	DMA_CHCR_TRIGGER          = 1 << 28,
+	DMA_CHCR_PAUSE            = 1 << 29  // Burst mode only
+} DMACHCRFlag;
+
+typedef enum {
+	DMA_DPCR_PRIORITY_BITMASK = 7 << 0,
+	DMA_DPCR_PRIORITY_MIN     = 7 << 0,
+	DMA_DPCR_PRIORITY_MAX     = 0 << 0,
+	DMA_DPCR_ENABLE           = 1 << 3
+} DMADPCRFlag;
+
+typedef enum {
+	DMA_DICR_CH_MODE_BITMASK   = 0x7f <<  0,
+	DMA_DICR_BUS_ERROR         =    1 << 15,
+	DMA_DICR_CH_ENABLE_BITMASK = 0x7f << 16,
+	DMA_DICR_IRQ_ENABLE        =    1 << 23,
+	DMA_DICR_CH_STAT_BITMASK   = 0x7f << 24,
+	DMA_DICR_IRQ               =    1 << 31
+} DMADICRFlag;
+
+#define DMA_DICR_CH_MODE(dma)   (1 << ((dma) +  0))
+#define DMA_DICR_CH_ENABLE(dma) (1 << ((dma) + 16))
+#define DMA_DICR_CH_STAT(dma)   (1 << ((dma) + 24))
+
+#define DMA_MADR(N) _MMIO32((IO_BASE | 0x1080) + (16 * (N)))
+#define DMA_BCR(N)  _MMIO32((IO_BASE | 0x1084) + (16 * (N)))
+#define DMA_CHCR(N) _MMIO32((IO_BASE | 0x1088) + (16 * (N)))
+
+#define DMA_DPCR _MMIO32(IO_BASE | 0x10f0)
+#define DMA_DICR _MMIO32(IO_BASE | 0x10f4)
+
+/* Timers */
+
+typedef enum {
+	TIMER_CTRL_ENABLE_SYNC     = 1 <<  0,
+	TIMER_CTRL_SYNC_BITMASK    = 3 <<  1,
+	TIMER_CTRL_SYNC_PAUSE      = 0 <<  1,
+	TIMER_CTRL_SYNC_RESET1     = 1 <<  1,
+	TIMER_CTRL_SYNC_RESET2     = 2 <<  1,
+	TIMER_CTRL_SYNC_PAUSE_ONCE = 3 <<  1,
+	TIMER_CTRL_RELOAD          = 1 <<  3,
+	TIMER_CTRL_IRQ_ON_RELOAD   = 1 <<  4,
+	TIMER_CTRL_IRQ_ON_OVERFLOW = 1 <<  5,
+	TIMER_CTRL_IRQ_REPEAT      = 1 <<  6,
+	TIMER_CTRL_IRQ_LATCH       = 1 <<  7,
+	TIMER_CTRL_EXT_CLOCK       = 1 <<  8,
+	TIMER_CTRL_PRESCALE        = 1 <<  9,
+	TIMER_CTRL_IRQ             = 1 << 10,
+	TIMER_CTRL_RELOADED        = 1 << 11,
+	TIMER_CTRL_OVERFLOWED      = 1 << 12
+} TimerControlFlag;
+
+#define TIMER_VALUE(N)  _MMIO32((IO_BASE | 0x1100) + (16 * (N)))
+#define TIMER_CTRL(N)   _MMIO32((IO_BASE | 0x1104) + (16 * (N)))
+#define TIMER_RELOAD(N) _MMIO32((IO_BASE | 0x1108) + (16 * (N)))
+
+/* CD-ROM drive */
+
+typedef enum {
+	CDROM_STAT_BANK_BITMASK = 3 << 0,
+	CDROM_STAT_BANK_0       = 0 << 0,
+	CDROM_STAT_BANK_1       = 1 << 0,
+	CDROM_STAT_BANK_2       = 2 << 0,
+	CDROM_STAT_BANK_3       = 3 << 0,
+	CDROM_STAT_ADPCM_BUSY   = 1 << 2,
+	CDROM_STAT_PARAM_EMPTY  = 1 << 3,
+	CDROM_STAT_PARAM_FULL   = 1 << 4,
+	CDROM_STAT_RESP_EMPTY   = 1 << 5,
+	CDROM_STAT_DATA_EMPTY   = 1 << 6,
+	CDROM_STAT_BUSY         = 1 << 7
+} CDROMStatusFlag;
+
+typedef enum {
+	CDROM_REQ_START_IRQ_ENABLE = 1 << 5,
+	CDROM_REQ_BUFFER_WRITE     = 1 << 6,
+	CDROM_REQ_BUFFER_READ      = 1 << 7
+} CDROMRequestFlag;
+
+typedef enum {
+	CDROM_IRQ_NONE        = 0,
+	CDROM_IRQ_DATA        = 1,
+	CDROM_IRQ_COMPLETE    = 2,
+	CDROM_IRQ_ACKNOWLEDGE = 3,
+	CDROM_IRQ_DATA_END    = 4,
+	CDROM_IRQ_ERROR       = 5
+} CDROMIRQType;
+
+typedef enum {
+	CDROM_CMDSTAT_ERROR      = 1 << 0,
+	CDROM_CMDSTAT_SPINDLE_ON = 1 << 1,
+	CDROM_CMDSTAT_SEEK_ERROR = 1 << 2,
+	CDROM_CMDSTAT_ID_ERROR   = 1 << 3,
+	CDROM_CMDSTAT_LID_OPEN   = 1 << 4,
+	CDROM_CMDSTAT_READING    = 1 << 5,
+	CDROM_CMDSTAT_SEEKING    = 1 << 6,
+	CDROM_CMDSTAT_PLAYING    = 1 << 7
+} CDROMCommandStatusFlag;
+
+typedef enum {
+	CDROM_MODE_CDDA        = 1 << 0,
+	CDROM_MODE_AUTO_PAUSE  = 1 << 1,
+	CDROM_MODE_CDDA_REPORT = 1 << 2,
+	CDROM_MODE_XA_FILTER   = 1 << 3,
+	CDROM_MODE_IGNORE_LOC  = 1 << 4,
+	CDROM_MODE_SIZE_2048   = 0 << 5,
+	CDROM_MODE_SIZE_2340   = 1 << 5,
+	CDROM_MODE_XA_ADPCM    = 1 << 6,
+	CDROM_MODE_SPEED_1X    = 0 << 7,
+	CDROM_MODE_SPEED_2X    = 1 << 7
+} CDROMModeFlag;
+
+#define CDROM_STAT _MMIO8(IO_BASE | 0x1800)
+#define CDROM_CMD  _MMIO8(IO_BASE | 0x1801)
+#define CDROM_DATA _MMIO8(IO_BASE | 0x1802)
+#define CDROM_IRQ  _MMIO8(IO_BASE | 0x1803)
+
+#define CDROM_REG(N) _MMIO8((IO_BASE | 0x1800) + (N))
+
+/* GPU */
+
+typedef enum {
+	GP1_STAT_MODE_BITMASK = 1 << 20,
+	GP1_STAT_MODE_NTSC    = 0 << 20,
+	GP1_STAT_MODE_PAL     = 1 << 20,
+	GP1_STAT_DISP_BLANK   = 1 << 23,
+	GP1_STAT_IRQ          = 1 << 24,
+	GP1_STAT_DREQ         = 1 << 25,
+	GP1_STAT_CMD_READY    = 1 << 26,
+	GP1_STAT_READ_READY   = 1 << 27,
+	GP1_STAT_WRITE_READY  = 1 << 28,
+	GP1_STAT_FIELD_ODD    = 1 << 31
+} GP1StatusFlag;
+
+#define GPU_GP0 _MMIO32(IO_BASE | 0x1810)
+#define GPU_GP1 _MMIO32(IO_BASE | 0x1814)
+
+/* MDEC */
+
+typedef enum {
+	MDEC_STAT_BLOCK_BITMASK = 7 << 16,
+	MDEC_STAT_BLOCK_Y0      = 0 << 16,
+	MDEC_STAT_BLOCK_Y1      = 1 << 16,
+	MDEC_STAT_BLOCK_Y2      = 2 << 16,
+	MDEC_STAT_BLOCK_Y3      = 3 << 16,
+	MDEC_STAT_BLOCK_CR      = 4 << 16,
+	MDEC_STAT_BLOCK_CB      = 5 << 16,
+	MDEC_STAT_DREQ_OUT      = 1 << 27,
+	MDEC_STAT_DREQ_IN       = 1 << 28,
+	MDEC_STAT_BUSY          = 1 << 29,
+	MDEC_STAT_DATA_FULL     = 1 << 30,
+	MDEC_STAT_DATA_EMPTY    = 1 << 31
+} MDECStatusFlag;
+
+typedef enum {
+	MDEC_CTRL_DMA_OUT = 1 << 29,
+	MDEC_CTRL_DMA_IN  = 1 << 30,
+	MDEC_CTRL_RESET   = 1 << 31
+} MDECControlFlag;
+
+#define MDEC0 _MMIO32(IO_BASE | 0x1820)
+#define MDEC1 _MMIO32(IO_BASE | 0x1824)
+
+/* SPU */
+
+typedef enum {
+	SPU_STAT_CDDA           = 1 <<  0,
+	SPU_STAT_EXT            = 1 <<  1,
+	SPU_STAT_CDDA_REVERB    = 1 <<  2,
+	SPU_STAT_EXT_REVERB     = 1 <<  3,
+	SPU_STAT_XFER_BITMASK   = 3 <<  4,
+	SPU_STAT_XFER_NONE      = 0 <<  4,
+	SPU_STAT_XFER_WRITE     = 1 <<  4,
+	SPU_STAT_XFER_DMA_WRITE = 2 <<  4,
+	SPU_STAT_XFER_DMA_READ  = 3 <<  4,
+	SPU_STAT_IRQ            = 1 <<  6,
+	SPU_STAT_DREQ           = 1 <<  7,
+	SPU_STAT_WRITE_REQ      = 1 <<  8,
+	SPU_STAT_READ_REQ       = 1 <<  9,
+	SPU_STAT_BUSY           = 1 << 10,
+	SPU_STAT_CAPTURE_BUF    = 1 << 11
+} SPUStatusFlag;
+
+typedef enum {
+	SPU_CTRL_CDDA           = 1 <<  0,
+	SPU_CTRL_EXT            = 1 <<  1,
+	SPU_CTRL_CDDA_REVERB    = 1 <<  2,
+	SPU_CTRL_EXT_REVERB     = 1 <<  3,
+	SPU_CTRL_XFER_BITMASK   = 3 <<  4,
+	SPU_CTRL_XFER_NONE      = 0 <<  4,
+	SPU_CTRL_XFER_WRITE     = 1 <<  4,
+	SPU_CTRL_XFER_DMA_WRITE = 2 <<  4,
+	SPU_CTRL_XFER_DMA_READ  = 3 <<  4,
+	SPU_CTRL_IRQ_ENABLE     = 1 <<  6,
+	SPU_CTRL_REVERB         = 1 <<  7,
+	SPU_CTRL_UNMUTE         = 1 << 14,
+	SPU_CTRL_ENABLE         = 1 << 15
+} SPUControlFlag;
+
+#define SPU_CH_VOL_L(N) _MMIO16((IO_BASE | 0x1c00) + (16 * (N)))
+#define SPU_CH_VOL_R(N) _MMIO16((IO_BASE | 0x1c02) + (16 * (N)))
+#define SPU_CH_FREQ(N)  _MMIO16((IO_BASE | 0x1c04) + (16 * (N)))
+#define SPU_CH_ADDR(N)  _MMIO16((IO_BASE | 0x1c06) + (16 * (N)))
+#define SPU_CH_ADSR1(N) _MMIO16((IO_BASE | 0x1c08) + (16 * (N)))
+#define SPU_CH_ADSR2(N) _MMIO16((IO_BASE | 0x1c0a) + (16 * (N)))
+#define SPU_CH_LOOP(N)  _MMIO16((IO_BASE | 0x1c0e) + (16 * (N)))
+
+#define SPU_MASTER_VOL_L _MMIO16(IO_BASE | 0x1d80)
+#define SPU_MASTER_VOL_R _MMIO16(IO_BASE | 0x1d82)
+#define SPU_REVERB_VOL_L _MMIO16(IO_BASE | 0x1d84)
+#define SPU_REVERB_VOL_R _MMIO16(IO_BASE | 0x1d86)
+#define SPU_FLAG_ON1     _MMIO16(IO_BASE | 0x1d88)
+#define SPU_FLAG_ON2     _MMIO16(IO_BASE | 0x1d8a)
+#define SPU_FLAG_OFF1    _MMIO16(IO_BASE | 0x1d8c)
+#define SPU_FLAG_OFF2    _MMIO16(IO_BASE | 0x1d8e)
+#define SPU_FLAG_FM1     _MMIO16(IO_BASE | 0x1d90)
+#define SPU_FLAG_FM2     _MMIO16(IO_BASE | 0x1d92)
+#define SPU_FLAG_NOISE1  _MMIO16(IO_BASE | 0x1d94)
+#define SPU_FLAG_NOISE2  _MMIO16(IO_BASE | 0x1d96)
+#define SPU_FLAG_REVERB1 _MMIO16(IO_BASE | 0x1d98)
+#define SPU_FLAG_REVERB2 _MMIO16(IO_BASE | 0x1d9a)
+#define SPU_FLAG_STATUS1 _MMIO16(IO_BASE | 0x1d9c)
+#define SPU_FLAG_STATUS2 _MMIO16(IO_BASE | 0x1d9e)
+
+#define SPU_REVERB_ADDR _MMIO16(IO_BASE | 0x1da2)
+#define SPU_IRQ_ADDR    _MMIO16(IO_BASE | 0x1da4)
+#define SPU_ADDR        _MMIO16(IO_BASE | 0x1da6)
+#define SPU_DATA        _MMIO16(IO_BASE | 0x1da8)
+#define SPU_CTRL        _MMIO16(IO_BASE | 0x1daa)
+#define SPU_DMA_CTRL    _MMIO16(IO_BASE | 0x1dac)
+#define SPU_STAT        _MMIO16(IO_BASE | 0x1dae)
+
+#define SPU_CDDA_VOL_L _MMIO16(IO_BASE | 0x1db0)
+#define SPU_CDDA_VOL_R _MMIO16(IO_BASE | 0x1db2)
+#define SPU_EXT_VOL_L  _MMIO16(IO_BASE | 0x1db4)
+#define SPU_EXT_VOL_R  _MMIO16(IO_BASE | 0x1db6)
+#define SPU_VOL_STAT_L _MMIO16(IO_BASE | 0x1db8)
+#define SPU_VOL_STAT_R _MMIO16(IO_BASE | 0x1dba)
+
+#define SPU_REVERB_BASE _ADDR16(IO_BASE | 0x1dc0)

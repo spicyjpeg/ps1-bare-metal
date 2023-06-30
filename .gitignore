@@ -1,0 +1,10 @@
+# Do not include any hidden metadata saved by apps and the OS.
+desktop.ini
+.DS_Store
+.vscode/
+
+# Do not include any built or cached files.
+build/
+__pycache__/
+*.pyc
+*.pyo
