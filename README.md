@@ -11,9 +11,10 @@ The following examples are currently available:
 | #   | Screenshot                                                                    | Description                                                                    |
 | --: | :---------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
 |   0 |                                                                               | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)        |
-|   1 | <img alt="Chapter 1" src="src/01_basicGraphics/screenshot.png" width="100" /> | [GPU initialization and basic graphics rendering](src/01_basicGraphics/main.c) |
+|   1 | <img alt="Chapter 1" src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c) |
 |   2 | <img alt="Chapter 2" src="src/02_doubleBuffer/screenshot.png" width="100" />  | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)    |
 |   3 | <img alt="Chapter 3" src="src/03_dmaChain/screenshot.png" width="100" />      | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)    |
+|   4 | <img alt="Chapter 4" src="src/04_textures/screenshot.png" width="100" />      | [Uploading a texture to VRAM and using it](src/04_textures/main.c)             |
 
 New examples showing how to make use of more hardware features will be added
 over time.
@@ -29,7 +30,7 @@ The only required dependencies are:
 - [Ninja](https://ninja-build.org/);
 - a recent GCC toolchain configured for the `mipsel-none-elf` target triplet.
 
-The toolchain can be easily installed on Windows through
+The toolchain can be installed on Windows through
 [the `mips` script from the pcsx-redux project](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#windows),
 on macOS using
 [Homebrew](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#macos)
@@ -41,6 +42,13 @@ chance you already have a suitable toolchain set up (try running
 `mipsel-none-elf-gcc` in a terminal). The other dependencies can be obtained
 from their websites or through a package manager.
 
+The Python scripts require a few additional dependencies, which can be installed
+by running:
+
+```bash
+py -m pip install -r tools/requirements.txt   # Windows
+pip3 install -r tools/requirements.txt        # Linux/macOS
+```
 ### Building with an IDE
 
 Many IDEs and text editors feature out-of-the-box support for CMake, so you
@@ -113,7 +121,7 @@ the 1990s when it comes to the PS1.
 
 ## License
 
-Everything in this repository, including
+Everything in this repository, including the vendored copy of
 [Marco Paland's `printf()` library](https://github.com/mpaland/printf), is
 licensed under the MIT license. If you want to build a project or even your own
 tutorial series on top of my code, attribution would be highly appreciated but

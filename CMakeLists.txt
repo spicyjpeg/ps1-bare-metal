@@ -23,9 +23,9 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/cmake/toolchain.cmake")
 # are optional, but the project name and LANGUAGES field should be present.
 project(
 	ps1-bare-metal
-	LANGUAGES    C CXX ASM
+	LANGUAGES    C ASM
 	VERSION      1.0.0
-	DESCRIPTION  "PlayStation 1 bare-metal C/C++ template"
+	DESCRIPTION  "PlayStation 1 bare-metal C examples"
 	HOMEPAGE_URL "https://github.com/spicyjpeg/ps1-bare-metal"
 )
 
@@ -62,12 +62,11 @@ function(addExample name)
 	# run from the build directory, so paths to files in the source directory
 	# must be prefixed with ${PROJECT_SOURCE_DIR}.
 	add_custom_command(
-		TARGET ${name} POST_BUILD
-		COMMAND
-			"${Python3_EXECUTABLE}"
-			"${PROJECT_SOURCE_DIR}/tools/convertExecutable.py"
-			"$<TARGET_FILE:${name}>" ${name}.psexe
+		TARGET     ${name} POST_BUILD
 		BYPRODUCTS ${name}.psexe
+		COMMAND
+			"${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convertExecutable.py"
+			"$<TARGET_FILE:${name}>" ${name}.psexe
 		VERBATIM
 	)
 endfunction()
@@ -77,3 +76,52 @@ addExample(chapter00_helloWorld    src/00_helloWorld/main.c)
 addExample(chapter01_basicGraphics src/01_basicGraphics/main.c)
 addExample(chapter02_doubleBuffer  src/02_doubleBuffer/main.c)
 addExample(chapter03_dmaChain      src/03_dmaChain/main.c)
+addExample(chapter04_textures      src/04_textures/main.c)
+
+# Define more helper functions to embed binary data into executables and convert
+# images into raw texture and palette data.
+function(addBinaryFile target name path)
+	set(_file "${PROJECT_BINARY_DIR}/${target}_${name}.s")
+	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE _path)
+
+	# Generate an assembly listing that uses the .incbin directive to embed the
+	# file and add it to the executable's list of source files. This may look
+	# hacky, but it works and lets us easily customize the symbol name (i.e. the
+	# name of the "array" that will contain the file's data).
+	file(
+		CONFIGURE
+		OUTPUT  "${_file}"
+		CONTENT [[
+.section .data.${name}, "aw"
+.balign 8
+
+.global ${name}
+.type ${name}, @object
+.size ${name}, (${name}_end - ${name})
+
+${name}:
+	.incbin "${_path}"
+${name}_end:
+		]]
+		ESCAPE_QUOTES
+		NEWLINE_STYLE LF
+	)
+
+	target_sources(${target} PRIVATE "${_file}")
+	set_source_files_properties("${_file}" PROPERTIES OBJECT_DEPENDS "${_path}")
+endfunction()
+
+function(convertImage input bpp)
+	add_custom_command(
+		OUTPUT  ${ARGN}
+		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
+		COMMAND
+			"${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convertImage.py"
+			-b ${bpp} "${PROJECT_SOURCE_DIR}/${input}" ${ARGN}
+		VERBATIM
+	)
+endfunction()
+
+# Convert all required assets and embed them into the examples.
+convertImage(src/04_textures/texture.png 16  "${PROJECT_BINARY_DIR}/chapter04_textureData.dat")
+addBinaryFile(chapter04_textures textureData "${PROJECT_BINARY_DIR}/chapter04_textureData.dat")

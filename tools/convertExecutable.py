@@ -16,7 +16,7 @@ from argparse    import ArgumentParser, FileType, Namespace
 from dataclasses import dataclass
 from enum        import IntEnum, IntFlag
 from struct      import Struct
-from typing      import BinaryIO, ByteString, Generator
+from typing      import BinaryIO, Generator
 
 ## Utilities
 

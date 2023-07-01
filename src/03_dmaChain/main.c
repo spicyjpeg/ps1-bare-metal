@@ -88,10 +88,10 @@ static void sendLinkedList(const void *data) {
 // Define a structure we'll allocate our linked list packets into. We are going
 // to use a fixed-size buffer and keep a pointer to the beginning of its free
 // area, incrementing it whenever we allocate a new packet.
-#define DMA_BUFFER_SIZE 1024
+#define CHAIN_BUFFER_SIZE 1024
 
 typedef struct {
-	uint32_t data[DMA_BUFFER_SIZE];
+	uint32_t data[CHAIN_BUFFER_SIZE];
 	uint32_t *nextPacket;
 } DMAChain;
 
@@ -110,7 +110,7 @@ static uint32_t *allocatePacket(DMAChain *chain, int numCommands) {
 
 	// Make sure we haven't yet run out of space for future packets or a linked
 	// list terminator, then return a pointer to the packet's first GP0 command.
-	assert(chain->nextPacket < &(chain->data)[DMA_BUFFER_SIZE]);
+	assert(chain->nextPacket < &(chain->data)[CHAIN_BUFFER_SIZE]);
 
 	return &ptr[1];
 }

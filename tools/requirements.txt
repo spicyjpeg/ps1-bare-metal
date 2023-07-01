@@ -1,0 +1,6 @@
+# Install the dependencies required by convertImage.py by running:
+#   py -m pip install -r tools/requirements.txt   (Windows)
+#   pip3 install -r tools/requirements.txt        (Linux/macOS)
+
+numpy  >= 1.19.4
+Pillow >= 8.2.0
