@@ -77,6 +77,7 @@ addExample(chapter01_basicGraphics src/01_basicGraphics/main.c)
 addExample(chapter02_doubleBuffer  src/02_doubleBuffer/main.c)
 addExample(chapter03_dmaChain      src/03_dmaChain/main.c)
 addExample(chapter04_textures      src/04_textures/main.c)
+addExample(chapter05_palettes      src/05_palettes/main.c)
 
 # Define more helper functions to embed binary data into executables and convert
 # images into raw texture and palette data.
@@ -123,5 +124,15 @@ function(convertImage input bpp)
 endfunction()
 
 # Convert all required assets and embed them into the examples.
-convertImage(src/04_textures/texture.png 16  "${PROJECT_BINARY_DIR}/chapter04_textureData.dat")
-addBinaryFile(chapter04_textures textureData "${PROJECT_BINARY_DIR}/chapter04_textureData.dat")
+convertImage(src/04_textures/texture.png 16 04_textureData.dat)
+addBinaryFile(
+	chapter04_textures textureData "${PROJECT_BINARY_DIR}/04_textureData.dat"
+)
+
+convertImage(src/05_palettes/texture.png 4 05_textureData.dat 05_paletteData.dat)
+addBinaryFile(
+	chapter05_palettes textureData "${PROJECT_BINARY_DIR}/05_textureData.dat"
+)
+addBinaryFile(
+	chapter05_palettes paletteData "${PROJECT_BINARY_DIR}/05_paletteData.dat"
+)

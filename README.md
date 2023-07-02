@@ -15,6 +15,7 @@ The following examples are currently available:
 |   2 | <img alt="Chapter 2" src="src/02_doubleBuffer/screenshot.png" width="100" />  | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)    |
 |   3 | <img alt="Chapter 3" src="src/03_dmaChain/screenshot.png" width="100" />      | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)    |
 |   4 | <img alt="Chapter 4" src="src/04_textures/screenshot.png" width="100" />      | [Uploading a texture to VRAM and using it](src/04_textures/main.c)             |
+|   5 | <img alt="Chapter 5" src="src/05_palettes/screenshot.png" width="100" />      | [Using indexed color textures and color palettes](src/05_palettes/main.c)      |
 
 New examples showing how to make use of more hardware features will be added
 over time.

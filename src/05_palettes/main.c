@@ -14,23 +14,21 @@
  * PERFORMANCE OF THIS SOFTWARE.
  *
  *
- * The last example showed how to take advantage of the PS1's DMA engine to send
- * commands to the GPU efficiently in the background. While that is by far the
- * most common use case for DMA, the GPU's DMA channel has another crucial role: 
- * it allows for fast data transfers from and to VRAM, which are useful for
- * uploading image data to be used as a texture when drawing.
+ * This is a version of the previous example modified to use an indexed color
+ * texture instead of a raw one. The idea behind indexed color images is
+ * remarkably simple: by limiting the maximum number of unique colors in an
+ * image and storing their values separately, it is possible to reduce the size
+ * of the image data by replacing each pixel with an index to its color into the
+ * so-called CLUT (color lookup table) or palette.
  *
- * This example shows how to upload raw 16bpp RGB image data embedded into the
- * executable to an arbitrary location within the 1024x512 VRAM buffer, store
- * its coordinates into memory and recall them later in order to draw a textured
- * sprite on screen. The process unfortunately involves dealing with a number of
- * GPU idiosyncracies, such as its lack of support for textures larger than
- * 256x256 or its requirement for all textures to be arranged into a grid of
- * 64x256 regions of VRAM known as "texture pages" (a texture may span up to
- * four pages horizontally but only one vertically, so it can't e.g. cross the
- * Y=256 boundary). With those details out of the way, however, using textures
- * boils down to simply performing a DMA transfer and setting the appropriate
- * fields in GP0 commands.
+ * The PS1's GPU supports two indexed color formats: 4 bits per pixel (up to 16
+ * colors) and 8 bits per pixel (up to 256 colors). 4bpp and 8bpp textures are
+ * stored in VRAM "squished" horizontally, taking up half or a quarter of the
+ * size of an equivalent 16bpp texture respectively. Palettes are simply 16x1 or
+ * 256x1 16bpp images that can be placed anywhere in VRAM, with some minimal
+ * restrictions on alignment (their X coordinate must be a multiple of 16). This
+ * example shows how to upload a palette to VRAM alongside the image and set the
+ * appropriate GP0 attributes in order to let the GPU find and use it.
  */
 
 #include <assert.h>
@@ -89,10 +87,6 @@ static void sendVRAMData(const void *data, int x, int y, int width, int height) 
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
-	// Calculate how many 32-bit words will be sent from the width and height of
-	// the texture. If more than 16 words have to be sent, configure DMA to
-	// split the transfer into 16-word chunks in order to make sure the GPU will
-	// not miss any data.
 	size_t length = (width * height) / 2;
 	size_t chunkSize, numChunks;
 
@@ -103,22 +97,14 @@ static void sendVRAMData(const void *data, int x, int y, int width, int height) 
 		chunkSize = DMA_MAX_CHUNK_SIZE;
 		numChunks = length / DMA_MAX_CHUNK_SIZE;
 
-		// Make sure the length is an exact multiple of 16 words, as otherwise
-		// the last chunk would be dropped (the DMA unit does not support
-		// "incomplete" chunks). Note that this will impose limitations on the
-		// size of VRAM uploads.
 		assert(!(length % DMA_MAX_CHUNK_SIZE));
 	}
 
-	// Put the GPU into VRAM upload mode by sending the appropriate GP0 command
-	// and our coordinates.
 	waitForGP0Ready();
 	GPU_GP0 = gp0_vramWrite();
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
 
-	// Give DMA a pointer to the beginning of the data and tell it to send it in
-	// slice (chunked) mode.
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
 	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_SLICE | DMA_CHCR_ENABLE;
@@ -141,49 +127,61 @@ static uint32_t *allocatePacket(DMAChain *chain, int numCommands) {
 	return &ptr[1];
 }
 
-// Once our texture has been uploaded to VRAM, we are going to save the metadata
-// required to use it for drawing into this structure.
+// We need to add a new entry to this structure to store the CLUT attribute,
+// another 16-bit field which will contain the coordinates of our texture's
+// palette within VRAM.
 typedef struct {
 	uint8_t  u, v;
 	uint16_t width, height;
-	uint16_t page;
+	uint16_t page, clut;
 } TextureInfo;
 
-static void uploadTexture(
-	TextureInfo *info, const void *data, int x, int y, int width, int height
+static void uploadIndexedTexture(
+	TextureInfo *info, const void *image, const void *palette, int x, int y,
+	int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth
 ) {
-	// Make sure the texture's size is valid. The GPU does not support textures
-	// larger than 256x256 pixels.
 	assert((width <= 256) && (height <= 256));
 
-	// Upload the texture to VRAM and wait for the process to complete.
-	sendVRAMData(data, x, y, width, height);
+	// Determine how large the palette is and by which factor the image is
+	// squished horizontally in VRAM from the color depth.
+	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;
+	int widthDivider = (colorDepth == GP0_COLOR_8BPP) ?   2 :  4;
+
+	// Make sure the palette is aligned correctly within VRAM and does not
+	// exceed its bounds.
+	assert(!(paletteX % 16) && ((paletteX + numColors) <= 1024));
+
+	// Upload the image and palette data separately.
+	sendVRAMData(image, x, y, width / widthDivider, height);
+	waitForDMADone();
+	sendVRAMData(palette, paletteX, paletteY, numColors, 1);
 	waitForDMADone();
 
-	// Update the "texpage" attribute, a 16-bit field telling the GPU several
-	// details about the texture such as which 64x256 page it can be found in,
-	// its color depth and how semitransparent pixels shall be blended.
+	// Update the texpage and CLUT attributes to match the location of the image
+	// and palette as well as the color depth.
 	info->page = gp0_page(
-		x / 64, y / 256, GP0_BLEND_SEMITRANS, GP0_COLOR_16BPP
+		x / 64, y / 256, GP0_BLEND_SEMITRANS, colorDepth
 	);
+	info->clut = gp0_clut(paletteX / 16, paletteY);
 
-	// Calculate the texture's UV coordinates, i.e. its X/Y coordinates relative
-	// to the top left corner of the texture page.
-	info->u      = (uint8_t)  (x % 64);
+	// UV coordinate calculation is slightly more complex than before. The GPU
+	// expects coordinates to be in texture pixels rather than VRAM pixels, so
+	// the U coordinate has to be multiplied by the previously computed divider.
+	info->u      = (uint8_t)  ((x % 64) * widthDivider);
 	info->v      = (uint8_t)  (y % 256);
 	info->width  = (uint16_t) width;
 	info->height = (uint16_t) height;
 }
 
-#define SCREEN_WIDTH   320
-#define SCREEN_HEIGHT  240
-#define TEXTURE_WIDTH  32
-#define TEXTURE_HEIGHT 32
+#define SCREEN_WIDTH        320
+#define SCREEN_HEIGHT       240
+#define TEXTURE_WIDTH       32
+#define TEXTURE_HEIGHT      32
+#define TEXTURE_COLOR_DEPTH GP0_COLOR_4BPP
 
-// We're going to convert our texture into raw binary data using a Python script
-// and embed it into this extern array through CMake. See CMakeLists.txt for
-// more details.
-extern const uint8_t textureData[];
+// The Python script will generate two separate files containing the image and
+// palette data respectively, so we're going to embed both into the executable.
+extern const uint8_t textureData[], paletteData[];
 
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
@@ -201,12 +199,14 @@ int main(int argc, const char **argv) {
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 	GPU_GP1 = gp1_dispBlank(false);
 
-	// Load the texture, placing it next to the two framebuffers in VRAM.
+	// Load the texture, placing the image next to the two framebuffers in VRAM
+	// and the palette below the image.
 	TextureInfo texture;
 
-	uploadTexture(
-		&texture, textureData, SCREEN_WIDTH * 2, 0, TEXTURE_WIDTH,
-		TEXTURE_HEIGHT
+	uploadIndexedTexture(
+		&texture, textureData, paletteData, SCREEN_WIDTH * 2, 0,
+		SCREEN_WIDTH * 2, TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT,
+		TEXTURE_COLOR_DEPTH
 	);
 
 	int x = 0, velocityX = 1;
@@ -241,15 +241,13 @@ int main(int argc, const char **argv) {
 		ptr[1] = gp0_xy(bufferX, bufferY);
 		ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-		// Use the texture we uploaded to draw a sprite (textured rectangle).
-		// Two separate commands have to be sent: a texpage command to apply our
-		// texpage attribute and disable dithering, followed by the actual
-		// rectangle drawing command.
+		// Draw the sprite, almost identically to how we did it in the previous
+		// example. Notice how the CLUT attribute is being passed to the GPU.
 		ptr    = allocatePacket(chain, 5);
 		ptr[0] = gp0_texpage(texture.page, false, false);
 		ptr[1] = gp0_rectangle(true, true, false);
 		ptr[2] = gp0_xy(x, y);
-		ptr[3] = gp0_uv(texture.u, texture.v, 0);
+		ptr[3] = gp0_uv(texture.u, texture.v, texture.clut);
 		ptr[4] = gp0_xy(texture.width, texture.height);
 
 		*(chain->nextPacket) = gp0_endTag(0);
