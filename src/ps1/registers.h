@@ -178,6 +178,7 @@ typedef enum {
 typedef enum {
 	DMA_CHCR_READ             = 0 <<  0,
 	DMA_CHCR_WRITE            = 1 <<  0,
+	DMA_CHCR_REVERSE          = 1 <<  1,
 	DMA_CHCR_CHOPPING         = 1 <<  8,
 	DMA_CHCR_MODE_BITMASK     = 3 <<  9,
 	DMA_CHCR_MODE_BURST       = 0 <<  9,

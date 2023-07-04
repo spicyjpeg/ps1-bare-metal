@@ -30,8 +30,7 @@
  * and height of each character in a string.
  *
  * NOTE: in order to make the code easier to read, I have moved all the
- * GPU-related functions from previous examples to a separate source file. The
- * same file will be used throughout the rest of this tutorial series.
+ * GPU-related functions from previous examples to a separate source file.
  */
 
 #include <stdbool.h>
@@ -246,6 +245,7 @@ int main(int argc, const char **argv) {
 
 	DMAChain dmaChains[2];
 	bool     usingSecondFrame = false;
+	int      frameCounter     = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
@@ -278,6 +278,13 @@ int main(int argc, const char **argv) {
 			"Hello world!\n"
 			"We're printing text using nothing but our font spritesheet."
 		);
+
+		// Show the current frame number by formatting some text into a
+		// temporary buffer then printing it.
+		char buffer[32];
+
+		snprintf(buffer, sizeof(buffer), "Current frame: %d", frameCounter++);
+		printString(chain, &font, 16, 64, buffer);
 
 		*(chain->nextPacket) = gp0_endTag(0);
 
