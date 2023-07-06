@@ -18,6 +18,7 @@ The following examples are currently available:
 |   5 | <img alt="Chapter 5" src="src/05_palettes/screenshot.png" width="100" />      | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
 |   6 | <img alt="Chapter 6" src="src/06_fonts/screenshot.png" width="100" />         | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
 |   7 | <img alt="Chapter 7" src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
+|   8 | <img alt="Chapter 8" src="src/08_spinningCube/screenshot.png" width="100" />  | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
 
 New examples showing how to make use of more hardware features will be added
 over time.

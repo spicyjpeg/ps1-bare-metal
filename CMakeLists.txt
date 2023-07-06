@@ -80,7 +80,7 @@ addExample(chapter04_textures      src/04_textures/main.c)
 addExample(chapter05_palettes      src/05_palettes/main.c)
 addExample(chapter06_fonts         src/06_fonts/main.c src/06_fonts/gpu.c)
 addExample(chapter07_orderingTable src/07_orderingTable/main.c src/07_orderingTable/gpu.c)
-
+addExample(chapter08_spinningCube  src/08_spinningCube/main.c src/08_spinningCube/gpu.c src/08_spinningCube/trig.c)
 
 # Define more helper functions to embed binary data into executables and convert
 # images into raw texture and palette data.
