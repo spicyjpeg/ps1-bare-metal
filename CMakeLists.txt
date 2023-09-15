@@ -81,6 +81,7 @@ addExample(chapter05_palettes      src/05_palettes/main.c)
 addExample(chapter06_fonts         src/06_fonts/main.c src/06_fonts/gpu.c)
 addExample(chapter07_orderingTable src/07_orderingTable/main.c src/07_orderingTable/gpu.c)
 addExample(chapter08_spinningCube  src/08_spinningCube/main.c src/08_spinningCube/gpu.c src/08_spinningCube/trig.c)
+addExample(chapter09_controllers   src/09_controllers/main.c src/09_controllers/gpu.c src/09_controllers/font.c)
 
 # Define more helper functions to embed binary data into executables and convert
 # images into raw texture and palette data.
@@ -127,13 +128,17 @@ function(convertImage input bpp)
 endfunction()
 
 # Convert all required assets and embed them into the examples.
-convertImage(src/04_textures/texture.png 16 04_textureData.dat)
-addBinaryFile(chapter04_textures textureData "${PROJECT_BINARY_DIR}/04_textureData.dat")
+convertImage(src/04_textures/texture.png 16 chapter04/textureData.dat)
+addBinaryFile(chapter04_textures textureData "${PROJECT_BINARY_DIR}/chapter04/textureData.dat")
 
-convertImage(src/05_palettes/texture.png 4 05_textureData.dat 05_paletteData.dat)
-addBinaryFile(chapter05_palettes textureData "${PROJECT_BINARY_DIR}/05_textureData.dat")
-addBinaryFile(chapter05_palettes paletteData "${PROJECT_BINARY_DIR}/05_paletteData.dat")
+convertImage(src/05_palettes/texture.png 4 chapter05/textureData.dat chapter05/paletteData.dat)
+addBinaryFile(chapter05_palettes textureData "${PROJECT_BINARY_DIR}/chapter05/textureData.dat")
+addBinaryFile(chapter05_palettes paletteData "${PROJECT_BINARY_DIR}/chapter05/paletteData.dat")
 
-convertImage(src/06_fonts/font.png 4 06_fontTexture.dat 06_fontPalette.dat)
-addBinaryFile(chapter06_fonts fontTexture "${PROJECT_BINARY_DIR}/06_fontTexture.dat")
-addBinaryFile(chapter06_fonts fontPalette "${PROJECT_BINARY_DIR}/06_fontPalette.dat")
+convertImage(src/06_fonts/font.png 4 chapter06/fontTexture.dat chapter06/fontPalette.dat)
+addBinaryFile(chapter06_fonts fontTexture "${PROJECT_BINARY_DIR}/chapter06/fontTexture.dat")
+addBinaryFile(chapter06_fonts fontPalette "${PROJECT_BINARY_DIR}/chapter06/fontPalette.dat")
+
+convertImage(src/09_controllers/font.png 4 chapter09/fontTexture.dat chapter09/fontPalette.dat)
+addBinaryFile(chapter09_controllers fontTexture "${PROJECT_BINARY_DIR}/chapter09/fontTexture.dat")
+addBinaryFile(chapter09_controllers fontPalette "${PROJECT_BINARY_DIR}/chapter09/fontPalette.dat")
