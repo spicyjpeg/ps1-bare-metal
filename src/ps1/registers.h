@@ -32,11 +32,13 @@
 #define F_GPU_PAL  53203425
 
 typedef enum {
-	DEV0_BASE = 0xbf000000,
-	EXP1_BASE = 0xbf000000,
-	IO_BASE   = 0xbf800000,
-	EXP2_BASE = 0xbf802000,
-	EXP3_BASE = 0xbfa00000
+	DEV0_BASE  = 0xbf000000,
+	EXP1_BASE  = 0xbf000000,
+	CACHE_BASE = 0x9f800000, // Cannot be accessed from KSEG1
+	IO_BASE    = 0xbf801000,
+	EXP2_BASE  = 0xbf802000,
+	EXP3_BASE  = 0xbfa00000,
+	DEV2_BASE  = 0xbfc00000
 } BaseAddress;
 
 /* Bus interface */
@@ -59,15 +61,15 @@ typedef enum {
 	BIU_CTRL_WAIT                =  1 << 31
 } BIUControlFlag;
 
-#define BIU_DEV0_ADDR _MMIO32(IO_BASE | 0x1000) // PIO/573
-#define BIU_EXP2_ADDR _MMIO32(IO_BASE | 0x1004) // PIO/debug
-#define BIU_DEV0_CTRL _MMIO32(IO_BASE | 0x1008) // PIO/573
-#define BIU_EXP3_CTRL _MMIO32(IO_BASE | 0x100c) // PIO/debug
-#define BIU_DEV2_CTRL _MMIO32(IO_BASE | 0x1010) // BIOS ROM
-#define BIU_DEV4_CTRL _MMIO32(IO_BASE | 0x1014) // SPU
-#define BIU_DEV5_CTRL _MMIO32(IO_BASE | 0x1018) // CD-ROM
-#define BIU_EXP2_CTRL _MMIO32(IO_BASE | 0x101c) // PIO/debug
-#define BIU_COM_DELAY _MMIO32(IO_BASE | 0x1020)
+#define BIU_DEV0_ADDR _MMIO32(IO_BASE | 0x000) // PIO/573
+#define BIU_EXP2_ADDR _MMIO32(IO_BASE | 0x004) // PIO/debug
+#define BIU_DEV0_CTRL _MMIO32(IO_BASE | 0x008) // PIO/573
+#define BIU_EXP3_CTRL _MMIO32(IO_BASE | 0x00c) // PIO/debug
+#define BIU_DEV2_CTRL _MMIO32(IO_BASE | 0x010) // BIOS ROM
+#define BIU_DEV4_CTRL _MMIO32(IO_BASE | 0x014) // SPU
+#define BIU_DEV5_CTRL _MMIO32(IO_BASE | 0x018) // CD-ROM
+#define BIU_EXP2_CTRL _MMIO32(IO_BASE | 0x01c) // PIO/debug
+#define BIU_COM_DELAY _MMIO32(IO_BASE | 0x020)
 
 /* Serial interfaces */
 
@@ -122,11 +124,11 @@ typedef enum {
 
 // SIO_DATA is a 32-bit register, but some emulators do not implement it
 // correctly and break if it's read more than 8 bits at a time.
-#define SIO_DATA(N) _MMIO8 ((IO_BASE | 0x1040) + (16 * (N)))
-#define SIO_STAT(N) _MMIO16((IO_BASE | 0x1044) + (16 * (N)))
-#define SIO_MODE(N) _MMIO16((IO_BASE | 0x1048) + (16 * (N)))
-#define SIO_CTRL(N) _MMIO16((IO_BASE | 0x104a) + (16 * (N)))
-#define SIO_BAUD(N) _MMIO16((IO_BASE | 0x104e) + (16 * (N)))
+#define SIO_DATA(N) _MMIO8 ((IO_BASE | 0x040) + (16 * (N)))
+#define SIO_STAT(N) _MMIO16((IO_BASE | 0x044) + (16 * (N)))
+#define SIO_MODE(N) _MMIO16((IO_BASE | 0x048) + (16 * (N)))
+#define SIO_CTRL(N) _MMIO16((IO_BASE | 0x04a) + (16 * (N)))
+#define SIO_BAUD(N) _MMIO16((IO_BASE | 0x04e) + (16 * (N)))
 
 /* DRAM controller */
 
@@ -141,7 +143,7 @@ typedef enum {
 	DRAM_CTRL_SIZE_2MB    = 1 << 11  // 2MB chips (8MB with MUL4)
 } DRAMControlFlag;
 
-#define DRAM_CTRL _MMIO32(IO_BASE | 0x1060)
+#define DRAM_CTRL _MMIO32(IO_BASE | 0x060)
 
 /* IRQ controller */
 
@@ -160,8 +162,8 @@ typedef enum {
 	IRQ_PIO    = 10
 } IRQChannel;
 
-#define IRQ_STAT _MMIO16(IO_BASE | 0x1070)
-#define IRQ_MASK _MMIO16(IO_BASE | 0x1074)
+#define IRQ_STAT _MMIO16(IO_BASE | 0x070)
+#define IRQ_MASK _MMIO16(IO_BASE | 0x074)
 
 /* DMA */
 
@@ -211,12 +213,12 @@ typedef enum {
 #define DMA_DICR_CH_ENABLE(dma) (1 << ((dma) + 16))
 #define DMA_DICR_CH_STAT(dma)   (1 << ((dma) + 24))
 
-#define DMA_MADR(N) _MMIO32((IO_BASE | 0x1080) + (16 * (N)))
-#define DMA_BCR(N)  _MMIO32((IO_BASE | 0x1084) + (16 * (N)))
-#define DMA_CHCR(N) _MMIO32((IO_BASE | 0x1088) + (16 * (N)))
+#define DMA_MADR(N) _MMIO32((IO_BASE | 0x080) + (16 * (N)))
+#define DMA_BCR(N)  _MMIO32((IO_BASE | 0x084) + (16 * (N)))
+#define DMA_CHCR(N) _MMIO32((IO_BASE | 0x088) + (16 * (N)))
 
-#define DMA_DPCR _MMIO32(IO_BASE | 0x10f0)
-#define DMA_DICR _MMIO32(IO_BASE | 0x10f4)
+#define DMA_DPCR _MMIO32(IO_BASE | 0x0f0)
+#define DMA_DICR _MMIO32(IO_BASE | 0x0f4)
 
 /* Timers */
 
@@ -239,9 +241,9 @@ typedef enum {
 	TIMER_CTRL_OVERFLOWED      = 1 << 12
 } TimerControlFlag;
 
-#define TIMER_VALUE(N)  _MMIO32((IO_BASE | 0x1100) + (16 * (N)))
-#define TIMER_CTRL(N)   _MMIO32((IO_BASE | 0x1104) + (16 * (N)))
-#define TIMER_RELOAD(N) _MMIO32((IO_BASE | 0x1108) + (16 * (N)))
+#define TIMER_VALUE(N)  _MMIO32((IO_BASE | 0x100) + (16 * (N)))
+#define TIMER_CTRL(N)   _MMIO32((IO_BASE | 0x104) + (16 * (N)))
+#define TIMER_RELOAD(N) _MMIO32((IO_BASE | 0x108) + (16 * (N)))
 
 /* CD-ROM drive */
 
@@ -298,12 +300,12 @@ typedef enum {
 	CDROM_MODE_SPEED_2X    = 1 << 7
 } CDROMModeFlag;
 
-#define CDROM_STAT _MMIO8(IO_BASE | 0x1800)
-#define CDROM_CMD  _MMIO8(IO_BASE | 0x1801)
-#define CDROM_DATA _MMIO8(IO_BASE | 0x1802)
-#define CDROM_IRQ  _MMIO8(IO_BASE | 0x1803)
+#define CDROM_STAT _MMIO8(IO_BASE | 0x800)
+#define CDROM_CMD  _MMIO8(IO_BASE | 0x801)
+#define CDROM_DATA _MMIO8(IO_BASE | 0x802)
+#define CDROM_IRQ  _MMIO8(IO_BASE | 0x803)
 
-#define CDROM_REG(N) _MMIO8((IO_BASE | 0x1800) + (N))
+#define CDROM_REG(N) _MMIO8((IO_BASE | 0x800) + (N))
 
 /* GPU */
 
@@ -320,8 +322,8 @@ typedef enum {
 	GP1_STAT_FIELD_ODD    = 1 << 31
 } GP1StatusFlag;
 
-#define GPU_GP0 _MMIO32(IO_BASE | 0x1810)
-#define GPU_GP1 _MMIO32(IO_BASE | 0x1814)
+#define GPU_GP0 _MMIO32(IO_BASE | 0x810)
+#define GPU_GP1 _MMIO32(IO_BASE | 0x814)
 
 /* MDEC */
 
@@ -346,8 +348,8 @@ typedef enum {
 	MDEC_CTRL_RESET   = 1 << 31
 } MDECControlFlag;
 
-#define MDEC0 _MMIO32(IO_BASE | 0x1820)
-#define MDEC1 _MMIO32(IO_BASE | 0x1824)
+#define MDEC0 _MMIO32(IO_BASE | 0x820)
+#define MDEC1 _MMIO32(IO_BASE | 0x824)
 
 /* SPU */
 
@@ -385,44 +387,44 @@ typedef enum {
 	SPU_CTRL_ENABLE         = 1 << 15
 } SPUControlFlag;
 
-#define SPU_CH_VOL_L(N) _MMIO16((IO_BASE | 0x1c00) + (16 * (N)))
-#define SPU_CH_VOL_R(N) _MMIO16((IO_BASE | 0x1c02) + (16 * (N)))
-#define SPU_CH_FREQ(N)  _MMIO16((IO_BASE | 0x1c04) + (16 * (N)))
-#define SPU_CH_ADDR(N)  _MMIO16((IO_BASE | 0x1c06) + (16 * (N)))
-#define SPU_CH_ADSR1(N) _MMIO16((IO_BASE | 0x1c08) + (16 * (N)))
-#define SPU_CH_ADSR2(N) _MMIO16((IO_BASE | 0x1c0a) + (16 * (N)))
-#define SPU_CH_LOOP(N)  _MMIO16((IO_BASE | 0x1c0e) + (16 * (N)))
+#define SPU_CH_VOL_L(N) _MMIO16((IO_BASE | 0xc00) + (16 * (N)))
+#define SPU_CH_VOL_R(N) _MMIO16((IO_BASE | 0xc02) + (16 * (N)))
+#define SPU_CH_FREQ(N)  _MMIO16((IO_BASE | 0xc04) + (16 * (N)))
+#define SPU_CH_ADDR(N)  _MMIO16((IO_BASE | 0xc06) + (16 * (N)))
+#define SPU_CH_ADSR1(N) _MMIO16((IO_BASE | 0xc08) + (16 * (N)))
+#define SPU_CH_ADSR2(N) _MMIO16((IO_BASE | 0xc0a) + (16 * (N)))
+#define SPU_CH_LOOP(N)  _MMIO16((IO_BASE | 0xc0e) + (16 * (N)))
 
-#define SPU_MASTER_VOL_L _MMIO16(IO_BASE | 0x1d80)
-#define SPU_MASTER_VOL_R _MMIO16(IO_BASE | 0x1d82)
-#define SPU_REVERB_VOL_L _MMIO16(IO_BASE | 0x1d84)
-#define SPU_REVERB_VOL_R _MMIO16(IO_BASE | 0x1d86)
-#define SPU_FLAG_ON1     _MMIO16(IO_BASE | 0x1d88)
-#define SPU_FLAG_ON2     _MMIO16(IO_BASE | 0x1d8a)
-#define SPU_FLAG_OFF1    _MMIO16(IO_BASE | 0x1d8c)
-#define SPU_FLAG_OFF2    _MMIO16(IO_BASE | 0x1d8e)
-#define SPU_FLAG_FM1     _MMIO16(IO_BASE | 0x1d90)
-#define SPU_FLAG_FM2     _MMIO16(IO_BASE | 0x1d92)
-#define SPU_FLAG_NOISE1  _MMIO16(IO_BASE | 0x1d94)
-#define SPU_FLAG_NOISE2  _MMIO16(IO_BASE | 0x1d96)
-#define SPU_FLAG_REVERB1 _MMIO16(IO_BASE | 0x1d98)
-#define SPU_FLAG_REVERB2 _MMIO16(IO_BASE | 0x1d9a)
-#define SPU_FLAG_STATUS1 _MMIO16(IO_BASE | 0x1d9c)
-#define SPU_FLAG_STATUS2 _MMIO16(IO_BASE | 0x1d9e)
+#define SPU_MASTER_VOL_L _MMIO16(IO_BASE | 0xd80)
+#define SPU_MASTER_VOL_R _MMIO16(IO_BASE | 0xd82)
+#define SPU_REVERB_VOL_L _MMIO16(IO_BASE | 0xd84)
+#define SPU_REVERB_VOL_R _MMIO16(IO_BASE | 0xd86)
+#define SPU_FLAG_ON1     _MMIO16(IO_BASE | 0xd88)
+#define SPU_FLAG_ON2     _MMIO16(IO_BASE | 0xd8a)
+#define SPU_FLAG_OFF1    _MMIO16(IO_BASE | 0xd8c)
+#define SPU_FLAG_OFF2    _MMIO16(IO_BASE | 0xd8e)
+#define SPU_FLAG_FM1     _MMIO16(IO_BASE | 0xd90)
+#define SPU_FLAG_FM2     _MMIO16(IO_BASE | 0xd92)
+#define SPU_FLAG_NOISE1  _MMIO16(IO_BASE | 0xd94)
+#define SPU_FLAG_NOISE2  _MMIO16(IO_BASE | 0xd96)
+#define SPU_FLAG_REVERB1 _MMIO16(IO_BASE | 0xd98)
+#define SPU_FLAG_REVERB2 _MMIO16(IO_BASE | 0xd9a)
+#define SPU_FLAG_STATUS1 _MMIO16(IO_BASE | 0xd9c)
+#define SPU_FLAG_STATUS2 _MMIO16(IO_BASE | 0xd9e)
 
-#define SPU_REVERB_ADDR _MMIO16(IO_BASE | 0x1da2)
-#define SPU_IRQ_ADDR    _MMIO16(IO_BASE | 0x1da4)
-#define SPU_ADDR        _MMIO16(IO_BASE | 0x1da6)
-#define SPU_DATA        _MMIO16(IO_BASE | 0x1da8)
-#define SPU_CTRL        _MMIO16(IO_BASE | 0x1daa)
-#define SPU_DMA_CTRL    _MMIO16(IO_BASE | 0x1dac)
-#define SPU_STAT        _MMIO16(IO_BASE | 0x1dae)
+#define SPU_REVERB_ADDR _MMIO16(IO_BASE | 0xda2)
+#define SPU_IRQ_ADDR    _MMIO16(IO_BASE | 0xda4)
+#define SPU_ADDR        _MMIO16(IO_BASE | 0xda6)
+#define SPU_DATA        _MMIO16(IO_BASE | 0xda8)
+#define SPU_CTRL        _MMIO16(IO_BASE | 0xdaa)
+#define SPU_DMA_CTRL    _MMIO16(IO_BASE | 0xdac)
+#define SPU_STAT        _MMIO16(IO_BASE | 0xdae)
 
-#define SPU_CDDA_VOL_L _MMIO16(IO_BASE | 0x1db0)
-#define SPU_CDDA_VOL_R _MMIO16(IO_BASE | 0x1db2)
-#define SPU_EXT_VOL_L  _MMIO16(IO_BASE | 0x1db4)
-#define SPU_EXT_VOL_R  _MMIO16(IO_BASE | 0x1db6)
-#define SPU_VOL_STAT_L _MMIO16(IO_BASE | 0x1db8)
-#define SPU_VOL_STAT_R _MMIO16(IO_BASE | 0x1dba)
+#define SPU_CDDA_VOL_L _MMIO16(IO_BASE | 0xdb0)
+#define SPU_CDDA_VOL_R _MMIO16(IO_BASE | 0xdb2)
+#define SPU_EXT_VOL_L  _MMIO16(IO_BASE | 0xdb4)
+#define SPU_EXT_VOL_R  _MMIO16(IO_BASE | 0xdb6)
+#define SPU_VOL_STAT_L _MMIO16(IO_BASE | 0xdb8)
+#define SPU_VOL_STAT_R _MMIO16(IO_BASE | 0xdba)
 
-#define SPU_REVERB_BASE _ADDR16(IO_BASE | 0x1dc0)
+#define SPU_REVERB_BASE _ADDR16(IO_BASE | 0xdc0)

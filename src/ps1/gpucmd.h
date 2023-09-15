@@ -240,9 +240,9 @@ typedef enum {
 } GP1HorizontalRes;
 
 typedef enum {
-	GP1_VRES_BITMASK = 1 << 2,
-	GP1_VRES_256     = 0 << 2,
-	GP1_VRES_512     = 1 << 2
+	GP1_VRES_BITMASK = 1,
+	GP1_VRES_256     = 0,
+	GP1_VRES_512     = 1
 } GP1VerticalRes;
 
 typedef enum {

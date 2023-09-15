@@ -190,7 +190,7 @@ def main():
 					logging.warning("requantizing indexed color image")
 
 					image: Image.Image = inputImage.quantize(
-						args.quantize, dither = Image.Dither.NONE
+						args.quantize, dither = Image.NONE
 					)
 				else:
 					image: Image.Image = inputImage
@@ -200,7 +200,7 @@ def main():
 				logging.info(f"quantizing image down to {numColors} colors")
 
 				image: Image.Image = inputImage.quantize(
-					numColors, dither = Image.Dither.NONE
+					numColors, dither = Image.NONE
 				)
 
 			case "P", 16:

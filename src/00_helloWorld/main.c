@@ -29,7 +29,7 @@
 
 #include "ps1/registers.h"
 
-static void print_character(char ch) {
+static void printCharacter(char ch) {
 	// Wait until the serial interface is ready to send a new byte, then write
 	// it to the data register.
 	// NOTE: the serial interface checks for an external signal (CTS) and will
@@ -59,7 +59,7 @@ int main(int argc, const char **argv) {
 		const char *str = "Hello world!\n";
 
 		for (; *str; str++)
-			print_character(*str);
+			printCharacter(*str);
 	}
 
 	// We're not actually going to return. Unless a loader was used to launch

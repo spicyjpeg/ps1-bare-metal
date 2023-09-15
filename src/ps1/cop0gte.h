@@ -88,15 +88,37 @@ typedef enum {
 	COP0_SR_CU2 = 1 << 30  // Coprocessor 2 enable
 } COP0StatusFlag;
 
-static inline uint32_t cop0_getSR(void) {
-	uint32_t value;
+#define SETTER(reg, type) \
+	static inline type cop0_get##reg(void) { \
+		type value; \
+		COP0_GET(COP0_##reg, value); \
+		return value; \
+	} \
+	static inline void cop0_set##reg(type value) { \
+		COP0_SET(COP0_##reg, value); \
+	} \
 
-	COP0_GET(COP0_SR, value);
-	return value;
-}
-static inline void cop0_setSR(uint32_t value) {
-	COP0_SET(COP0_SR, value);
-}
+SETTER(BPC,  void *)
+SETTER(BDA,  void *)
+SETTER(DCIC, uint32_t)
+SETTER(BDAM, uint32_t)
+SETTER(BPCM, uint32_t)
+SETTER(SR,   uint32_t)
+
+#undef SETTER
+
+#define GETTER(reg, type) \
+	static inline type cop0_get##reg(void) { \
+		type value; \
+		COP0_GET(COP0_##reg, value); \
+		return value; \
+	} \
+
+GETTER(BADVADDR, void *)
+GETTER(CAUSE,    uint32_t)
+GETTER(EPC,      void *)
+
+#undef GETTER
 
 /* GTE commands */
 
