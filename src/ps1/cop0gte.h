@@ -19,24 +19,24 @@
 #include <stdint.h>
 
 #define COP0_GET(reg, output) \
-	__asm__ volatile("mfc0 %0, $%1;" :  "=r"(output) : "i"(reg))
+	__asm__ volatile("mfc0 %0, $%1\n" :  "=r"(output) : "i"(reg))
 #define COP0_SET(reg, input) \
-	__asm__ volatile("mtc0 %0, $%1;" :: "r"(input), "i"(reg))
+	__asm__ volatile("mtc0 %0, $%1\n" :: "r"(input), "i"(reg))
 
 #define GTE_GET(reg, output) \
-	__asm__ volatile("mfc2 %0, $%1;" :  "=r"(output) : "i"(reg))
+	__asm__ volatile("mfc2 %0, $%1\n" :  "=r"(output) : "i"(reg))
 #define GTE_SET(reg, input) \
-	__asm__ volatile("mtc2 %0, $%1;" :: "r"(input), "i"(reg))
+	__asm__ volatile("mtc2 %0, $%1\n" :: "r"(input), "i"(reg))
 
 #define GTE_GETC(reg, output) \
-	__asm__ volatile("cfc2 %0, $%1;" :  "=r"(output) : "i"(reg))
+	__asm__ volatile("cfc2 %0, $%1\n" :  "=r"(output) : "i"(reg))
 #define GTE_SETC(reg, input) \
-	__asm__ volatile("ctc2 %0, $%1;" :: "r"(input), "i"(reg))
+	__asm__ volatile("ctc2 %0, $%1\n" :: "r"(input), "i"(reg))
 
 #define GTE_LOAD(reg, offset, ptr) \
-	__asm__ volatile("lwc2 $%0, %1(%2);" :: "i"(reg), "i"(offset), "r"(ptr))
+	__asm__ volatile("lwc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr))
 #define GTE_STORE(reg, offset, ptr) \
-	__asm__ volatile("swc2 $%0, %1(%2);" :: "i"(reg), "i"(offset), "r"(ptr) : "memory")
+	__asm__ volatile("swc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr) : "memory")
 
 /* Coprocessor 0 */
 
@@ -179,7 +179,7 @@ typedef struct {
 } GTEMatrix;
 
 #define gte_command(cmd) \
-	__asm__ volatile("nop; nop; cop2 %0;" :: "i"(cmd))
+	__asm__ volatile("nop\n" "nop\n" "cop2 %0\n" :: "i"(cmd))
 
 /* GTE control registers */
 

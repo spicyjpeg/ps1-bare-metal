@@ -26,40 +26,48 @@ SECTIONS {
 	/* Code sections */
 
 	.text : {
+		_textStart = .;
+
 		*(.text .text.* .gnu.linkonce.t.*)
 		*(.plt .MIPS.stubs)
 	} > APP_RAM
 
 	.rodata : {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
+
+		_textEnd = .;
 	} > APP_RAM
 
 	/* Global constructor/destructor arrays */
 
-	. = ALIGN((. != 0) ? 4 : 1);
-	_preinitArrayStart = .;
-
 	.preinit_array : {
-		KEEP(*(.preinit_array))
-	}
+		. = ALIGN((. != 0) ? 4 : 1);
+		_preinitArrayStart = .;
 
-	_preinitArrayEnd = .;
-	_initArrayStart  = .;
+		KEEP(*(.preinit_array))
+
+		_preinitArrayEnd = .;
+	} > APP_RAM
 
 	.init_array : {
+		. = ALIGN((. != 0) ? 4 : 1);
+		_initArrayStart = .;
+
 		KEEP(*(SORT(.init_array.*) SORT(.ctors.*)))
 		KEEP(*(.init_array .ctors))
-	} > APP_RAM
 
-	_initArrayEnd   = .;
-	_finiArrayStart = .;
+		_initArrayEnd = .;
+	} > APP_RAM
 
 	.fini_array : {
+		. = ALIGN((. != 0) ? 4 : 1);
+		_finiArrayStart = .;
+
 		KEEP(*(.fini_array .dtors))
 		KEEP(*(SORT(.fini_array.*) SORT(.dtors.*)))
-	} > APP_RAM
 
-	_finiArrayEnd = .;
+		_finiArrayEnd = .;
+	} > APP_RAM
 
 	/* Data sections */
 
@@ -72,16 +80,16 @@ SECTIONS {
 	 * so anything within .sdata and .sbss can be accessed using the $gp
 	 * register as base plus a signed 16-bit immediate.
 	 */
-	_gp = ALIGN(16) + 0x7ff0;
-
 	.sdata : {
+		_gp = ALIGN(16) + 0x7ff0;
+
 		*(.sdata .sdata.* .gnu.linkonce.s.*)
 	} > APP_RAM
 
-	. = ALIGN((. != 0) ? 4 : 1);
-	_bssStart = .;
-
 	.sbss (NOLOAD) : {
+		. = ALIGN((. != 0) ? 4 : 1);
+		_bssStart = .;
+
 		*(.sbss .sbss.* .gnu.linkonce.sb.*)
 		*(.scommon)
 	} > APP_RAM
@@ -89,10 +97,10 @@ SECTIONS {
 	.bss (NOLOAD) : {
 		*(.bss .bss.* .gnu.linkonce.b.*)
 		*(COMMON)
-	} > APP_RAM
 
-	. = ALIGN((. != 0) ? 4 : 1);
-	_bssEnd = .;
+		. = ALIGN((. != 0) ? 4 : 1);
+		_bssEnd = .;
+	} > APP_RAM
 
 	/* Dummy sections */
 

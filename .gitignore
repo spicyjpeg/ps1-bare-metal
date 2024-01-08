@@ -5,6 +5,7 @@ desktop.ini
 
 # Do not include any built or cached files.
 build/
+.cache/
 __pycache__/
 *.pyc
 *.pyo

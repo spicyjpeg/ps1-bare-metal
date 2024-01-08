@@ -43,18 +43,18 @@
 #include "ps1/registers.h"
 
 static void delayMicroseconds(int time) {
-	// Calculate the number of loop iterations that need to be executed in order
-	// to stall for approximately the specified number of microseconds. The loop
+	// Calculate the approximate number of CPU cycles that need to be burned,
+	// assuming a 33.8688 MHz clock (1 us = 33.8688 = ~33.875 cycles). The loop
 	// consists of a branch and a decrement, thus each iteration will burn 2 CPU
 	// cycles.
-	time *= (F_CPU + 1000000) / 2000000;
+	time = ((time * 271) + 4) / 8;
 
 	__asm__ volatile(
-		".set noreorder;"
-		"bgtz  %0, .;"
-		"addiu %0, -1;"
-		".set reorder;"
-		: "=r"(time) : "r"(time)
+		".set noreorder\n"
+		"bgtz  %0, .\n"
+		"addiu %0, -2\n"
+		".set reorder\n"
+		: "+r"(time)
 	);
 }
 
@@ -162,36 +162,37 @@ static int exchangePacket(
 	SIO_CTRL(0) |= SIO_CTRL_DTR | SIO_CTRL_ACKNOWLEDGE;
 	delayMicroseconds(DTR_DELAY);
 
+	int respLength = 0;
+
 	// Send the address byte and wait for the device to respond with a pulse on
 	// the DSR line. If no response is received assume no device is connected,
 	// otherwise make sure the serial interface's data buffer is empty to
 	// prepare for the actual packet transfer.
 	SIO_DATA(0) = address;
 
-	if (!waitForAcknowledge(DSR_TIMEOUT))
-		return 0;
-	while (SIO_STAT(0) & SIO_STAT_RX_NOT_EMPTY)
-		SIO_DATA(0);
+	if (waitForAcknowledge(DSR_TIMEOUT)) {
+		while (SIO_STAT(0) & SIO_STAT_RX_NOT_EMPTY)
+			SIO_DATA(0);
 
-	int respLength = 0;
+		// Send and receive the packet simultaneously one byte at a time,
+		// padding it with zeroes if the packet we are receiving is longer than
+		// the data being sent.
+		while (respLength < maxRespLength) {
+			if (reqLength > 0) {
+				*(response++) = exchangeByte(*(request++));
+				reqLength--;
+			} else {
+				*(response++) = exchangeByte(0);
+			}
 
-	// Send and receive the packet simultaneously one byte at a time, padding it
-	// with zeroes if the packet we are receiving is longer than the data being
-	// sent.
-	while (respLength < maxRespLength) {
-		if (reqLength > 0) {
-			*(response++) = exchangeByte(*(request++));
-			reqLength--;
-		} else {
-			*(response++) = exchangeByte(0);
+			respLength++;
+
+			// The device will keep sending DSR pulses as long as there is more
+			// data to transfer. If no more pulses are received, terminate the
+			// transfer.
+			if (!waitForAcknowledge(DSR_TIMEOUT))
+				break;
 		}
-
-		respLength++;
-
-		// The device will keep sending DSR pulses as long as there is more data
-		// to transfer. If no more pulses are received, terminate the transfer.
-		if (!waitForAcknowledge(DSR_TIMEOUT))
-			break;
 	}
 
 	// Release DSR, allowing the device to go idle.

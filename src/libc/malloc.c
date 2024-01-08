@@ -150,8 +150,8 @@ void *realloc(void *ptr, size_t size) {
 	if (!ptr)
 		return malloc(size);
 
-	size_t      _size = _align(size + sizeof(Block), 8);
-	Block *prev = (Block *) ((uintptr_t) ptr - sizeof(Block));
+	size_t _size = _align(size + sizeof(Block), 8);
+	Block  *prev = (Block *) ((uintptr_t) ptr - sizeof(Block));
 
 	// New memory block shorter?
 	if (prev->size >= _size) {
@@ -183,7 +183,7 @@ void *realloc(void *ptr, size_t size) {
 	}
 
 	// No luck.
-	void *new = malloc(_size);
+	void *new = malloc(size);
 	if (!new)
 		return 0;
 

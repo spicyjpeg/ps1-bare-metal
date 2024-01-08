@@ -56,7 +56,7 @@ int _start(int argc, const char **argv) {
 	// Set $gp to point to the middle of the .sdata/.sbss sections, ensuring
 	// variables placed in those sections can be quickly accessed. See the
 	// linker script for more details.
-	__asm__ volatile("la $gp, _gp;");
+	__asm__ volatile("la $gp, _gp\n");
 
 	// Set all uninitialized variables to zero by clearing the BSS section.
 	__builtin_memset(_bssStart, 0, _bssEnd - _bssStart);
@@ -70,7 +70,7 @@ int _start(int argc, const char **argv) {
 
 	int returnValue = main(argc, argv);
 
-	for (const Function *dtor = _initArrayStart; dtor < _initArrayEnd; dtor++)
+	for (const Function *dtor = _finiArrayStart; dtor < _finiArrayEnd; dtor++)
 		(*dtor)();
 
 	return returnValue;
