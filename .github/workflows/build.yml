@@ -1,0 +1,47 @@
+# The GCC toolchain is stored in the GitHub Actions cache after being built. To
+# minimize build times, the toolchain build step is skipped if there is a cached
+# copy of the toolchain that has not expired.
+
+name: Build examples
+on:   [ push, pull_request ]
+
+jobs:
+  build:
+    name:    Run build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Initialize toolchain cache
+      id:   cache
+      uses: actions/cache@v3
+      with:
+        key:  toolchain
+        path: gcc-mipsel-none-elf
+
+    - name: Fetch repo contents
+      uses: actions/checkout@v4
+      with:
+        path: ps1-bare-metal
+
+    - name: Install prerequisites
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y --no-install-recommends make ninja-build g++-mingw-w64-x86-64
+        sudo pip3 install -r ps1-bare-metal/tools/requirements.txt
+
+    - name: Build GCC toolchain
+      if:   ${{ steps.cache.outputs.cache-hit != 'true' }}
+      run: |
+        ps1-bare-metal/.github/scripts/buildToolchain.sh gcc-mipsel-none-elf mipsel-none-elf
+
+    - name: Build examples
+      run: |
+        cd ps1-bare-metal
+        cmake --preset debug -DTOOLCHAIN_PATH=${{ github.workspace }}/gcc-mipsel-none-elf/bin
+        cmake --build build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: ps1-bare-metal/build

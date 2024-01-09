@@ -9,3 +9,7 @@ build/
 __pycache__/
 *.pyc
 *.pyo
+
+# Do not include user-specific workspace and configuration files.
+*.code-workspace
+CMakeUserPresets.json
