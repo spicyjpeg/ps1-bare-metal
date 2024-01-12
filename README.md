@@ -67,17 +67,13 @@ installing the
 and [clangd](https://clangd.llvm.org) extensions for build integration as well
 as context-sensitive suggestions is highly recommended.
 
-By default the build scripts assume you have a `mipsel-none-elf` toolchain
-available in your `PATH` environment variable. If you're using a
-`mipsel-linux-gnu` toolchain instead, you'll have to set the `TOOLCHAIN_TARGET`
-CMake variable to `mipsel-linux-gnu` through your IDE's CMake cache editor.
-Similarly, if the toolchain is not listed in your `PATH`, you will need to set
-the `TOOLCHAIN_PATH` variable to the full path to your toolchain's `bin`
-subdirectory (e.g. `/opt/mipsel-linux-gnu/bin`).
-
-See your IDE's documentation for information on accessing the cache editor. In
-VS Code with the CMake Tools extension, the editor can be opened by selecting
-"Edit CMake Cache (UI)" from the command palette (Ctrl+Shift+P).
+If the toolchain is not listed in your `PATH` environment variable, you will
+have to set the `TOOLCHAIN_PATH` CMake variable to the full path to your
+toolchain's `bin` subdirectory (e.g. `/opt/mipsel-linux-gnu/bin`) using your
+IDE's CMake cache editor. See your IDE's documentation for information on
+accessing the cache editor; in VS Code with the CMake Tools extension, the
+editor can be opened by selecting "Edit CMake Cache (UI)" from the command
+palette (Ctrl+Shift+P).
 
 ### Building from the command line
 
@@ -95,26 +91,18 @@ which actually runs the compiler and generates the executables. Once the build
 directory is prepared you'll no longer have to run the configure command unless
 you edit the CMake scripts to e.g. add new examples or source files.
 
-By default the build scripts assume you have a `mipsel-none-elf` toolchain
-available in your `PATH` environment variable. If you're using a
-`mipsel-linux-gnu` toolchain instead, you'll have to modify the configure
-command accordingly:
-
-```bash
-cmake --preset debug -DTOOLCHAIN_TARGET=mipsel-linux-gnu
-```
-
-Similarly, if the toolchain is not listed in your `PATH`, you will need to pass
-the path to its `bin` subdirectory to CMake manually:
-
-```bash
-cmake --preset debug -DTOOLCHAIN_PATH=/opt/mipsel-linux-gnu/bin
-```
-
 You may replace `debug` with `release` to enable release mode, which will turn
 on additional compiler optimizations, remove assertions and produce smaller
 binaries. Replacing it with `min-size-release` will further optimize the
 executables for size at the expense of performance.
+
+If the toolchain is not listed in your `PATH` environment variable, you will
+have to pass the path to its `bin` subdirectory to the configure command via the
+`-DTOOLCHAIN_PATH` option, like this:
+
+```bash
+cmake --preset debug -DTOOLCHAIN_PATH=/opt/mipsel-linux-gnu/bin
+```
 
 ### Note on floating point support
 

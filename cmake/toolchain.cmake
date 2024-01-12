@@ -14,15 +14,11 @@
 
 cmake_minimum_required(VERSION 3.25)
 
-# Create two user-editable variables to allow for a custom compiler toolchain to
-# be used by passing -DTOOLCHAIN_PATH=... and -DTOOLCHAIN_TARGET=... to CMake.
+# Create a user-editable variable to allow for a custom toolchain path to be
+# specified by passing -DTOOLCHAIN_PATH=... to CMake.
 set(
 	TOOLCHAIN_PATH "" CACHE PATH
 	"Directory containing GCC toolchain executables (if not listed in PATH)"
-)
-set(
-	TOOLCHAIN_TARGET mipsel-none-elf CACHE STRING
-	"GCC toolchain target triplet"
 )
 
 # Prevent CMake from using any host compiler by manually overriding the platform
@@ -47,11 +43,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## Toolchain path setup
 
-# Attempt to locate the GCC command (mipsel-none-elf-gcc) in the provided path
-# (if any) as well as in the system's standard paths for programs such as the
-# ones listed in the PATH environment variable.
+# Attempt to locate the GCC command in the provided path (if any) as well as in
+# the system's standard paths for programs such as the ones listed in the PATH
+# environment variable. Try to use a mipsel-none-elf toolchain over a
+# mipsel-linux-gnu one if available.
 find_program(
-	_gccPath ${TOOLCHAIN_TARGET}-gcc
+	_gccPath
+		mipsel-none-elf-gcc
+		mipsel-unknown-elf-gcc
+		mipsel-linux-gnu-gcc
 	HINTS
 		"${TOOLCHAIN_PATH}"
 		"${TOOLCHAIN_PATH}/bin"
@@ -72,19 +72,22 @@ endif()
 
 # Set the paths to all tools required by CMake. The appropriate extension for
 # executables (.exe on Windows, none on Unix) is extracted from the path to GCC
-# using a regular expression, as CMake does not otherwise expose it.
-set(_prefix "${_toolchainPath}/${TOOLCHAIN_TARGET}-")
-string(REGEX MATCH ".+-gcc(.*)$" _dummy "${_gccPath}")
+# using a regular expression, as CMake does not otherwise expose it when
+# cross-compiling.
+string(REGEX MATCH "^(.+-)gcc(.*)$" _dummy "${_gccPath}")
 
-set(CMAKE_ASM_COMPILER "${_prefix}gcc${CMAKE_MATCH_1}")
-set(CMAKE_C_COMPILER   "${_prefix}gcc${CMAKE_MATCH_1}")
-set(CMAKE_CXX_COMPILER "${_prefix}g++${CMAKE_MATCH_1}")
-set(CMAKE_AR           "${_prefix}ar${CMAKE_MATCH_1}")
-set(CMAKE_LINKER       "${_prefix}ld${CMAKE_MATCH_1}")
-set(CMAKE_RANLIB       "${_prefix}ranlib${CMAKE_MATCH_1}")
-set(CMAKE_OBJCOPY      "${_prefix}objcopy${CMAKE_MATCH_1}")
-set(CMAKE_SIZE         "${_prefix}size${CMAKE_MATCH_1}")
-set(CMAKE_STRIP        "${_prefix}strip${CMAKE_MATCH_1}")
+set(CMAKE_ASM_COMPILER "${CMAKE_MATCH_1}gcc${CMAKE_MATCH_2}")
+set(CMAKE_C_COMPILER   "${CMAKE_MATCH_1}gcc${CMAKE_MATCH_2}")
+set(CMAKE_CXX_COMPILER "${CMAKE_MATCH_1}g++${CMAKE_MATCH_2}")
+set(CMAKE_AR           "${CMAKE_MATCH_1}ar${CMAKE_MATCH_2}")
+set(CMAKE_LINKER       "${CMAKE_MATCH_1}ld${CMAKE_MATCH_2}")
+set(CMAKE_RANLIB       "${CMAKE_MATCH_1}ranlib${CMAKE_MATCH_2}")
+set(CMAKE_OBJCOPY      "${CMAKE_MATCH_1}objcopy${CMAKE_MATCH_2}")
+set(CMAKE_OBJDUMP      "${CMAKE_MATCH_1}objdump${CMAKE_MATCH_2}")
+set(CMAKE_NM           "${CMAKE_MATCH_1}nm${CMAKE_MATCH_2}")
+set(CMAKE_SIZE         "${CMAKE_MATCH_1}size${CMAKE_MATCH_2}")
+set(CMAKE_STRIP        "${CMAKE_MATCH_1}strip${CMAKE_MATCH_2}")
+set(CMAKE_READELF      "${CMAKE_MATCH_1}readelf${CMAKE_MATCH_2}")
 
 # Continue initialization by running setup.cmake after project() is invoked.
 set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/setup.cmake")
