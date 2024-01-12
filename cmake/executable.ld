@@ -14,7 +14,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-OUTPUT_FORMAT(elf32-littlemips)
 ENTRY(_start)
 
 MEMORY {

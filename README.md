@@ -33,27 +33,30 @@ The only required dependencies are:
 - CMake 3.25 or later;
 - Python 3.10 or later;
 - [Ninja](https://ninja-build.org/);
-- a recent GCC toolchain configured for the `mipsel-none-elf` target triplet.
+- a recent GCC toolchain configured for the `mipsel-none-elf` or
+  `mipsel-linux-gnu` target triplet.
 
 The toolchain can be installed on Windows through
 [the `mips` script from the pcsx-redux project](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#windows),
 on macOS using
 [Homebrew](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#macos)
-or on Linux by
+or on Linux through a package manager or by
 [spawning it from source](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/linux-mips/spawn-compiler.sh),
 and should be added to your `PATH` environment variable in order to let CMake
 find it. If you have any of the open-source PS1 SDKs installed there is a good
 chance you already have a suitable toolchain set up (try running
-`mipsel-none-elf-gcc` in a terminal). The other dependencies can be obtained
-from their websites or through a package manager.
+`mipsel-none-elf-gcc` and `mipsel-linux-gnu-gcc` in a terminal). The other
+dependencies can be obtained from their respective websites or through a package
+manager.
 
 The Python scripts require a few additional dependencies, which can be installed
-by running:
+through `pip` by running:
 
 ```bash
 py -m pip install -r tools/requirements.txt   # Windows
 pip3 install -r tools/requirements.txt        # Linux/macOS
 ```
+
 ### Building with an IDE
 
 Many IDEs and text editors feature out-of-the-box support for CMake, so you
@@ -64,10 +67,22 @@ installing the
 and [clangd](https://clangd.llvm.org) extensions for build integration as well
 as context-sensitive suggestions is highly recommended.
 
+By default the build scripts assume you have a `mipsel-none-elf` toolchain
+available in your `PATH` environment variable. If you're using a
+`mipsel-linux-gnu` toolchain instead, you'll have to set the `TOOLCHAIN_TARGET`
+CMake variable to `mipsel-linux-gnu` through your IDE's CMake cache editor.
+Similarly, if the toolchain is not listed in your `PATH`, you will need to set
+the `TOOLCHAIN_PATH` variable to the full path to your toolchain's `bin`
+subdirectory (e.g. `/opt/mipsel-linux-gnu/bin`).
+
+See your IDE's documentation for information on accessing the cache editor. In
+VS Code with the CMake Tools extension, the editor can be opened by selecting
+"Edit CMake Cache (UI)" from the command palette (Ctrl+Shift+P).
+
 ### Building from the command line
 
 If you cannot use an IDE or prefer working from the command line, simply run
-these two commands from the same directory as this template:
+these two commands from the root directory of the repository:
 
 ```bash
 cmake --preset debug
@@ -80,10 +95,48 @@ which actually runs the compiler and generates the executables. Once the build
 directory is prepared you'll no longer have to run the configure command unless
 you edit the CMake scripts to e.g. add new examples or source files.
 
+By default the build scripts assume you have a `mipsel-none-elf` toolchain
+available in your `PATH` environment variable. If you're using a
+`mipsel-linux-gnu` toolchain instead, you'll have to modify the configure
+command accordingly:
+
+```bash
+cmake --preset debug -DTOOLCHAIN_TARGET=mipsel-linux-gnu
+```
+
+Similarly, if the toolchain is not listed in your `PATH`, you will need to pass
+the path to its `bin` subdirectory to CMake manually:
+
+```bash
+cmake --preset debug -DTOOLCHAIN_PATH=/opt/mipsel-linux-gnu/bin
+```
+
 You may replace `debug` with `release` to enable release mode, which will turn
 on additional compiler optimizations, remove assertions and produce smaller
 binaries. Replacing it with `min-size-release` will further optimize the
 executables for size at the expense of performance.
+
+### Note on floating point support
+
+The PlayStation does not have a floating point unit. While GCC can still provide
+support for floats through emulation, some prebuilt versions of the
+`mipsel-none-elf` and `mipsel-linux-gnu` toolchains ship with floating point
+emulation partially or fully disabled at build time. For this reason, the build
+scripts do not explicitly enable it.
+
+If you have a toolchain known to have full support for software floating point
+(e.g. one you built yourself with the appropriate options) but that does not
+have it enabled by default, you may force it by adding the following line to
+`CMakeLists.txt`:
+
+```cmake
+target_compile_options(flags INTERFACE -msoft-float)
+```
+
+Keep in mind that software floats are particularly slow, code-heavy and shall be
+avoided at all costs. The included printf library has been modified to disable
+the `%f` specifier, regardless of whether the toolchain supports software
+floats, in order to reduce code size.
 
 ## Modifying the code
 
@@ -95,8 +148,7 @@ the non-example subfolders in the `src` directory:
   optimized assembly implementations.
 - `src/ps1` contains a basic support library for the hardware, currently
   consisting mostly of definitions for hardware registers and GPU commands.
-- `src/vendor` is for third-party libraries (currently only the `printf()`
-  library).
+- `src/vendor` is for third-party libraries (currently only the printf library).
 
 Take a look at `CMakeLists.txt` to see how to add new executables to the build
 system (I promise it won't be as scary as you imagine).
@@ -127,7 +179,7 @@ the 1990s when it comes to the PS1.
 ## License
 
 Everything in this repository, including the vendored copy of
-[Marco Paland's `printf()` library](https://github.com/mpaland/printf), is
-licensed under the MIT license. If you want to build a project or even your own
-tutorial series on top of my code, attribution would be highly appreciated but
-is not strictly required.
+[Marco Paland's printf library](https://github.com/mpaland/printf), is licensed
+under the MIT license. If you want to build a project or even your own tutorial
+series on top of my code, attribution would be highly appreciated but is not
+strictly required.

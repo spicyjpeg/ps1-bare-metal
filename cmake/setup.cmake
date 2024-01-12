@@ -44,9 +44,10 @@ target_compile_options(
 		-ffunction-sections
 		-fsigned-char
 		-fno-strict-overflow
-		-msoft-float
 		-march=r3000
 		-mabi=32
+		-mfp32
+		#-msoft-float
 		-mno-mt
 		-mno-llsc
 		-mno-abicalls
@@ -69,6 +70,7 @@ target_compile_options(
 		# These options will be added if CMAKE_BUILD_TYPE is not set to Debug.
 		#-O3
 		#-flto
+		-mno-check-zero-division
 	>
 )
 target_link_options(

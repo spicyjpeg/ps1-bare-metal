@@ -23,7 +23,7 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/cmake/toolchain.cmake")
 # are optional, but the project name and LANGUAGES field should be present.
 project(
 	ps1-bare-metal
-	LANGUAGES    C ASM
+	LANGUAGES    C CXX ASM
 	VERSION      1.0.0
 	DESCRIPTION  "PlayStation 1 bare-metal C examples"
 	HOMEPAGE_URL "https://github.com/spicyjpeg/ps1-bare-metal"
@@ -31,7 +31,7 @@ project(
 
 # Locate a working Python installation in order to run the scripts in the tools
 # directory.
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 
 # Build a "common" library containing code shared across all examples. We are
 # going to link this library into each example.
@@ -86,7 +86,7 @@ addExample(chapter09_controllers   src/09_controllers/main.c src/09_controllers/
 # Define more helper functions to embed binary data into executables and convert
 # images into raw texture and palette data.
 function(addBinaryFile target name path)
-	set(_file "${PROJECT_BINARY_DIR}/${target}_${name}.s")
+	set(_file "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
 	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE _path)
 
 	# Generate an assembly listing that uses the .incbin directive to embed the
