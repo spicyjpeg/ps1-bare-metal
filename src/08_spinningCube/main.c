@@ -63,7 +63,7 @@ static void setupGTE(int width, int height) {
 	// will sum the transformed Z coordinates of its vertices multiplied by this
 	// value in order to derive the ordering table bucket index the polygon will
 	// be sorted into.
-	gte_setZScaleFactor(ONE / ORDERING_TABLE_SIZE);
+	gte_setZScaleFactor((ONE * ORDERING_TABLE_SIZE) / 0x7fff);
 }
 
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
