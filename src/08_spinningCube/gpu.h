@@ -19,9 +19,11 @@
 #include <stdint.h>
 #include "ps1/gpucmd.h"
 
+// Ordering table size must be a multiple of 24
+#define ORDERING_TABLE_SIZE 48
 #define DMA_MAX_CHUNK_SIZE  16
 #define CHAIN_BUFFER_SIZE   1024
-#define ORDERING_TABLE_SIZE 32
+
 
 typedef struct {
 	uint32_t data[CHAIN_BUFFER_SIZE];
