@@ -167,7 +167,7 @@ typedef enum {
 typedef struct {
 	int16_t x, y, z;
 	uint8_t _padding[2];
-} GTEVector16;
+} __attribute((aligned(4))) GTEVector16;
 
 typedef struct {
 	int32_t x, y, z;
