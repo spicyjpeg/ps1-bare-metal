@@ -333,14 +333,13 @@ char *strtok(char *restrict str, const char *restrict delim) {
 long long strtoll(const char *restrict str, char **restrict str_end, int base) {
 	if (!str)
 		return 0;
-
 	while (isspace(*str))
 		str++;
 
-	int negative = (*str == '-');
-	if (negative)
-		str++;
+	char sign = *str;
 
+	if ((sign == '+') || (sign == '-'))
+		str++;
 	while (isspace(*str))
 		str++;
 
@@ -349,7 +348,7 @@ long long strtoll(const char *restrict str, char **restrict str_end, int base) {
 	long long value = 0;
 
 	if (*str == '0') {
-		int _base;
+		int foundBase;
 
 		switch (str[1]) {
 			case 0:
@@ -357,32 +356,32 @@ long long strtoll(const char *restrict str, char **restrict str_end, int base) {
 
 			case 'X':
 			case 'x':
-				_base = 16;
-				str  += 2;
+				foundBase = 16;
+				str      += 2;
 				break;
 
 			case 'O':
 			case 'o':
-				_base = 8;
-				str  += 2;
+				foundBase = 8;
+				str      += 2;
 				break;
 
 			case 'B':
 			case 'b':
-				_base = 2;
-				str  += 2;
+				foundBase = 2;
+				str      += 2;
 				break;
 
 			default:
 				// Numbers starting with a zero are *not* interpreted as octal
 				// unless base = 8.
-				_base = 0;
+				foundBase = 0;
 				str++;
 		}
 
 		if (!base)
-			base = _base;
-		else if (base != _base)
+			base = foundBase;
+		else if (foundBase && (base != foundBase))
 			return 0;
 	}
 
@@ -420,7 +419,7 @@ _exit:
 	if (str_end)
 		*str_end = (char *) str;
 
-	return negative ? (-value) : value;
+	return (sign == '-') ? (-value) : value;
 }
 
 long strtol(const char *restrict str, char **restrict str_end, int base) {

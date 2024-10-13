@@ -121,7 +121,7 @@ static uint32_t *allocatePacket(DMAChain *chain, int numCommands) {
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
-	if ((GPU_GP1 & GP1_STAT_MODE_BITMASK) == GP1_STAT_MODE_PAL) {
+	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
 		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
 	} else {

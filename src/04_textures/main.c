@@ -16,7 +16,7 @@
  *
  * The last example showed how to take advantage of the PS1's DMA engine to send
  * commands to the GPU efficiently in the background. While that is by far the
- * most common use case for DMA, the GPU's DMA channel has another crucial role: 
+ * most common use case for DMA, the GPU's DMA channel has another crucial role:
  * it allows for fast data transfers from and to VRAM, which are useful for
  * uploading image data to be used as a texture when drawing.
  *
@@ -188,7 +188,7 @@ extern const uint8_t textureData[];
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
-	if ((GPU_GP1 & GP1_STAT_MODE_BITMASK) == GP1_STAT_MODE_PAL) {
+	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
 		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
 	} else {

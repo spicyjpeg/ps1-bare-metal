@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2024 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -317,16 +317,50 @@ typedef enum {
 /* GPU */
 
 typedef enum {
-	GP1_STAT_MODE_BITMASK = 1 << 20,
-	GP1_STAT_MODE_NTSC    = 0 << 20,
-	GP1_STAT_MODE_PAL     = 1 << 20,
-	GP1_STAT_DISP_BLANK   = 1 << 23,
-	GP1_STAT_IRQ          = 1 << 24,
-	GP1_STAT_DREQ         = 1 << 25,
-	GP1_STAT_CMD_READY    = 1 << 26,
-	GP1_STAT_READ_READY   = 1 << 27,
-	GP1_STAT_WRITE_READY  = 1 << 28,
-	GP1_STAT_FIELD_ODD    = 1 << 31
+	GP1_STAT_PAGE_X_BITMASK      = 15 <<  0, // GP0_CMD_TEXPAGE
+	GP1_STAT_PAGE_Y0             =  1 <<  4, // GP0_CMD_TEXPAGE
+	GP1_STAT_BLEND_BITMASK       =  3 <<  5, // GP0_CMD_TEXPAGE
+	GP1_STAT_BLEND_SEMITRANS     =  0 <<  5, // GP0_CMD_TEXPAGE
+	GP1_STAT_BLEND_ADD           =  1 <<  5, // GP0_CMD_TEXPAGE
+	GP1_STAT_BLEND_SUBTRACT      =  2 <<  5, // GP0_CMD_TEXPAGE
+	GP1_STAT_BLEND_DIV4_ADD      =  3 <<  5, // GP0_CMD_TEXPAGE
+	GP1_STAT_COLOR_BITMASK       =  3 <<  7, // GP0_CMD_TEXPAGE
+	GP1_STAT_COLOR_4BPP          =  0 <<  7, // GP0_CMD_TEXPAGE
+	GP1_STAT_COLOR_8BPP          =  1 <<  7, // GP0_CMD_TEXPAGE
+	GP1_STAT_COLOR_16BPP         =  2 <<  7, // GP0_CMD_TEXPAGE
+	GP1_STAT_DITHER              =  1 <<  9, // GP0_CMD_TEXPAGE
+	GP1_STAT_UNLOCK_FB           =  1 << 10, // GP0_CMD_TEXPAGE
+	GP1_STAT_SET_MASK            =  1 << 11, // GP0_CMD_FB_MASK
+	GP1_STAT_USE_MASK            =  1 << 12, // GP0_CMD_FB_MASK
+	GP1_STAT_DISP_FIELD_BITMASK  =  1 << 13,
+	GP1_STAT_DISP_FIELD_EVEN     =  0 << 13,
+	GP1_STAT_DISP_FIELD_ODD      =  1 << 13,
+	GP1_STAT_PAGE_Y1             =  1 << 15, // GP0_CMD_TEXPAGE
+	GP1_STAT_FB_HRES_BITMASK     =  7 << 16, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_VRES_BITMASK     =  1 << 19, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_VRES_256         =  0 << 19, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_VRES_512         =  1 << 19, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_MODE_BITMASK     =  1 << 20, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_MODE_NTSC        =  0 << 20, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_MODE_PAL         =  1 << 20, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_COLOR_BITMASK    =  1 << 21, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_COLOR_16BPP      =  0 << 21, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_COLOR_24BPP      =  1 << 21, // GP1_CMD_FB_MODE
+	GP1_STAT_FB_INTERLACE        =  1 << 22, // GP1_CMD_FB_MODE
+	GP1_STAT_DISP_BLANK          =  1 << 23, // GP1_CMD_DISP_BLANK
+	GP1_STAT_IRQ                 =  1 << 24,
+	GP1_STAT_DREQ                =  1 << 25,
+	GP1_STAT_CMD_READY           =  1 << 26,
+	GP1_STAT_READ_READY          =  1 << 27,
+	GP1_STAT_WRITE_READY         =  1 << 28,
+	GP1_STAT_DREQ_MODE_BITMASK   =  3 << 29, // GP1_CMD_DREQ_MODE
+	GP1_STAT_DREQ_MODE_NONE      =  0 << 29, // GP1_CMD_DREQ_MODE
+	GP1_STAT_DREQ_MODE_FIFO      =  1 << 29, // GP1_CMD_DREQ_MODE
+	GP1_STAT_DREQ_MODE_GP0_WRITE =  2 << 29, // GP1_CMD_DREQ_MODE
+	GP1_STAT_DREQ_MODE_GP0_READ  =  3 << 29, // GP1_CMD_DREQ_MODE
+	GP1_STAT_DRAW_FIELD_BITMASK  =  1 << 31,
+	GP1_STAT_DRAW_FIELD_EVEN     =  0 << 31,
+	GP1_STAT_DRAW_FIELD_ODD      =  1 << 31
 } GP1StatusFlag;
 
 #define GPU_GP0 _MMIO32(IO_BASE | 0x810)
@@ -335,18 +369,45 @@ typedef enum {
 /* MDEC */
 
 typedef enum {
-	MDEC_STAT_BLOCK_BITMASK = 7 << 16,
-	MDEC_STAT_BLOCK_Y0      = 0 << 16,
-	MDEC_STAT_BLOCK_Y1      = 1 << 16,
-	MDEC_STAT_BLOCK_Y2      = 2 << 16,
-	MDEC_STAT_BLOCK_Y3      = 3 << 16,
-	MDEC_STAT_BLOCK_CR      = 4 << 16,
-	MDEC_STAT_BLOCK_CB      = 5 << 16,
-	MDEC_STAT_DREQ_OUT      = 1 << 27,
-	MDEC_STAT_DREQ_IN       = 1 << 28,
-	MDEC_STAT_BUSY          = 1 << 29,
-	MDEC_STAT_DATA_FULL     = 1 << 30,
-	MDEC_STAT_DATA_EMPTY    = 1 << 31
+	MDEC_CMD_NOP             = 0 << 29,
+	MDEC_CMD_DECODE          = 1 << 29,
+	MDEC_CMD_SET_QUANT_TABLE = 2 << 29,
+	MDEC_CMD_SET_IDCT_TABLE  = 3 << 29
+} MDECCommand;
+
+typedef enum {
+	MDEC_CMD_FLAG_LENGTH_BITMASK = 0xffff <<  0, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_USE_CHROMA     =      1 <<  0, // MDEC_CMD_SET_QUANT_TABLE
+	MDEC_CMD_FLAG_SIGNED         =      1 << 25, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_16BPP_MASK     =      1 << 26, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_FORMAT_BITMASK =      3 << 27, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_FORMAT_4BPP    =      0 << 27, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_FORMAT_8BPP    =      1 << 27, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_FORMAT_24BPP   =      2 << 27, // MDEC_CMD_DECODE
+	MDEC_CMD_FLAG_FORMAT_16BPP   =      3 << 27  // MDEC_CMD_DECODE
+} MDECCommandFlag;
+
+typedef enum {
+	MDEC_STAT_LENGTH_BITMASK = 0xffff <<  0,
+	MDEC_STAT_BLOCK_BITMASK  =      7 << 16,
+	MDEC_STAT_BLOCK_Y0       =      0 << 16,
+	MDEC_STAT_BLOCK_Y1       =      1 << 16,
+	MDEC_STAT_BLOCK_Y2       =      2 << 16,
+	MDEC_STAT_BLOCK_Y3       =      3 << 16,
+	MDEC_STAT_BLOCK_CR       =      4 << 16,
+	MDEC_STAT_BLOCK_CB       =      5 << 16,
+	MDEC_STAT_16BPP_MASK     =      1 << 23,
+	MDEC_STAT_SIGNED         =      1 << 24,
+	MDEC_STAT_FORMAT_BITMASK =      3 << 25,
+	MDEC_STAT_FORMAT_4BPP    =      0 << 25,
+	MDEC_STAT_FORMAT_8BPP    =      1 << 25,
+	MDEC_STAT_FORMAT_24BPP   =      2 << 25,
+	MDEC_STAT_FORMAT_16BPP   =      3 << 25,
+	MDEC_STAT_DREQ_OUT       =      1 << 27,
+	MDEC_STAT_DREQ_IN        =      1 << 28,
+	MDEC_STAT_BUSY           =      1 << 29,
+	MDEC_STAT_DATA_FULL      =      1 << 30,
+	MDEC_STAT_DATA_EMPTY     =      1 << 31
 } MDECStatusFlag;
 
 typedef enum {

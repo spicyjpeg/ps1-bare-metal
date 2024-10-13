@@ -19,7 +19,7 @@
 // NDEBUG is automatically defined by CMake when the executable is built in
 // release mode.
 #ifdef NDEBUG
-#define assert(expr)
+#define assert(expr) ((void) (expr))
 #else
 #define assert(expr) \
 	((expr) ? ((void) 0) : _assertAbort(__FILE__, __LINE__, #expr))
