@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2024 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,8 +17,15 @@
 ENTRY(_start)
 
 MEMORY {
-	KERNEL_RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 0x010000
-	APP_RAM    (rwx) : ORIGIN = 0x80010000, LENGTH = 0x7f0000
+	/*
+	 * Only 2 MB of main RAM are available on a regular console, but some
+	 * development kits are fitted with 8 MB and most emulators have an option
+	 * to extend RAM to 8 MB as well. You may change the length below from
+	 * 0x1f0000 to 0x7f0000 allow the linker to use the additional memory. Note
+	 * that the first 64 KB at 0x80000000-0x8000ffff are always reserved for use
+	 * by the kernel.
+	 */
+	APP_RAM (rwx) : ORIGIN = 0x80010000, LENGTH = 0x1f0000
 }
 
 SECTIONS {
@@ -108,6 +115,7 @@ SECTIONS {
 	} > APP_RAM
 
 	/DISCARD/ : {
-		*(.gnu.lto_*)
+		*(.note.* .gnu_debuglink .gnu.lto_*)
+		*(.MIPS.abiflags)
 	}
 }

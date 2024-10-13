@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023 spicyjpeg
+# ps1-bare-metal - (C) 2023-2024 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -29,9 +29,10 @@ project(
 	HOMEPAGE_URL "https://github.com/spicyjpeg/ps1-bare-metal"
 )
 
-# Locate a working Python installation in order to run the scripts in the tools
-# directory.
-find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+# Set up compiler flags and initialize the Python environment used to run the
+# scripts in the tools directory.
+include(cmake/setup.cmake)
+include(cmake/virtualenv.cmake)
 
 # Build a "common" library containing code shared across all examples. We are
 # going to link this library into each example.
@@ -52,7 +53,7 @@ target_include_directories(
 	src/libc
 )
 
-# Define a helper function to build each example.
+# Define some helper functions to build each example.
 function(addExample name)
 	add_executable(${name} ${ARGN})
 	target_link_libraries(${name} PRIVATE common)
@@ -65,55 +66,12 @@ function(addExample name)
 		TARGET     ${name} POST_BUILD
 		BYPRODUCTS ${name}.psexe
 		COMMAND
-			"${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convertExecutable.py"
-			"$<TARGET_FILE:${name}>" ${name}.psexe
+			"${Python3_EXECUTABLE}"
+			"${PROJECT_SOURCE_DIR}/tools/convertExecutable.py"
+			"$<TARGET_FILE:${name}>"
+			${name}.psexe
 		VERBATIM
 	)
-endfunction()
-
-# Build the actual examples.
-addExample(chapter00_helloWorld    src/00_helloWorld/main.c)
-addExample(chapter01_basicGraphics src/01_basicGraphics/main.c)
-addExample(chapter02_doubleBuffer  src/02_doubleBuffer/main.c)
-addExample(chapter03_dmaChain      src/03_dmaChain/main.c)
-addExample(chapter04_textures      src/04_textures/main.c)
-addExample(chapter05_palettes      src/05_palettes/main.c)
-addExample(chapter06_fonts         src/06_fonts/main.c src/06_fonts/gpu.c)
-addExample(chapter07_orderingTable src/07_orderingTable/main.c src/07_orderingTable/gpu.c)
-addExample(chapter08_spinningCube  src/08_spinningCube/main.c src/08_spinningCube/gpu.c src/08_spinningCube/trig.c)
-addExample(chapter09_controllers   src/09_controllers/main.c src/09_controllers/gpu.c src/09_controllers/font.c)
-
-# Define more helper functions to embed binary data into executables and convert
-# images into raw texture and palette data.
-function(addBinaryFile target name path)
-	set(_file "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
-	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE _path)
-
-	# Generate an assembly listing that uses the .incbin directive to embed the
-	# file and add it to the executable's list of source files. This may look
-	# hacky, but it works and lets us easily customize the symbol name (i.e. the
-	# name of the "array" that will contain the file's data).
-	file(
-		CONFIGURE
-		OUTPUT  "${_file}"
-		CONTENT [[
-.section .data.${name}, "aw"
-.balign 8
-
-.global ${name}
-.type ${name}, @object
-.size ${name}, (${name}_end - ${name})
-
-${name}:
-	.incbin "${_path}"
-${name}_end:
-		]]
-		ESCAPE_QUOTES
-		NEWLINE_STYLE LF
-	)
-
-	target_sources(${target} PRIVATE "${_file}")
-	set_source_files_properties("${_file}" PROPERTIES OBJECT_DEPENDS "${_path}")
 endfunction()
 
 function(convertImage input bpp)
@@ -121,24 +79,97 @@ function(convertImage input bpp)
 		OUTPUT  ${ARGN}
 		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
 		COMMAND
-			"${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tools/convertImage.py"
-			-b ${bpp} "${PROJECT_SOURCE_DIR}/${input}" ${ARGN}
+			"${Python3_EXECUTABLE}"
+			"${PROJECT_SOURCE_DIR}/tools/convertImage.py"
+			-b ${bpp}
+			"${PROJECT_SOURCE_DIR}/${input}"
+			${ARGN}
 		VERBATIM
 	)
 endfunction()
 
-# Convert all required assets and embed them into the examples.
-convertImage(src/04_textures/texture.png 16 chapter04/textureData.dat)
-addBinaryFile(chapter04_textures textureData "${PROJECT_BINARY_DIR}/chapter04/textureData.dat")
+# Build the examples and convert any required assets.
+addExample(example00_helloWorld src/00_helloWorld/main.c)
 
-convertImage(src/05_palettes/texture.png 4 chapter05/textureData.dat chapter05/paletteData.dat)
-addBinaryFile(chapter05_palettes textureData "${PROJECT_BINARY_DIR}/chapter05/textureData.dat")
-addBinaryFile(chapter05_palettes paletteData "${PROJECT_BINARY_DIR}/chapter05/paletteData.dat")
+addExample(example01_basicGraphics src/01_basicGraphics/main.c)
 
-convertImage(src/06_fonts/font.png 4 chapter06/fontTexture.dat chapter06/fontPalette.dat)
-addBinaryFile(chapter06_fonts fontTexture "${PROJECT_BINARY_DIR}/chapter06/fontTexture.dat")
-addBinaryFile(chapter06_fonts fontPalette "${PROJECT_BINARY_DIR}/chapter06/fontPalette.dat")
+addExample(example02_doubleBuffer src/02_doubleBuffer/main.c)
 
-convertImage(src/09_controllers/font.png 4 chapter09/fontTexture.dat chapter09/fontPalette.dat)
-addBinaryFile(chapter09_controllers fontTexture "${PROJECT_BINARY_DIR}/chapter09/fontTexture.dat")
-addBinaryFile(chapter09_controllers fontPalette "${PROJECT_BINARY_DIR}/chapter09/fontPalette.dat")
+addExample(example03_dmaChain src/03_dmaChain/main.c)
+
+addExample(example04_textures src/04_textures/main.c)
+convertImage(
+	src/04_textures/texture.png 16
+	example04/textureData.dat
+)
+addBinaryFile(
+	example04_textures textureData
+	"${PROJECT_BINARY_DIR}/example04/textureData.dat"
+)
+
+addExample(example05_palettes src/05_palettes/main.c)
+convertImage(
+	src/05_palettes/texture.png 4
+	example05/textureData.dat
+	example05/paletteData.dat
+)
+addBinaryFile(
+	example05_palettes textureData
+	"${PROJECT_BINARY_DIR}/example05/textureData.dat"
+)
+addBinaryFile(
+	example05_palettes paletteData
+	"${PROJECT_BINARY_DIR}/example05/paletteData.dat"
+)
+
+addExample(
+	example06_fonts
+	src/06_fonts/gpu.c
+	src/06_fonts/main.c
+)
+convertImage(
+	src/06_fonts/font.png 4
+	example06/fontTexture.dat
+	example06/fontPalette.dat
+)
+addBinaryFile(
+	example06_fonts fontTexture
+	"${PROJECT_BINARY_DIR}/example06/fontTexture.dat"
+)
+addBinaryFile(
+	example06_fonts fontPalette
+	"${PROJECT_BINARY_DIR}/example06/fontPalette.dat"
+)
+
+addExample(
+	example07_orderingTable
+	src/07_orderingTable/gpu.c
+	src/07_orderingTable/main.c
+)
+
+addExample(
+	example08_spinningCube
+	src/08_spinningCube/gpu.c
+	src/08_spinningCube/main.c
+	src/08_spinningCube/trig.c
+)
+
+addExample(
+	example09_controllers
+	src/09_controllers/font.c
+	src/09_controllers/gpu.c
+	src/09_controllers/main.c
+)
+convertImage(
+	src/09_controllers/font.png 4
+	example09/fontTexture.dat
+	example09/fontPalette.dat
+)
+addBinaryFile(
+	example09_controllers fontTexture
+	"${PROJECT_BINARY_DIR}/example09/fontTexture.dat"
+)
+addBinaryFile(
+	example09_controllers fontPalette
+	"${PROJECT_BINARY_DIR}/example09/fontPalette.dat"
+)

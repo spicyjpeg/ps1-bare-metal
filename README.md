@@ -11,15 +11,15 @@ The following examples are currently available:
 | #   | Screenshot                                                                    | Description                                                                       |
 | --: | :---------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
 |   0 |                                                                               | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)           |
-|   1 | <img alt="Chapter 1" src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
-|   2 | <img alt="Chapter 2" src="src/02_doubleBuffer/screenshot.png" width="100" />  | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
-|   3 | <img alt="Chapter 3" src="src/03_dmaChain/screenshot.png" width="100" />      | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
-|   4 | <img alt="Chapter 4" src="src/04_textures/screenshot.png" width="100" />      | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
-|   5 | <img alt="Chapter 5" src="src/05_palettes/screenshot.png" width="100" />      | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
-|   6 | <img alt="Chapter 6" src="src/06_fonts/screenshot.png" width="100" />         | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
-|   7 | <img alt="Chapter 7" src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
-|   8 | <img alt="Chapter 8" src="src/08_spinningCube/screenshot.png" width="100" />  | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
-|   9 | <img alt="Chapter 9" src="src/09_controllers/screenshot.png" width="100" />   | [Getting input from connected controllers](src/09_controllers/main.c)             |
+|   1 | <img alt="Example 1" src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
+|   2 | <img alt="Example 2" src="src/02_doubleBuffer/screenshot.png" width="100" />  | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
+|   3 | <img alt="Example 3" src="src/03_dmaChain/screenshot.png" width="100" />      | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
+|   4 | <img alt="Example 4" src="src/04_textures/screenshot.png" width="100" />      | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
+|   5 | <img alt="Example 5" src="src/05_palettes/screenshot.png" width="100" />      | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
+|   6 | <img alt="Example 6" src="src/06_fonts/screenshot.png" width="100" />         | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
+|   7 | <img alt="Example 7" src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
+|   8 | <img alt="Example 8" src="src/08_spinningCube/screenshot.png" width="100" />  | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
+|   9 | <img alt="Example 9" src="src/09_controllers/screenshot.png" width="100" />   | [Getting input from connected controllers](src/09_controllers/main.c)             |
 
 New examples showing how to make use of more hardware features will be added
 over time.
@@ -50,11 +50,19 @@ dependencies can be obtained from their respective websites or through a package
 manager.
 
 The Python scripts require a few additional dependencies, which can be installed
-through `pip` by running:
+in a virtual environment by running the following commands from the root
+directory of the repository:
 
 ```bash
-py -m pip install -r tools/requirements.txt   # Windows
-pip3 install -r tools/requirements.txt        # Linux/macOS
+# Windows (using PowerShell)
+py -m venv env
+env\bin\Activate.ps1
+py -m pip install -r tools\requirements.txt
+
+# Windows (using Cygwin/MSys2), Linux or macOS
+python3 -m venv env
+source env/bin/activate
+pip3 install -r tools/requirements.txt
 ```
 
 ### Building with an IDE
@@ -78,11 +86,11 @@ palette (Ctrl+Shift+P).
 ### Building from the command line
 
 If you cannot use an IDE or prefer working from the command line, simply run
-these two commands from the root directory of the repository:
+these two commands from the repository's root:
 
 ```bash
 cmake --preset debug
-cmake --build ./build
+cmake --build build
 ```
 
 If you are unfamiliar with CMake, the first command is what's known as the

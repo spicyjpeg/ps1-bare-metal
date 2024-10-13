@@ -8,7 +8,7 @@ expected by the PS1's GPU, or 4bpp or 8bpp indexed color data plus a separate
 16bpp color palette. Requires PIL/Pillow and NumPy to be installed.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__  = "spicyjpeg"
 
 import logging
@@ -77,22 +77,23 @@ def convertIndexedImage(
 	clut: ndarray = convertRGBAto16(
 		numpy.frombuffer(clutData, "B").reshape(( 1, numColors, colorDepth )),
 		transparentColor, blackColor
-	).reshape(( numColors, ))
+	)
 
 	# Pad the palette to 16 or 256 colors.
-	if maxNumColors > numColors:
-		clut = numpy.c_[ clut, numpy.zeros(maxNumColors - numColors, "<H") ]
+	padAmount: int = maxNumColors > numColors
+	if padAmount:
+		clut = numpy.c_[ clut, numpy.zeros(( 1, padAmount ), "<H") ]
 
 	image: ndarray = numpy.asarray(imageObj, "B")
 	if image.shape[1] % 2:
-		image = numpy.c_[ image, numpy.zeros(image.shape[0], "B") ]
+		image = numpy.c_[ image, numpy.zeros((image.shape[0], 1 ), "B") ]
 
 	# Pack two pixels into each byte for 4bpp images.
 	if maxNumColors <= 16:
 		image = image[:, 0::2] | (image[:, 1::2] << 4)
 
 		if image.shape[1] % 2:
-			image = numpy.c_[ image, numpy.zeros(image.shape[0], "B") ]
+			image = numpy.c_[ image, numpy.zeros(( image.shape[0], 1 ), "B") ]
 
 	return image, clut
 

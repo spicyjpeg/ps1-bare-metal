@@ -9,7 +9,7 @@ customizing the region string (used by some emulators to determine whether they
 should start in PAL or NTSC mode by default). Requires no external dependencies.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__  = "spicyjpeg"
 
 from argparse    import ArgumentParser, FileType, Namespace
@@ -83,16 +83,27 @@ class ELF:
 		# Parse the file header and perform some minimal validation.
 		_file.seek(0)
 
-		magic, wordSize, endianness, _, abi, _type, architecture, _, \
-		entryPoint, progHeaderOffset, secHeaderOffset, flags, elfHeaderSize, \
-		progHeaderSize, progHeaderCount, secHeaderSize, secHeaderCount, _ = \
+		(
+			magic,
+			wordSize,
+			endianness,
+			_,
+			abi,
+			elfType,
+			architecture,
+			_,
+			entryPoint,
+			progHeaderOffset,
+			secHeaderOffset,
+			flags,
+			elfHeaderSize,
+			progHeaderSize,
+			progHeaderCount,
+			secHeaderSize,
+			secHeaderCount,
+			_
+		) = \
 			parseStructFromFile(_file, ELF_HEADER_STRUCT)
-
-		self.type:         ELFType = ELFType(_type)
-		self.architecture: int     = architecture
-		self.abi:          int     = abi
-		self.entryPoint:   int     = entryPoint
-		self.flags:        int     = flags
 
 		if magic != ELF_HEADER_MAGIC:
 			raise RuntimeError("file is not a valid ELF")
@@ -104,13 +115,26 @@ class ELF:
 		):
 			raise RuntimeError("unsupported ELF format")
 
+		self.type:         ELFType = ELFType(elfType)
+		self.architecture: int     = architecture
+		self.abi:          int     = abi
+		self.entryPoint:   int     = entryPoint
+		self.flags:        int     = flags
+
 		# Parse the program headers and extract all loadable segments.
 		self.segments: list[Segment] = []
 
 		_file.seek(progHeaderOffset)
 
 		for (
-			headerType, fileOffset, address, _, fileLength, length, flags, _
+			headerType,
+			fileOffset,
+			address,
+			_,
+			fileLength,
+			length,
+			flags,
+			_
 		) in parseStructsFromFile(_file, PROG_HEADER_STRUCT, progHeaderCount):
 			if headerType != ProgHeaderType.LOAD:
 				continue
@@ -151,7 +175,7 @@ class ELF:
 
 ## Main
 
-EXE_HEADER_STRUCT: Struct = Struct("< 16s 4I 16x 2I 20x 1972s")
+EXE_HEADER_STRUCT: Struct = Struct("< 8s 8x 4I 16x 2I 20x 1972s")
 EXE_HEADER_MAGIC:  bytes  = b"PS-X EXE"
 EXE_ALIGNMENT:     int    = 2048
 
