@@ -80,7 +80,7 @@ endif()
 # executables (.exe on Windows, none on Unix) is extracted from the path to GCC
 # using a regular expression, as CMake does not otherwise expose it when
 # cross-compiling.
-string(REGEX MATCH "^(.+-)gcc(.*)$" dummy "${gccPath}")
+string(REGEX MATCH "^(.+-)gcc(.*)$" dummy "${gccBinaryPath}")
 
 set(CMAKE_ASM_COMPILER "${CMAKE_MATCH_1}gcc${CMAKE_MATCH_2}")
 set(CMAKE_C_COMPILER   "${CMAKE_MATCH_1}gcc${CMAKE_MATCH_2}")
