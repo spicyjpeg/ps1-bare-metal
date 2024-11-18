@@ -74,10 +74,10 @@ typedef enum {
 // Note that reg must be a constant value known at compile time, as the
 // mtc0/mfc0 instructions only support addressing coprocessor registers directly
 // through immediates.
-DEF cop0_setReg(COP0Register reg, uint32_t value) {
+DEF cop0_setReg(const COP0Register reg, uint32_t value) {
 	__asm__ volatile("mtc0 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 cop0_getReg(COP0Register reg) {
+DEF32 cop0_getReg(const COP0Register reg) {
 	uint32_t value;
 
 	__asm__ volatile("mfc0 %0, $%1\n" : "=r"(value) : "i"(reg));
