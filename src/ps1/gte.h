@@ -85,7 +85,7 @@ typedef enum {
 	GTE_SF          =  1 << 19  // Shift results by 12 bits
 } GTECommandFlag;
 
-DEF gte_command(uint32_t cmd) {
+DEF gte_command(const uint32_t cmd) {
 	__asm__ volatile("nop\n" "nop\n" "cop2 %0\n" :: "i"(cmd));
 }
 
@@ -152,10 +152,10 @@ typedef enum {
 // Note that reg must be a constant value known at compile time, as the
 // cfc2/ctc2 instructions only support addressing coprocessor registers directly
 // through immediates.
-DEF gte_setControlReg(GTEControlRegister reg, uint32_t value) {
+DEF gte_setControlReg(const GTEControlRegister reg, uint32_t value) {
 	__asm__ volatile("ctc2 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 gte_getControlReg(GTEControlRegister reg) {
+DEF32 gte_getControlReg(const GTEControlRegister reg) {
 	uint32_t value;
 
 	__asm__ volatile("cfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
@@ -244,10 +244,10 @@ typedef enum {
 	GTE_LZCR = 31  // Leading zero count output
 } GTEDataRegister;
 
-DEF gte_setDataReg(GTEDataRegister reg, uint32_t value) {
+DEF gte_setDataReg(const GTEDataRegister reg, uint32_t value) {
 	__asm__ volatile("mtc2 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 gte_getDataReg(GTEDataRegister reg) {
+DEF32 gte_getDataReg(const GTEDataRegister reg) {
 	uint32_t value;
 
 	__asm__ volatile("mfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
@@ -257,10 +257,10 @@ DEF32 gte_getDataReg(GTEDataRegister reg) {
 // Unlike COP0 registers and GTE control registers, whose contents can only be
 // moved to/from a CPU register, data registers can additionally be loaded from
 // and stored to memory directly using the lwc2 and swc2 instructions.
-DEF gte_loadDataReg(GTEDataRegister reg, int16_t offset, const void *ptr) {
+DEF gte_loadDataReg(const GTEDataRegister reg, const int16_t offset, const void *ptr) {
 	__asm__ volatile("lwc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr));
 }
-DEF gte_storeDataReg(GTEDataRegister reg, int16_t offset, void *ptr) {
+DEF gte_storeDataReg(const GTEDataRegister reg, const int16_t offset, void *ptr) {
 	__asm__ volatile(
 		"swc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr) : "memory"
 	);
