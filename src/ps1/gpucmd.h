@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,18 +20,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEF16 static inline uint16_t __attribute__((always_inline))
-#define DEF32 static inline uint32_t __attribute__((always_inline))
+#define DEF(type) static inline type __attribute__((always_inline))
 
 /* DMA tags */
 
-DEF32 gp0_tag(size_t length, void *next) {
+DEF(uint32_t) gp0_tag(size_t length, void *next) {
 	return 0
 		| (((uint32_t) next   & 0xffffff) <<  0)
 		| (((uint32_t) length & 0x0000ff) << 24);
 }
 
-DEF32 gp0_endTag(size_t length) {
+DEF(uint32_t) gp0_endTag(size_t length) {
 	return gp0_tag(length, (void *) 0xffffff);
 }
 
@@ -52,8 +51,10 @@ typedef enum {
 	GP0_COLOR_16BPP   = 2
 } GP0ColorDepth;
 
-DEF16 gp0_page(
-	unsigned int x, unsigned int y, GP0BlendMode blendMode,
+DEF(uint16_t) gp0_page(
+	unsigned int  x,
+	unsigned int  y,
+	GP0BlendMode  blendMode,
 	GP0ColorDepth colorDepth
 ) {
 	return 0
@@ -63,24 +64,24 @@ DEF16 gp0_page(
 		| ((colorDepth &  3) <<  7)
 		| ((y          &  2) << 10);
 }
-DEF16 gp0_clut(unsigned int x, unsigned int y) {
+DEF(uint16_t) gp0_clut(unsigned int x, unsigned int y) {
 	return 0
 		| ((x & 0x03f) << 0)
 		| ((y & 0x3ff) << 6);
 }
 
-DEF32 gp0_xy(int x, int y) {
+DEF(uint32_t) gp0_xy(int x, int y) {
 	return 0
 		| ((x & 0xffff) <<  0)
 		| ((y & 0xffff) << 16);
 }
-DEF32 gp0_uv(unsigned int u, unsigned int v, uint16_t attr) {
+DEF(uint32_t) gp0_uv(unsigned int u, unsigned int v, uint16_t attr) {
 	return 0
 		| ((u    & 0x00ff) <<  0)
 		| ((v    & 0x00ff) <<  8)
 		| ((attr & 0xffff) << 16);
 }
-DEF32 gp0_rgb(uint8_t r, uint8_t g, uint8_t b) {
+DEF(uint32_t) gp0_rgb(uint8_t r, uint8_t g, uint8_t b) {
 	return 0
 		| ((r & 0xff) <<  0)
 		| ((g & 0xff) <<  8)
@@ -117,8 +118,12 @@ typedef enum {
 	GP0_CMD_FB_MASK    = GP0_CMD_ATTRIBUTE | (6 << 24)
 } GP0AttributeCommand;
 
-DEF32 _gp0_polygon(
-	bool quad, bool unshaded, bool gouraud, bool textured, bool blend
+DEF(uint32_t) _gp0_polygon(
+	bool quad,
+	bool unshaded,
+	bool gouraud,
+	bool textured,
+	bool blend
 ) {
 	return GP0_CMD_POLYGON
 		| ((unshaded & 1) << 24)
@@ -127,79 +132,87 @@ DEF32 _gp0_polygon(
 		| ((quad     & 1) << 27)
 		| ((gouraud  & 1) << 28);
 }
-DEF32 gp0_triangle(bool textured, bool blend) {
+DEF(uint32_t) gp0_triangle(bool textured, bool blend) {
 	return _gp0_polygon(false, true, false, textured, blend);
 }
-DEF32 gp0_shadedTriangle(bool gouraud, bool textured, bool blend) {
+DEF(uint32_t) gp0_shadedTriangle(bool gouraud, bool textured, bool blend) {
 	return _gp0_polygon(false, false, gouraud, textured, blend);
 }
-DEF32 gp0_quad(bool textured, bool blend) {
+DEF(uint32_t) gp0_quad(bool textured, bool blend) {
 	return _gp0_polygon(true, true, false, textured, blend);
 }
-DEF32 gp0_shadedQuad(bool gouraud, bool textured, bool blend) {
+DEF(uint32_t) gp0_shadedQuad(bool gouraud, bool textured, bool blend) {
 	return _gp0_polygon(true, false, gouraud, textured, blend);
 }
 
-DEF32 gp0_line(bool gouraud, bool blend) {
+DEF(uint32_t) gp0_line(bool gouraud, bool blend) {
 	return GP0_CMD_LINE
 		| ((blend   & 1) << 25)
 		| ((gouraud & 1) << 28);
 }
-DEF32 gp0_polyLine(bool gouraud, bool blend) {
+DEF(uint32_t) gp0_polyLine(bool gouraud, bool blend) {
 	return GP0_CMD_LINE
 		| ((blend   & 1) << 25)
 		| (1             << 27)
 		| ((gouraud & 1) << 28);
 }
 
-DEF32 _gp0_rectangle(uint8_t size, bool textured, bool unshaded, bool blend) {
+DEF(uint32_t) _gp0_rectangle(
+	uint8_t size,
+	bool    textured,
+	bool    unshaded,
+	bool    blend
+) {
 	return GP0_CMD_RECTANGLE
 		| ((unshaded & 1) << 24)
 		| ((blend    & 1) << 25)
 		| ((textured & 1) << 26)
 		| ((size     & 3) << 27);
 }
-DEF32 gp0_rectangle(bool textured, bool unshaded, bool blend) {
+DEF(uint32_t) gp0_rectangle(bool textured, bool unshaded, bool blend) {
 	return _gp0_rectangle(0, textured, unshaded, blend);
 }
-DEF32 gp0_rectangle1x1(bool textured, bool unshaded, bool blend) {
+DEF(uint32_t) gp0_rectangle1x1(bool textured, bool unshaded, bool blend) {
 	return _gp0_rectangle(1, textured, unshaded, blend);
 }
-DEF32 gp0_rectangle8x8(bool textured, bool unshaded, bool blend) {
+DEF(uint32_t) gp0_rectangle8x8(bool textured, bool unshaded, bool blend) {
 	return _gp0_rectangle(2, textured, unshaded, blend);
 }
-DEF32 gp0_rectangle16x16(bool textured, bool unshaded, bool blend) {
+DEF(uint32_t) gp0_rectangle16x16(bool textured, bool unshaded, bool blend) {
 	return _gp0_rectangle(3, textured, unshaded, blend);
 }
 
-DEF32 gp0_vramBlit(void) {
+DEF(uint32_t) gp0_vramBlit(void) {
 	return GP0_CMD_VRAM_BLIT;
 }
-DEF32 gp0_vramWrite(void) {
+DEF(uint32_t) gp0_vramWrite(void) {
 	return GP0_CMD_VRAM_WRITE;
 }
-DEF32 gp0_vramRead(void) {
+DEF(uint32_t) gp0_vramRead(void) {
 	return GP0_CMD_VRAM_READ;
 }
 
-DEF32 gp0_flushCache(void) {
+DEF(uint32_t) gp0_flushCache(void) {
 	return GP0_CMD_FLUSH_CACHE;
 }
-DEF32 gp0_vramFill(void) {
+DEF(uint32_t) gp0_vramFill(void) {
 	return GP0_CMD_VRAM_FILL;
 }
-DEF32 gp0_irq(void) {
+DEF(uint32_t) gp0_irq(void) {
 	return GP0_CMD_IRQ;
 }
 
-DEF32 gp0_texpage(uint16_t page, bool dither, bool unlockFB) {
+DEF(uint32_t) gp0_texpage(uint16_t page, bool dither, bool unlockFB) {
 	return GP0_CMD_TEXPAGE
 		| ((page     & 0x9ff) <<  0)
 		| ((dither   &     1) <<  9)
 		| ((unlockFB &     1) << 10);
 }
-DEF32 gp0_texwindow(
-	uint8_t baseX, uint8_t baseY, uint8_t maskX, uint8_t maskY
+DEF(uint32_t) gp0_texwindow(
+	uint8_t baseX,
+	uint8_t baseY,
+	uint8_t maskX,
+	uint8_t maskY
 ) {
 	return GP0_CMD_TEXWINDOW
 		| ((maskX & 0x1f) <<  0)
@@ -207,22 +220,22 @@ DEF32 gp0_texwindow(
 		| ((baseX & 0x1f) << 10)
 		| ((baseY & 0x1f) << 15);
 }
-DEF32 gp0_fbOffset1(unsigned int x, unsigned int y) {
+DEF(uint32_t) gp0_fbOffset1(unsigned int x, unsigned int y) {
 	return GP0_CMD_FB_OFFSET1
 		| ((x & 0x3ff) <<  0)
 		| ((y & 0x3ff) << 10);
 }
-DEF32 gp0_fbOffset2(unsigned int x, unsigned int y) {
+DEF(uint32_t) gp0_fbOffset2(unsigned int x, unsigned int y) {
 	return GP0_CMD_FB_OFFSET2
 		| ((x & 0x3ff) <<  0)
 		| ((y & 0x3ff) << 10);
 }
-DEF32 gp0_fbOrigin(int x, int y) {
+DEF(uint32_t) gp0_fbOrigin(int x, int y) {
 	return GP0_CMD_FB_ORIGIN
 		| ((x & 0x7ff) <<  0)
 		| ((y & 0x7ff) << 11);
 }
-DEF32 gp0_fbMask(bool setMask, bool useMask) {
+DEF(uint32_t) gp0_fbMask(bool setMask, bool useMask) {
 	return GP0_CMD_FB_MASK
 		| (setMask << 0)
 		| (useMask << 1);
@@ -285,7 +298,7 @@ typedef enum {
 	GP1_CMD_GET_INFO    = 16 << 24
 } GP1Command;
 
-DEF32 gp1_clockMultiplierH(GP1HorizontalRes horizontalRes) {
+DEF(uint32_t) gp1_clockMultiplierH(GP1HorizontalRes horizontalRes) {
 	switch (horizontalRes) {
 		case GP1_HRES_256:
 			return 10;
@@ -302,7 +315,7 @@ DEF32 gp1_clockMultiplierH(GP1HorizontalRes horizontalRes) {
 	}
 }
 
-DEF32 gp1_clockDividerV(GP1VerticalRes verticalRes) {
+DEF(uint32_t) gp1_clockDividerV(GP1VerticalRes verticalRes) {
 	switch (verticalRes) {
 		case GP1_VRES_256:
 			return 1;
@@ -313,41 +326,44 @@ DEF32 gp1_clockDividerV(GP1VerticalRes verticalRes) {
 	}
 }
 
-DEF32 gp1_resetGPU(void) {
+DEF(uint32_t) gp1_resetGPU(void) {
 	return GP1_CMD_RESET_GPU;
 }
-DEF32 gp1_resetFIFO(void) {
+DEF(uint32_t) gp1_resetFIFO(void) {
 	return GP1_CMD_RESET_FIFO;
 }
-DEF32 gp1_acknowledge(void) {
+DEF(uint32_t) gp1_acknowledge(void) {
 	return GP1_CMD_ACKNOWLEDGE;
 }
-DEF32 gp1_dispBlank(bool blank) {
+DEF(uint32_t) gp1_dispBlank(bool blank) {
 	return GP1_CMD_DISP_BLANK
 		| (blank & 1);
 }
-DEF32 gp1_dmaRequestMode(GP1DMARequestMode mode) {
+DEF(uint32_t) gp1_dmaRequestMode(GP1DMARequestMode mode) {
 	return GP1_CMD_DREQ_MODE
 		| (mode & 3);
 }
-DEF32 gp1_fbOffset(unsigned int x, unsigned int y) {
+DEF(uint32_t) gp1_fbOffset(unsigned int x, unsigned int y) {
 	return GP1_CMD_FB_OFFSET
 		| ((x & 0x3ff) <<  0)
 		| ((y & 0x3ff) << 10);
 }
-DEF32 gp1_fbRangeH(unsigned int low, unsigned int high) {
+DEF(uint32_t) gp1_fbRangeH(unsigned int low, unsigned int high) {
 	return GP1_CMD_FB_RANGE_H
 		| ((low  & 0xfff) <<  0)
 		| ((high & 0xfff) << 12);
 }
-DEF32 gp1_fbRangeV(unsigned int low, unsigned int high) {
+DEF(uint32_t) gp1_fbRangeV(unsigned int low, unsigned int high) {
 	return GP1_CMD_FB_RANGE_V
 		| ((low  & 0x3ff) <<  0)
 		| ((high & 0x3ff) << 10);
 }
-DEF32 gp1_fbMode(
-	GP1HorizontalRes horizontalRes, GP1VerticalRes verticalRes,
-	GP1VideoMode videoMode, bool interlace, GP1ColorDepth colorDepth
+DEF(uint32_t) gp1_fbMode(
+	GP1HorizontalRes horizontalRes,
+	GP1VerticalRes   verticalRes,
+	GP1VideoMode     videoMode,
+	bool             interlace,
+	GP1ColorDepth    colorDepth
 ) {
 	return GP1_CMD_FB_MODE
 		| ((horizontalRes & 0x47) << 0)
@@ -356,10 +372,9 @@ DEF32 gp1_fbMode(
 		| ((colorDepth    &    1) << 4)
 		| ((interlace     &    1) << 5);
 }
-DEF32 gp1_vramSize(GP1VRAMSize size) {
+DEF(uint32_t) gp1_vramSize(GP1VRAMSize size) {
 	return GP1_CMD_VRAM_SIZE
 		| (size & 1);
 }
 
-#undef DEF16
-#undef DEF32
+#undef DEF

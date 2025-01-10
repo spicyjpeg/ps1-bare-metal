@@ -55,7 +55,7 @@ static void setupGTE(int width, int height) {
 	// Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
 	// enabled through the status register in coprocessor 0, which is always
 	// accessible.
-	cop0_setReg(COP0_SR, cop0_getReg(COP0_SR) | COP0_SR_CU2);
+	cop0_setReg(COP0_STATUS, cop0_getReg(COP0_STATUS) | COP0_STATUS_CU2);
 
 	// Set the offset to be added to all calculated screen space coordinates (we
 	// want our cube to appear at the center of the screen) Note that OFX and

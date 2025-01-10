@@ -50,9 +50,15 @@ int main(int argc, const char **argv) {
 	// 8 data bits, 1 stop bit and no parity.
 	SIO_CTRL(1) = SIO_CTRL_RESET;
 
-	SIO_MODE(1) = SIO_MODE_BAUD_DIV16 | SIO_MODE_DATA_8 | SIO_MODE_STOP_1;
-	SIO_BAUD(1) = (F_CPU / 16) / 115200;
-	SIO_CTRL(1) = SIO_CTRL_TX_ENABLE | SIO_CTRL_RX_ENABLE | SIO_CTRL_RTS;
+	SIO_MODE(1) = 0
+		| SIO_MODE_BAUD_DIV1
+		| SIO_MODE_DATA_8
+		| SIO_MODE_STOP_1;
+	SIO_BAUD(1) = F_CPU / 115200;
+	SIO_CTRL(1) = 0
+		| SIO_CTRL_TX_ENABLE
+		| SIO_CTRL_RX_ENABLE
+		| SIO_CTRL_RTS;
 
 	// Output "Hello world!" in a loop, one character at a time.
 	for (;;) {

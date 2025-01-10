@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2024 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,7 +38,8 @@ typedef enum {
 	IO_BASE    = 0xbf801000,
 	EXP2_BASE  = 0xbf802000,
 	EXP3_BASE  = 0xbfa00000,
-	DEV2_BASE  = 0xbfc00000
+	DEV2_BASE  = 0xbfc00000,
+	CPU_BASE   = 0xfffe0000
 } BaseAddress;
 
 /* Bus interface */
@@ -528,3 +529,29 @@ typedef enum {
 #define SPU_REVERB_MRAPF2  _MMIO16(IO_BASE | 0xdfa)
 #define SPU_REVERB_VLIN    _MMIO16(IO_BASE | 0xdfc)
 #define SPU_REVERB_VRIN    _MMIO16(IO_BASE | 0xdfe)
+
+/* CW33300 CPU configuration */
+
+typedef enum {
+	CPU_BCC_LOCK           = 1 <<  0,
+	CPU_BCC_INV            = 1 <<  1,
+	CPU_BCC_TAG            = 1 <<  2,
+	CPU_BCC_RAM            = 1 <<  3,
+	CPU_BCC_DBLKSZ_BITMASK = 3 <<  4,
+	CPU_BCC_DBLKSZ_2       = 0 <<  4,
+	CPU_BCC_DBLKSZ_4       = 1 <<  4,
+	CPU_BCC_DS             = 1 <<  7,
+	CPU_BCC_IBLKSZ_BITMASK = 3 <<  8,
+	CPU_BCC_IBLKSZ_2       = 0 <<  8,
+	CPU_BCC_IBLKSZ_4       = 1 <<  8,
+	CPU_BCC_IS0            = 1 << 10,
+	CPU_BCC_IS1            = 1 << 11,
+	CPU_BCC_INTP           = 1 << 12,
+	CPU_BCC_RDPRI          = 1 << 13,
+	CPU_BCC_NOPAD          = 1 << 14,
+	CPU_BCC_BGNT           = 1 << 15,
+	CPU_BCC_LDSCH          = 1 << 16,
+	CPU_BCC_NOSTR          = 1 << 17
+} CPUBCCFlag;
+
+#define CPU_BCC _MMIO32(CPU_BASE | 0x130)

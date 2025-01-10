@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023 spicyjpeg
+# ps1-bare-metal - (C) 2023-2025 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -13,8 +13,6 @@
 # PERFORMANCE OF THIS SOFTWARE.
 
 .set noreorder
-
-## setjmp() and longjmp()
 
 # This is not a "proper" implementation of setjmp/longjmp as it does not save
 # COP0 and GTE registers, but it is good enough for most use cases.
@@ -37,7 +35,8 @@ setjmp:
 	sw    $sp, 0x28($a0)
 	sw    $fp, 0x2c($a0)
 
-	jr    $ra # return 0
+	# return 0;
+	jr    $ra
 	li    $v0, 0
 
 .section .text.longjmp, "ax", @progbits
@@ -58,56 +57,6 @@ longjmp:
 	lw    $sp, 0x28($a0)
 	lw    $fp, 0x2c($a0)
 
-	jr    $ra # return status (from setjmp)
+	# return status;
+	jr    $ra
 	move  $v0, $a1
-
-## Leading zero count intrinsics
-
-# libgcc provides two functions used internally by GCC to count the number of 
-# leading zeroes in a value, __clzsi2() (32-bit) and __clzdi2() (64-bit). We're
-# going to override them with smaller implementations that make use of the GTE's
-# LZCS/LZCR registers.
-
-.set LZCS, $30
-.set LZCR, $31
-
-.section .text.__clzsi2, "ax", @progbits
-.global __clzsi2
-.type __clzsi2, @function
-
-__clzsi2:
-	mtc2  $a0, LZCS
-	bltz  $a0, .Lreturn # if (value & (1 << 31)) return 0
-	li    $v0, 0
-	mfc2  $v0, LZCR # else return GTE_CLZ(value)
-
-.Lreturn:
-	jr    $ra
-	nop
-
-.section .text.__clzdi2, "ax", @progbits
-.global __clzdi2
-.type __clzdi2, @function
-
-__clzdi2:
-	mtc2  $a1, LZCS
-	bltz  $a1, .Lreturn2 # if (msb & (1 << 31)) return 0
-	li    $v0, 0
-	bnez  $a1, .LreturnMSB # else if (msb) return GTE_CLZ(msb)
-	nop
-
-.LnoMSB:
-	mtc2  $a0, LZCS
-	bltz  $a0, .Lreturn2 # else if (lsb & (1 << 31)) return 32
-	li    $v0, 32
-	mfc2  $v0, LZCR # else return 32 + GTE_CLZ(lsb)
-
-	jr    $ra
-	addiu $v0, 32
-
-.LreturnMSB:
-	mfc2  $v0, LZCR
-
-.Lreturn2:
-	jr    $ra
-	nop

@@ -71,7 +71,6 @@ void *memset(void *dest, int ch, size_t count) {
 
 	return dest;
 }
-#endif
 
 void *memcpy(void *restrict dest, const void *restrict src, size_t count) {
 	uint8_t       *_dest = (uint8_t *) dest;
@@ -82,6 +81,7 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t count) {
 
 	return dest;
 }
+#endif
 
 void *memccpy(void *restrict dest, const void *restrict src, int ch, size_t count) {
 	uint8_t       *_dest = (uint8_t *) dest;

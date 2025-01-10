@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2024 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,8 +18,7 @@
 
 #include <stdint.h>
 
-#define DEF   static inline void     __attribute__((always_inline))
-#define DEF32 static inline uint32_t __attribute__((always_inline))
+#define DEF(type) static inline type __attribute__((always_inline))
 
 /* GTE data types */
 
@@ -85,8 +84,13 @@ typedef enum {
 	GTE_SF          =  1 << 19  // Shift results by 12 bits
 } GTECommandFlag;
 
-DEF gte_command(const uint32_t cmd) {
-	__asm__ volatile("nop\n" "nop\n" "cop2 %0\n" :: "i"(cmd));
+DEF(void) gte_command(const uint32_t cmd) {
+	__asm__ volatile(
+		"nop\n"
+		"nop\n"
+		"cop2 %0\n"
+		:: "i"(cmd)
+	);
 }
 
 /* Control register definitions */
@@ -152,10 +156,10 @@ typedef enum {
 // Note that reg must be a constant value known at compile time, as the
 // cfc2/ctc2 instructions only support addressing coprocessor registers directly
 // through immediates.
-DEF gte_setControlReg(const GTEControlRegister reg, uint32_t value) {
+DEF(void) gte_setControlReg(const GTEControlRegister reg, uint32_t value) {
 	__asm__ volatile("ctc2 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 gte_getControlReg(const GTEControlRegister reg) {
+DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 	uint32_t value;
 
 	__asm__ volatile("cfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
@@ -163,7 +167,7 @@ DEF32 gte_getControlReg(const GTEControlRegister reg) {
 }
 
 #define MATRIX_FUNCTIONS(reg0, reg1, reg2, reg3, reg4, name) \
-	DEF gte_set##name( \
+	DEF(void) gte_set##name( \
 		int16_t v11, int16_t v12, int16_t v13, \
 		int16_t v21, int16_t v22, int16_t v23, \
 		int16_t v31, int16_t v32, int16_t v33 \
@@ -174,7 +178,7 @@ DEF32 gte_getControlReg(const GTEControlRegister reg) {
 		gte_setControlReg(reg3, ((uint32_t) v31 & 0xffff) | ((uint32_t) v32 << 16)); \
 		gte_setControlReg(reg4, v33); \
 	} \
-	DEF gte_load##name(const GTEMatrix *input) { \
+	DEF(void) gte_load##name(const GTEMatrix *input) { \
 		const uint32_t *values = (const uint32_t *) input; \
 		\
 		gte_setControlReg(reg0, values[0]); \
@@ -183,7 +187,7 @@ DEF32 gte_getControlReg(const GTEControlRegister reg) {
 		gte_setControlReg(reg3, values[3]); \
 		gte_setControlReg(reg4, values[4]); \
 	} \
-	DEF gte_store##name(GTEMatrix *output) { \
+	DEF(void) gte_store##name(GTEMatrix *output) { \
 		uint32_t *values = (uint32_t *) output; \
 		\
 		values[0] = gte_getControlReg(reg0); \
@@ -194,15 +198,27 @@ DEF32 gte_getControlReg(const GTEControlRegister reg) {
 	}
 
 MATRIX_FUNCTIONS(
-	GTE_RT11RT12, GTE_RT13RT21, GTE_RT22RT23, GTE_RT31RT32, GTE_RT33,
+	GTE_RT11RT12,
+	GTE_RT13RT21,
+	GTE_RT22RT23,
+	GTE_RT31RT32,
+	GTE_RT33,
 	RotationMatrix
 )
 MATRIX_FUNCTIONS(
-	GTE_L11L12, GTE_L13L21, GTE_L22L23, GTE_L31L32, GTE_L33,
+	GTE_L11L12,
+	GTE_L13L21,
+	GTE_L22L23,
+	GTE_L31L32,
+	GTE_L33,
 	LightMatrix
 )
 MATRIX_FUNCTIONS(
-	GTE_LC11LC12, GTE_LC13LC21, GTE_LC22LC23, GTE_LC31LC32, GTE_LC33,
+	GTE_LC11LC12,
+	GTE_LC13LC21,
+	GTE_LC22LC23,
+	GTE_LC31LC32,
+	GTE_LC33,
 	LightColorMatrix
 )
 
@@ -244,10 +260,10 @@ typedef enum {
 	GTE_LZCR = 31  // Leading zero count output
 } GTEDataRegister;
 
-DEF gte_setDataReg(const GTEDataRegister reg, uint32_t value) {
+DEF(void) gte_setDataReg(const GTEDataRegister reg, uint32_t value) {
 	__asm__ volatile("mtc2 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 gte_getDataReg(const GTEDataRegister reg) {
+DEF(uint32_t) gte_getDataReg(const GTEDataRegister reg) {
 	uint32_t value;
 
 	__asm__ volatile("mfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
@@ -257,25 +273,31 @@ DEF32 gte_getDataReg(const GTEDataRegister reg) {
 // Unlike COP0 registers and GTE control registers, whose contents can only be
 // moved to/from a CPU register, data registers can additionally be loaded from
 // and stored to memory directly using the lwc2 and swc2 instructions.
-DEF gte_loadDataReg(const GTEDataRegister reg, const int16_t offset, const void *ptr) {
+DEF(void) gte_loadDataReg(
+	const GTEDataRegister reg,
+	const int16_t         offset,
+	const void            *ptr
+) {
 	__asm__ volatile("lwc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr));
 }
-DEF gte_storeDataReg(const GTEDataRegister reg, const int16_t offset, void *ptr) {
-	__asm__ volatile(
-		"swc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr) : "memory"
-	);
+DEF(void) gte_storeDataReg(
+	const GTEDataRegister reg,
+	const int16_t         offset,
+	void                  *ptr
+) {
+	__asm__ volatile("swc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr) : "memory");
 }
 
 #define VECTOR_FUNCTIONS(reg0, reg1, name) \
-	DEF gte_set##name(int16_t x, int16_t y, int16_t z) { \
+	DEF(void) gte_set##name(int16_t x, int16_t y, int16_t z) { \
 		gte_setDataReg(reg0, ((uint32_t) x & 0xffff) | ((uint32_t) y << 16)); \
 		gte_setDataReg(reg1, z); \
 	} \
-	DEF gte_load##name(const GTEVector16 *input) { \
+	DEF(void) gte_load##name(const GTEVector16 *input) { \
 		gte_loadDataReg(reg0, 0, input); \
 		gte_loadDataReg(reg1, 4, input); \
 	} \
-	DEF gte_store##name(GTEVector16 *output) { \
+	DEF(void) gte_store##name(GTEVector16 *output) { \
 		gte_storeDataReg(reg0, 0, output); \
 		gte_storeDataReg(reg1, 4, output); \
 	}
@@ -286,7 +308,7 @@ VECTOR_FUNCTIONS(GTE_VXY2, GTE_VZ2, V2)
 
 #undef VECTOR_FUNCTIONS
 
-DEF gte_setRowVectors(
+DEF(void) gte_setRowVectors(
 	int16_t v11, int16_t v12, int16_t v13,
 	int16_t v21, int16_t v22, int16_t v23,
 	int16_t v31, int16_t v32, int16_t v33
@@ -298,7 +320,7 @@ DEF gte_setRowVectors(
 	gte_setDataReg(GTE_VXY2, ((uint32_t) v31 & 0xffff) | ((uint32_t) v32 << 16));
 	gte_setDataReg(GTE_VZ2,  v33);
 }
-DEF gte_setColumnVectors(
+DEF(void) gte_setColumnVectors(
 	int16_t v11, int16_t v12, int16_t v13,
 	int16_t v21, int16_t v22, int16_t v23,
 	int16_t v31, int16_t v32, int16_t v33
@@ -312,4 +334,3 @@ DEF gte_setColumnVectors(
 }
 
 #undef DEF
-#undef DEF32

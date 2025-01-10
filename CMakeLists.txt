@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023-2024 spicyjpeg
+# ps1-bare-metal - (C) 2023-2025 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -38,13 +38,15 @@ include(cmake/virtualenv.cmake)
 # going to link this library into each example.
 add_library(
 	common OBJECT
+	src/libc/clz.s
 	src/libc/crt0.c
 	src/libc/cxxsupport.cpp
 	src/libc/malloc.c
-	src/libc/memset.s
 	src/libc/misc.c
-	src/libc/misc.s
+	src/libc/setjmp.s
 	src/libc/string.c
+	src/libc/string.s
+	src/ps1/cache.s
 	src/vendor/printf.c
 )
 target_include_directories(

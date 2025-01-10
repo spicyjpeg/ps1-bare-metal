@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2024 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,8 +18,7 @@
 
 #include <stdint.h>
 
-#define DEF   static inline void     __attribute__((always_inline))
-#define DEF32 static inline uint32_t __attribute__((always_inline))
+#define DEF(type) static inline type __attribute__((always_inline))
 
 /* Register definitions */
 
@@ -30,7 +29,7 @@ typedef enum {
 	COP0_BADVADDR =  8, // Bad virtual address
 	COP0_BDAM     =  9, // Breakpoint program counter bitmask
 	COP0_BPCM     = 11, // Breakpoint data address bitmask
-	COP0_SR       = 12, // Status register
+	COP0_STATUS   = 12, // Status register
 	COP0_CAUSE    = 13, // Exception cause
 	COP0_EPC      = 14, // Exception program counter
 	COP0_PRID     = 15  // Processor identifier
@@ -56,28 +55,28 @@ typedef enum {
 } COP0CauseFlag;
 
 typedef enum {
-	COP0_SR_IEc = 1 <<  0, // Current interrupt enable
-	COP0_SR_KUc = 1 <<  1, // Current privilege level
-	COP0_SR_IEp = 1 <<  2, // Previous interrupt enable
-	COP0_SR_KUp = 1 <<  3, // Previous privilege level
-	COP0_SR_IEo = 1 <<  4, // Old interrupt enable
-	COP0_SR_KUo = 1 <<  5, // Old privilege level
-	COP0_SR_Im0 = 1 <<  8, // IRQ mask 0 (software interrupt)
-	COP0_SR_Im1 = 1 <<  9, // IRQ mask 1 (software interrupt)
-	COP0_SR_Im2 = 1 << 10, // IRQ mask 2 (hardware interrupt)
-	COP0_SR_Isc = 1 << 16, // Isolate cache
-	COP0_SR_BEV = 1 << 22, // Boot exception vector location
-	COP0_SR_CU0 = 1 << 28, // Coprocessor 0 privilege level
-	COP0_SR_CU2 = 1 << 30  // Coprocessor 2 enable
+	COP0_STATUS_IEc = 1 <<  0, // Current interrupt enable
+	COP0_STATUS_KUc = 1 <<  1, // Current privilege level
+	COP0_STATUS_IEp = 1 <<  2, // Previous interrupt enable
+	COP0_STATUS_KUp = 1 <<  3, // Previous privilege level
+	COP0_STATUS_IEo = 1 <<  4, // Old interrupt enable
+	COP0_STATUS_KUo = 1 <<  5, // Old privilege level
+	COP0_STATUS_Im0 = 1 <<  8, // IRQ mask 0 (software interrupt)
+	COP0_STATUS_Im1 = 1 <<  9, // IRQ mask 1 (software interrupt)
+	COP0_STATUS_Im2 = 1 << 10, // IRQ mask 2 (hardware interrupt)
+	COP0_STATUS_IsC = 1 << 16, // Isolate cache
+	COP0_STATUS_BEV = 1 << 22, // Boot exception vector location
+	COP0_STATUS_CU0 = 1 << 28, // Coprocessor 0 privilege level
+	COP0_STATUS_CU2 = 1 << 30  // Coprocessor 2 enable
 } COP0StatusFlag;
 
 // Note that reg must be a constant value known at compile time, as the
 // mtc0/mfc0 instructions only support addressing coprocessor registers directly
 // through immediates.
-DEF cop0_setReg(const COP0Register reg, uint32_t value) {
+DEF(void) cop0_setReg(const COP0Register reg, uint32_t value) {
 	__asm__ volatile("mtc0 %0, $%1\n" :: "r"(value), "i"(reg));
 }
-DEF32 cop0_getReg(const COP0Register reg) {
+DEF(uint32_t) cop0_getReg(const COP0Register reg) {
 	uint32_t value;
 
 	__asm__ volatile("mfc0 %0, $%1\n" : "=r"(value) : "i"(reg));
@@ -85,4 +84,3 @@ DEF32 cop0_getReg(const COP0Register reg) {
 }
 
 #undef DEF
-#undef DEF32

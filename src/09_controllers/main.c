@@ -71,10 +71,14 @@ static void initControllerBus(void) {
 	// pulsed (see below).
 	SIO_CTRL(0) = SIO_CTRL_RESET;
 
-	SIO_MODE(0) = SIO_MODE_BAUD_DIV1 | SIO_MODE_DATA_8;
+	SIO_MODE(0) = 0
+		| SIO_MODE_BAUD_DIV1
+		| SIO_MODE_DATA_8;
 	SIO_BAUD(0) = F_CPU / 250000;
-	SIO_CTRL(0) =
-		SIO_CTRL_TX_ENABLE | SIO_CTRL_RX_ENABLE | SIO_CTRL_DSR_IRQ_ENABLE;
+	SIO_CTRL(0) = 0
+		| SIO_CTRL_TX_ENABLE
+		| SIO_CTRL_RX_ENABLE
+		| SIO_CTRL_DSR_IRQ_ENABLE;
 }
 
 static bool waitForAcknowledge(int timeout) {

@@ -9,14 +9,15 @@ customizing the region string (used by some emulators to determine whether they
 should start in PAL or NTSC mode by default). Requires no external dependencies.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __author__  = "spicyjpeg"
 
-from argparse    import ArgumentParser, FileType, Namespace
-from dataclasses import dataclass
-from enum        import IntEnum, IntFlag
-from struct      import Struct
-from typing      import BinaryIO, Generator
+from argparse        import ArgumentParser, FileType, Namespace
+from collections.abc import Generator
+from dataclasses     import dataclass
+from enum            import IntEnum, IntFlag
+from struct          import Struct
+from typing          import BinaryIO
 
 ## Utilities
 
@@ -26,13 +27,13 @@ def alignToMultiple(data: bytearray, alignment: int):
 	if padAmount < alignment:
 		data.extend(b"\0" * padAmount)
 
-def parseStructFromFile(_file: BinaryIO, _struct: Struct) -> tuple:
-	return _struct.unpack(_file.read(_struct.size))
+def parseStructFromFile(file: BinaryIO, _struct: Struct) -> tuple:
+	return _struct.unpack(file.read(_struct.size))
 
 def parseStructsFromFile(
-	_file: BinaryIO, _struct: Struct, count: int
+	file: BinaryIO, _struct: Struct, count: int
 ) -> Generator[tuple, None, None]:
-	data: bytes = _file.read(_struct.size * count)
+	data: bytes = file.read(_struct.size * count)
 
 	for offset in range(0, len(data), _struct.size):
 		yield _struct.unpack(data[offset:offset + _struct.size])
@@ -79,9 +80,9 @@ class Segment:
 			(self.flags & (ProgHeaderFlag.WRITE | ProgHeaderFlag.EXECUTE))
 
 class ELF:
-	def __init__(self, _file: BinaryIO):
+	def __init__(self, file: BinaryIO):
 		# Parse the file header and perform some minimal validation.
-		_file.seek(0)
+		file.seek(0)
 
 		(
 			magic,
@@ -103,7 +104,7 @@ class ELF:
 			secHeaderCount,
 			_
 		) = \
-			parseStructFromFile(_file, ELF_HEADER_STRUCT)
+			parseStructFromFile(file, ELF_HEADER_STRUCT)
 
 		if magic != ELF_HEADER_MAGIC:
 			raise RuntimeError("file is not a valid ELF")
@@ -124,7 +125,7 @@ class ELF:
 		# Parse the program headers and extract all loadable segments.
 		self.segments: list[Segment] = []
 
-		_file.seek(progHeaderOffset)
+		file.seek(progHeaderOffset)
 
 		for (
 			headerType,
@@ -135,13 +136,13 @@ class ELF:
 			length,
 			flags,
 			_
-		) in parseStructsFromFile(_file, PROG_HEADER_STRUCT, progHeaderCount):
+		) in parseStructsFromFile(file, PROG_HEADER_STRUCT, progHeaderCount):
 			if headerType != ProgHeaderType.LOAD:
 				continue
 
 			# Retrieve the segment and trim or pad it if necessary.
-			_file.seek(fileOffset)
-			data: bytes = _file.read(fileLength)
+			file.seek(fileOffset)
+			data: bytes = file.read(fileLength)
 
 			if length > len(data):
 				data = data.ljust(length, b"\0")
@@ -150,7 +151,7 @@ class ELF:
 
 			self.segments.append(Segment(address, data, flags))
 
-		#_file.close()
+		#file.close()
 
 	def flatten(self, stripReadOnly: bool = False) -> tuple[int, bytearray]:
 		# Find the lower and upper boundaries of the segments' address space.
@@ -241,9 +242,9 @@ def main():
 	parser: ArgumentParser = createParser()
 	args:   Namespace      = parser.parse_args()
 
-	with args.input as _file:
+	with args.input as file:
 		try:
-			elf: ELF = ELF(_file)
+			elf: ELF = ELF(file)
 		except RuntimeError as err:
 			parser.error(err.args[0])
 
@@ -269,9 +270,9 @@ def main():
 		region            # Region string
 	)
 
-	with args.output as _file:
-		_file.write(header)
-		_file.write(data)
+	with args.output as file:
+		file.write(header)
+		file.write(data)
 
 if __name__ == "__main__":
 	main()
