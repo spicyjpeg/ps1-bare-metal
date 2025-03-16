@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * This is a fast lookup-table-less implementation of fixed-point sine and
  * cosine, based on the isin_S4 implementation from:
  *     https://www.coranac.com/2009/07/sines
@@ -23,7 +24,7 @@
 
 #define A (1 << 12)
 #define B 19900
-#define	C 3516
+#define	C  3516
 
 int isin(int x) {
 	int c = x << (30 - ISIN_SHIFT);

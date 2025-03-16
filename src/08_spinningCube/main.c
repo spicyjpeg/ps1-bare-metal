@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * Having explored the capabilities of the PS1's GPU in previous examples, it is
  * now time to focus on the other piece of hardware that makes 3D graphics on
  * the PS1 possible: the geometry transformation engine (GTE), a specialized
@@ -106,7 +107,7 @@ static void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
 
 static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 	static GTEMatrix multiplied;
-	int              s, c;
+	int s, c;
 
 	// For each axis, compute the rotation matrix then "combine" it with the
 	// GTE's current matrix by multiplying the two and writing the result back
@@ -308,7 +309,8 @@ int main(int argc, const char **argv) {
 		ptr[0] = gp0_texpage(0, true, false);
 		ptr[1] = gp0_fbOffset1(bufferX, bufferY);
 		ptr[2] = gp0_fbOffset2(
-			bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+			bufferX + SCREEN_WIDTH  - 1,
+			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 

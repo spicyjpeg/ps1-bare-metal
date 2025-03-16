@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
 #include "gpu.h"
 
 #define FONT_FIRST_TABLE_CHAR '!'
-#define FONT_SPACE_WIDTH      4
+#define FONT_SPACE_WIDTH       4
 #define FONT_TAB_WIDTH        32
 #define FONT_LINE_HEIGHT      10
 
@@ -33,7 +33,11 @@ extern "C" {
 #endif
 
 void printString(
-	DMAChain *chain, const TextureInfo *font, int x, int y, const char *str
+	DMAChain          *chain,
+	const TextureInfo *font,
+	int               x,
+	int               y,
+	const char        *str
 );
 
 #ifdef __cplusplus

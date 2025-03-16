@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * We saw how to initialize the GPU and get basic graphics on screen in the last
  * tutorial. It's now time to add motion to the mix: we're going to draw a
  * square which, in true DVD player screensaver fashion, will bounce around on
@@ -57,7 +58,11 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
 	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
 	GPU_GP1 = gp1_fbMode(
-		horizontalRes, verticalRes, mode, false, GP1_COLOR_16BPP
+		horizontalRes,
+		verticalRes,
+		mode,
+		false,
+		GP1_COLOR_16BPP
 	);
 }
 
@@ -115,7 +120,8 @@ int main(int argc, const char **argv) {
 		GPU_GP0 = gp0_texpage(0, true, false);
 		GPU_GP0 = gp0_fbOffset1(frameX, frameY);
 		GPU_GP0 = gp0_fbOffset2(
-			frameX + SCREEN_WIDTH - 1, frameY + SCREEN_HEIGHT - 2
+			frameX + SCREEN_WIDTH  - 1,
+			frameY + SCREEN_HEIGHT - 2
 		);
 		GPU_GP0 = gp0_fbOrigin(frameX, frameY);
 

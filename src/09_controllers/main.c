@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * This example implements a simple controller tester, showing how to send
  * commands to and obtain data from connected controllers.
  *
@@ -129,11 +130,11 @@ typedef enum {
 	CMD_REQUEST_CONFIG  = 'M', // Configure poll request format (config)
 	CMD_RESPONSE_CONFIG = 'O', // Configure poll response format (config)
 	CMD_CARD_READ       = 'R', // Read 128-byte memory card sector
-	CMD_CARD_IDENTIFY   = 'S', // Retrieve memory card size information
+	CMD_CARD_GET_SIZE   = 'S', // Retrieve memory card size information
 	CMD_CARD_WRITE      = 'W'  // Write 128-byte memory card sector
 } DeviceCommand;
 
-#define DTR_DELAY   60
+#define DTR_DELAY    60
 #define DSR_TIMEOUT 120
 
 static void selectPort(int port) {
@@ -162,8 +163,11 @@ static uint8_t exchangeByte(uint8_t value) {
 }
 
 static int exchangePacket(
-	DeviceAddress address, const uint8_t *request, uint8_t *response,
-	int reqLength, int maxRespLength
+	DeviceAddress address,
+	const uint8_t *request,
+	uint8_t       *response,
+	int           reqLength,
+	int           maxRespLength
 ) {
 	// Reset the interrupt flag and assert the DTR signal to tell the controller
 	// or memory card that we're about to send a packet. Devices may take some
@@ -235,16 +239,16 @@ static const char *const controllerTypes[] = {
 };
 
 static const char *const buttonNames[] = {
-	"Select",   // Bit 0
-	"L3",       // Bit 1
-	"R3",       // Bit 2
-	"Start",    // Bit 3
-	"Up",       // Bit 4
-	"Right",    // Bit 5
-	"Down",     // Bit 6
-	"Left",     // Bit 7
-	"L2",       // Bit 8
-	"R2",       // Bit 9
+	"Select",   // Bit  0
+	"L3",       // Bit  1
+	"R3",       // Bit  2
+	"Start",    // Bit  3
+	"Up",       // Bit  4
+	"Right",    // Bit  5
+	"Down",     // Bit  6
+	"Left",     // Bit  7
+	"L2",       // Bit  8
+	"R2",       // Bit  9
 	"L1",       // Bit 10
 	"R1",       // Bit 11
 	"Triangle", // Bit 12
@@ -268,7 +272,11 @@ static void printControllerInfo(int port, char *output) {
 	// per frame, unless higher polling rates are desired.
 	selectPort(port);
 	int respLength = exchangePacket(
-		ADDR_CONTROLLER, request, response, sizeof(request), sizeof(response)
+		ADDR_CONTROLLER,
+		request,
+		response,
+		sizeof(request),
+		sizeof(response)
 	);
 
 	ptr += sprintf(ptr, "Port %d:\n", port + 1);
@@ -307,8 +315,8 @@ static void printControllerInfo(int port, char *output) {
 
 #define SCREEN_WIDTH     320
 #define SCREEN_HEIGHT    240
-#define FONT_WIDTH       96
-#define FONT_HEIGHT      56
+#define FONT_WIDTH        96
+#define FONT_HEIGHT       56
 #define FONT_COLOR_DEPTH GP0_COLOR_4BPP
 
 extern const uint8_t fontTexture[], fontPalette[];
@@ -333,8 +341,16 @@ int main(int argc, const char **argv) {
 	TextureInfo font;
 
 	uploadIndexedTexture(
-		&font, fontTexture, fontPalette, SCREEN_WIDTH * 2, 0, SCREEN_WIDTH * 2,
-		FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, FONT_COLOR_DEPTH
+		&font,
+		fontTexture,
+		fontPalette,
+		SCREEN_WIDTH * 2,
+		0,
+		SCREEN_WIDTH * 2,
+		FONT_HEIGHT,
+		FONT_WIDTH,
+		FONT_HEIGHT,
+		FONT_COLOR_DEPTH
 	);
 
 	DMAChain dmaChains[2];
@@ -357,7 +373,8 @@ int main(int argc, const char **argv) {
 		ptr[0] = gp0_texpage(0, true, false);
 		ptr[1] = gp0_fbOffset1(bufferX, bufferY);
 		ptr[2] = gp0_fbOffset2(
-			bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+			bufferX + SCREEN_WIDTH  - 1,
+			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 
@@ -369,10 +386,11 @@ int main(int argc, const char **argv) {
 		// Poll both controller ports once per frame. Memory cards are ignored
 		// in this example.
 		for (int i = 0; i < 2; i++) {
+			int  offset = i * 64;
 			char buffer[256];
 
 			printControllerInfo(i, buffer);
-			printString(chain, &font, 16, 32 + 64 * i, buffer);
+			printString(chain, &font, 16, 32 + offset, buffer);
 		}
 
 		*(chain->nextPacket) = gp0_endTag(0);

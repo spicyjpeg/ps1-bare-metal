@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,7 +35,11 @@ void setupGPU(GP1VideoMode mode, int width, int height) {
 	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
 	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
 	GPU_GP1 = gp1_fbMode(
-		horizontalRes, verticalRes, mode, false, GP1_COLOR_16BPP
+		horizontalRes,
+		verticalRes,
+		mode,
+		false,
+		GP1_COLOR_16BPP
 	);
 }
 
@@ -61,10 +65,19 @@ void sendLinkedList(const void *data) {
 	assert(!((uint32_t) data % 4));
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_LIST | DMA_CHCR_ENABLE;
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_LIST
+		| DMA_CHCR_ENABLE;
 }
 
-void sendVRAMData(const void *data, int x, int y, int width, int height) {
+void sendVRAMData(
+	const void *data,
+	int        x,
+	int        y,
+	int        width,
+	int        height
+) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
@@ -88,7 +101,10 @@ void sendVRAMData(const void *data, int x, int y, int width, int height) {
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_SLICE | DMA_CHCR_ENABLE;
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_SLICE
+		| DMA_CHCR_ENABLE;
 }
 
 uint32_t *allocatePacket(DMAChain *chain, int numCommands) {
@@ -102,7 +118,12 @@ uint32_t *allocatePacket(DMAChain *chain, int numCommands) {
 }
 
 void uploadTexture(
-	TextureInfo *info, const void *data, int x, int y, int width, int height
+	TextureInfo *info,
+	const void  *data,
+	int         x,
+	int         y,
+	int         width,
+	int         height
 ) {
 	assert((width <= 256) && (height <= 256));
 
@@ -110,18 +131,29 @@ void uploadTexture(
 	waitForDMADone();
 
 	info->page   = gp0_page(
-		x / 64, y / 256, GP0_BLEND_SEMITRANS, GP0_COLOR_16BPP
+		x /  64,
+		y / 256,
+		GP0_BLEND_SEMITRANS,
+		GP0_COLOR_16BPP
 	);
 	info->clut   = 0;
-	info->u      = (uint8_t)  (x % 64);
+	info->u      = (uint8_t)  (x %  64);
 	info->v      = (uint8_t)  (y % 256);
 	info->width  = (uint16_t) width;
 	info->height = (uint16_t) height;
 }
 
 void uploadIndexedTexture(
-	TextureInfo *info, const void *image, const void *palette, int x, int y,
-	int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth
+	TextureInfo   *info,
+	const void    *image,
+	const void    *palette,
+	int           imageX,
+	int           imageY,
+	int           paletteX,
+	int           paletteY,
+	int           width,
+	int           height,
+	GP0ColorDepth colorDepth
 ) {
 	assert((width <= 256) && (height <= 256));
 
@@ -130,17 +162,20 @@ void uploadIndexedTexture(
 
 	assert(!(paletteX % 16) && ((paletteX + numColors) <= 1024));
 
-	sendVRAMData(image, x, y, width / widthDivider, height);
+	sendVRAMData(image, imageX, imageY, width / widthDivider, height);
 	waitForDMADone();
 	sendVRAMData(palette, paletteX, paletteY, numColors, 1);
 	waitForDMADone();
 
 	info->page   = gp0_page(
-		x / 64, y / 256, GP0_BLEND_SEMITRANS, colorDepth
+		imageX /  64,
+		imageY / 256,
+		GP0_BLEND_SEMITRANS,
+		colorDepth
 	);
 	info->clut   = gp0_clut(paletteX / 16, paletteY);
-	info->u      = (uint8_t)  ((x % 64) * widthDivider);
-	info->v      = (uint8_t)  (y % 256);
+	info->u      = (uint8_t)  ((imageX %  64) * widthDivider);
+	info->v      = (uint8_t)   (imageY % 256);
 	info->width  = (uint16_t) width;
 	info->height = (uint16_t) height;
 }

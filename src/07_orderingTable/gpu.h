@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,9 +22,9 @@
 // We are going to store the ordering table for each frame as part of the DMA
 // chain structure. We'll have 32 different "buckets" and thus Z indices at our
 // disposal.
-#define DMA_MAX_CHUNK_SIZE  16
+#define DMA_MAX_CHUNK_SIZE    16
 #define CHAIN_BUFFER_SIZE   1024
-#define ORDERING_TABLE_SIZE 32
+#define ORDERING_TABLE_SIZE   32
 
 typedef struct {
 	uint32_t data[CHAIN_BUFFER_SIZE];
@@ -48,16 +48,35 @@ void waitForDMADone(void);
 void waitForVSync(void);
 
 void sendLinkedList(const void *data);
-void sendVRAMData(const void *data, int x, int y, int width, int height);
+void sendVRAMData(
+	const void *data,
+	int        x,
+	int        y,
+	int        width,
+	int        height
+);
 void clearOrderingTable(uint32_t *table, int numEntries);
 uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
 
 void uploadTexture(
-	TextureInfo *info, const void *data, int x, int y, int width, int height
+	TextureInfo *info,
+	const void  *data,
+	int         x,
+	int         y,
+	int         width,
+	int         height
 );
 void uploadIndexedTexture(
-	TextureInfo *info, const void *image, const void *palette, int x, int y,
-	int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth
+	TextureInfo   *info,
+	const void    *image,
+	const void    *palette,
+	int           imageX,
+	int           imageY,
+	int           paletteX,
+	int           paletteY,
+	int           width,
+	int           height,
+	GP0ColorDepth colorDepth
 );
 
 #ifdef __cplusplus

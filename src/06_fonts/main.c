@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * We saw how to load a single texture and display it in the last two examples.
  * Textures, however, are not always simple images displayed in their entirety:
  * sometimes they hold more than one image (e.g. all frames of a character's
@@ -148,12 +149,16 @@ static const SpriteInfo fontSprites[] = {
 };
 
 #define FONT_FIRST_TABLE_CHAR '!'
-#define FONT_SPACE_WIDTH      4
+#define FONT_SPACE_WIDTH       4
 #define FONT_TAB_WIDTH        32
 #define FONT_LINE_HEIGHT      10
 
 static void printString(
-	DMAChain *chain, const TextureInfo *font, int x, int y, const char *str
+	DMAChain          *chain,
+	const TextureInfo *font,
+	int               x,
+	int               y,
+	const char        *str
 ) {
 	int currentX = x, currentY = y;
 
@@ -214,8 +219,8 @@ static void printString(
 
 #define SCREEN_WIDTH     320
 #define SCREEN_HEIGHT    240
-#define FONT_WIDTH       96
-#define FONT_HEIGHT      56
+#define FONT_WIDTH        96
+#define FONT_HEIGHT       56
 #define FONT_COLOR_DEPTH GP0_COLOR_4BPP
 
 extern const uint8_t fontTexture[], fontPalette[];
@@ -239,8 +244,16 @@ int main(int argc, const char **argv) {
 	TextureInfo font;
 
 	uploadIndexedTexture(
-		&font, fontTexture, fontPalette, SCREEN_WIDTH * 2, 0, SCREEN_WIDTH * 2,
-		FONT_HEIGHT, FONT_WIDTH, FONT_HEIGHT, FONT_COLOR_DEPTH
+		&font,
+		fontTexture,
+		fontPalette,
+		SCREEN_WIDTH * 2,
+		0,
+		SCREEN_WIDTH * 2,
+		FONT_HEIGHT,
+		FONT_WIDTH,
+		FONT_HEIGHT,
+		FONT_COLOR_DEPTH
 	);
 
 	DMAChain dmaChains[2];
@@ -264,7 +277,8 @@ int main(int argc, const char **argv) {
 		ptr[0] = gp0_texpage(0, true, false);
 		ptr[1] = gp0_fbOffset1(bufferX, bufferY);
 		ptr[2] = gp0_fbOffset2(
-			bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+			bufferX + SCREEN_WIDTH  - 1,
+			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 
@@ -274,7 +288,10 @@ int main(int argc, const char **argv) {
 		ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 		printString(
-			chain, &font, 16, 32,
+			chain,
+			&font,
+			16,
+			32,
 			"Hello world!\n"
 			"We're printing text using nothing but our font spritesheet."
 		);

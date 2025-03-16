@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * In this tutorial we're going to initialize the GPU, set it up and display
  * some simple hardware-rendered graphics (namely, a shaded triangle).
  *
@@ -64,7 +65,11 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
 	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
 	GPU_GP1 = gp1_fbMode(
-		horizontalRes, verticalRes, mode, false, GP1_COLOR_16BPP
+		horizontalRes,
+		verticalRes,
+		mode,
+		false,
+		GP1_COLOR_16BPP
 	);
 }
 

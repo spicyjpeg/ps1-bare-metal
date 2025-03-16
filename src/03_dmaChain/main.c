@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * In the previous two examples we saw how to control the GPU and draw graphics
  * by writing commands directly to the GP0 and GP1 registers. While this
  * approach is simple and easy to understand, it also limits performance: the
@@ -52,7 +53,11 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
 	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
 	GPU_GP1 = gp1_fbMode(
-		horizontalRes, verticalRes, mode, false, GP1_COLOR_16BPP
+		horizontalRes,
+		verticalRes,
+		mode,
+		false,
+		GP1_COLOR_16BPP
 	);
 }
 
@@ -82,7 +87,10 @@ static void sendLinkedList(const void *data) {
 	// from RAM, with each packet being made up of a 32-bit header followed by
 	// zero or more 32-bit commands to be sent to the GP0 register.
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_LIST | DMA_CHCR_ENABLE;
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_LIST
+		| DMA_CHCR_ENABLE;
 }
 
 // Define a structure we'll allocate our linked list packets into. We are going
@@ -170,7 +178,8 @@ int main(int argc, const char **argv) {
 		ptr[0] = gp0_texpage(0, true, false);
 		ptr[1] = gp0_fbOffset1(bufferX, bufferY);
 		ptr[2] = gp0_fbOffset2(
-			bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+			bufferX + SCREEN_WIDTH  - 1,
+			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 

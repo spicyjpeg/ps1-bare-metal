@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2025 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,8 +12,9 @@
  * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- *
+ */
+
+/*
  * The last example showed how to take advantage of the PS1's DMA engine to send
  * commands to the GPU efficiently in the background. While that is by far the
  * most common use case for DMA, the GPU's DMA channel has another crucial role:
@@ -54,7 +55,11 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
 	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
 	GPU_GP1 = gp1_fbMode(
-		horizontalRes, verticalRes, mode, false, GP1_COLOR_16BPP
+		horizontalRes,
+		verticalRes,
+		mode,
+		false,
+		GP1_COLOR_16BPP
 	);
 }
 
@@ -80,12 +85,21 @@ static void sendLinkedList(const void *data) {
 	assert(!((uint32_t) data % 4));
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_LIST | DMA_CHCR_ENABLE;
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_LIST
+		| DMA_CHCR_ENABLE;
 }
 
 #define DMA_MAX_CHUNK_SIZE 16
 
-static void sendVRAMData(const void *data, int x, int y, int width, int height) {
+static void sendVRAMData(
+	const void *data,
+	int        x,
+	int        y,
+	int        width,
+	int        height
+) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
@@ -121,7 +135,10 @@ static void sendVRAMData(const void *data, int x, int y, int width, int height) 
 	// slice (chunked) mode.
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = DMA_CHCR_WRITE | DMA_CHCR_MODE_SLICE | DMA_CHCR_ENABLE;
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_SLICE
+		| DMA_CHCR_ENABLE;
 }
 
 #define CHAIN_BUFFER_SIZE 1024
@@ -150,7 +167,12 @@ typedef struct {
 } TextureInfo;
 
 static void uploadTexture(
-	TextureInfo *info, const void *data, int x, int y, int width, int height
+	TextureInfo *info,
+	const void  *data,
+	int         x,
+	int         y,
+	int         width,
+	int         height
 ) {
 	// Make sure the texture's size is valid. The GPU does not support textures
 	// larger than 256x256 pixels.
@@ -164,12 +186,15 @@ static void uploadTexture(
 	// details about the texture such as which 64x256 page it can be found in,
 	// its color depth and how semitransparent pixels shall be blended.
 	info->page = gp0_page(
-		x / 64, y / 256, GP0_BLEND_SEMITRANS, GP0_COLOR_16BPP
+		x /  64,
+		y / 256,
+		GP0_BLEND_SEMITRANS,
+		GP0_COLOR_16BPP
 	);
 
 	// Calculate the texture's UV coordinates, i.e. its X/Y coordinates relative
 	// to the top left corner of the texture page.
-	info->u      = (uint8_t)  (x % 64);
+	info->u      = (uint8_t)  (x %  64);
 	info->v      = (uint8_t)  (y % 256);
 	info->width  = (uint16_t) width;
 	info->height = (uint16_t) height;
@@ -177,8 +202,8 @@ static void uploadTexture(
 
 #define SCREEN_WIDTH   320
 #define SCREEN_HEIGHT  240
-#define TEXTURE_WIDTH  32
-#define TEXTURE_HEIGHT 32
+#define TEXTURE_WIDTH   32
+#define TEXTURE_HEIGHT  32
 
 // We're going to convert our texture into raw binary data using a Python script
 // and embed it into this extern array through CMake. See CMakeLists.txt for
@@ -205,7 +230,11 @@ int main(int argc, const char **argv) {
 	TextureInfo texture;
 
 	uploadTexture(
-		&texture, textureData, SCREEN_WIDTH * 2, 0, TEXTURE_WIDTH,
+		&texture,
+		textureData,
+		SCREEN_WIDTH * 2,
+		0,
+		TEXTURE_WIDTH,
 		TEXTURE_HEIGHT
 	);
 
@@ -232,7 +261,8 @@ int main(int argc, const char **argv) {
 		ptr[0] = gp0_texpage(0, true, false);
 		ptr[1] = gp0_fbOffset1(bufferX, bufferY);
 		ptr[2] = gp0_fbOffset2(
-			bufferX + SCREEN_WIDTH - 1, bufferY + SCREEN_HEIGHT - 2
+			bufferX + SCREEN_WIDTH -  1,
+			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
 
