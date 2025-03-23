@@ -18,7 +18,7 @@
 
 #include <stdint.h>
 
-#define DEF(type) static inline type __attribute__((always_inline))
+#define DEF(type) static type
 
 /* GTE data types */
 
