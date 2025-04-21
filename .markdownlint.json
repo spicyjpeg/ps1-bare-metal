@@ -1,0 +1,8 @@
+{
+	"line-length": {
+		"tables": false
+	},
+
+	"emphasis-style": false,
+	"no-inline-html": false
+}

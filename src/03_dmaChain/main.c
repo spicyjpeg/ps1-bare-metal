@@ -139,7 +139,7 @@ int main(int argc, const char **argv) {
 
 	// Enable the GPU's DMA channel, tell the GPU to fetch GP0 commands from DMA
 	// whenever available and switch on the display output.
-	DMA_DPCR |= DMA_DPCR_ENABLE << (DMA_GPU * 4);
+	DMA_DPCR |= DMA_DPCR_CH_ENABLE(DMA_GPU);
 
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 	GPU_GP1 = gp1_dispBlank(false);

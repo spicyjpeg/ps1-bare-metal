@@ -236,7 +236,7 @@ int main(int argc, const char **argv) {
 		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
 	}
 
-	DMA_DPCR |= DMA_DPCR_ENABLE << (DMA_GPU * 4);
+	DMA_DPCR |= DMA_DPCR_CH_ENABLE(DMA_GPU);
 
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 	GPU_GP1 = gp1_dispBlank(false);

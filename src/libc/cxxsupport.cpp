@@ -17,6 +17,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+/* Allocating new/delete operators */
+
 extern "C" void *__builtin_new(size_t size) {
 	return malloc(size);
 }
@@ -48,3 +50,17 @@ void operator delete(void *ptr, size_t size) noexcept {
 void operator delete[](void *ptr, size_t size) noexcept {
 	free(ptr);
 }
+
+/* Placement new/delete operators */
+
+void *operator new(size_t size, void *ptr) noexcept {
+	return ptr;
+}
+
+void *operator new[](size_t size, void *ptr) noexcept {
+	return ptr;
+}
+
+void operator delete(void *ptr, void *place) noexcept {}
+
+void operator delete[](void *ptr, void *place) noexcept {}

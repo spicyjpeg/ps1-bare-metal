@@ -17,8 +17,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define _align(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
-
 typedef void (*Function)(void);
 
 /* Linker symbols */
@@ -34,12 +32,14 @@ extern const Function _finiArrayStart[], _finiArrayEnd[];
 
 /* Heap API (used by malloc) */
 
+#define ALIGN(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
+
 static uintptr_t _heapEnd   = (uintptr_t) _bssEnd;
 static uintptr_t _heapLimit = 0x80200000; // TODO: add a way to change this
 
 void *sbrk(ptrdiff_t incr) {
 	uintptr_t currentEnd = _heapEnd;
-	uintptr_t newEnd     = _align(currentEnd + incr, 8);
+	uintptr_t newEnd     = ALIGN(currentEnd + incr, 8);
 
 	if (newEnd >= _heapLimit)
 		return 0;

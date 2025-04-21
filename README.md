@@ -28,26 +28,27 @@ over time.
 
 ### Installing dependencies
 
-The only required dependencies are:
+The following dependencies are required in order to compile the examples:
 
 - CMake 3.25 or later;
 - Python 3.10 or later;
 - [Ninja](https://ninja-build.org/);
-- a recent GCC toolchain configured for the `mipsel-none-elf` or
-  `mipsel-linux-gnu` target triplet.
+- a recent GCC toolchain configured for the `mipsel-none-elf` target triplet
+  (toolchains targeting `mipsel-linux-gnu` will generally work as well, but are
+  not recommended as the ones available in most distros' package managers tend
+  to be outdated or configured improperly).
 
 The toolchain can be installed on Windows through
 [the `mips` script from the pcsx-redux project](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#windows),
 on macOS using
 [Homebrew](https://github.com/grumpycoders/pcsx-redux/tree/main/src/mips/psyqo/GETTING_STARTED.md#macos)
-or on Linux through a package manager or by
+or on Linux by
 [spawning it from source](https://github.com/grumpycoders/pcsx-redux/blob/main/tools/linux-mips/spawn-compiler.sh),
 and should be added to your `PATH` environment variable in order to let CMake
 find it. If you have any of the open-source PS1 SDKs installed there is a good
 chance you already have a suitable toolchain set up (try running
 `mipsel-none-elf-gcc` and `mipsel-linux-gnu-gcc` in a terminal). The other
-dependencies can be obtained from their respective websites or through a package
-manager.
+dependencies can be obtained through a package manager.
 
 The Python scripts require a few additional dependencies, which can be installed
 in a virtual environment by running the following commands from the root
@@ -56,7 +57,7 @@ directory of the repository:
 ```bash
 # Windows (using PowerShell)
 py -m venv env
-env\bin\Activate.ps1
+env\Scripts\Activate.ps1
 py -m pip install -r tools\requirements.txt
 
 # Windows (using Cygwin/MSys2), Linux or macOS
@@ -112,7 +113,7 @@ have to pass the path to its `bin` subdirectory to the configure command via the
 cmake --preset debug -DTOOLCHAIN_PATH=/opt/mipsel-linux-gnu/bin
 ```
 
-### Note on floating point support
+### Floating point support
 
 The PlayStation does not have a floating point unit. While GCC can still provide
 support for floats through emulation, some prebuilt versions of the
@@ -134,6 +135,75 @@ avoided at all costs. The included printf library has been modified to disable
 the `%f` specifier, regardless of whether the toolchain supports software
 floats, in order to reduce code size.
 
+## Running the examples
+
+### Using an emulator
+
+The build scripts will compile each example into a `.psexe` file. This is the
+PS1 BIOS's native executable format and is also supported by pretty much every
+PS1 emulator, making it straightforward to run the examples through emulation.
+The following emulators are recommended for development work:
+
+- [DuckStation](https://github.com/stenzek/duckstation);
+- [PCSX-Redux](https://github.com/grumpycoders/pcsx-redux) (not to be confused
+  with PCSX-R), somewhat less accurate but comes with extensive debugging tools
+  and scripting support.
+
+Note that both DuckStation and Redux default to using a dynamic recompiler
+(dynarec) in order to boost performance at the cost of accuracy. The dynarec is
+incompatible with either emulator's debugger and can be prone to timing issues;
+it's thus recommended to disable it and switch to interpreted CPU mode instead.
+
+Using other emulators is strongly discouraged as more or less all of them are
+outdated and known to be inaccurate. In particular, **the emulators listed**
+**below are broken in many ways** and will struggle to run anything not made
+using Sony's libraries or not following their practices.
+
+- ePSXe, pSX, XEBRA;
+- PCSX forks other than Redux (PCSX-R, Rearmed and so on);
+- Beetle PSX, SwanStation and other RetroArch-specific hacked up forks of
+  existing emulators;
+- MAME and anything based on it - there are ongoing efforts to significantly
+  improve its accuracy but they still have to be upstreamed;
+- Sony's official emulators (the PS3 and PSP's built-in backwards compatibility
+  feature, POPS/POPStarter on the PS2).
+
+The following emulators have generally acceptable accuracy but are not
+recommended due to their poor user experience:
+
+- Mednafen (hard to set up, not as well documented as the other options);
+- no$psx (Windows only, rarely updated, too many bugs and idiosyncracies in the
+  UI).
+
+### Using real hardware
+
+At some point you will likely want to run your code on an actual PlayStation.
+The two main ways to do so are:
+
+- using a loader program such as
+  [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1),
+  which will allow you to temporarily load the executable into RAM through the
+  serial port on the back of the console;
+- by authoring a disc image and either burning it to a CD-R or loading it onto
+  an optical drive emulator.
+
+CD-ROM image creation is not currently covered here as it involves using
+specialized tools and, depending on the region and revision of your PS1, a
+license file. If you have a non-Japanese region unit with a modchip or softmod
+(e.g. Unirom installed to a memory card), you may simply rename your executable
+to `PSX.EXE`, burn it to a CD-R and the console *should* run it. Unirom also
+comes with a file browser that will let you launch any executable on the disc.
+
+Note that a PS2 is *not* a PS1, not even in its "native" (non-POPS) backwards
+compatibility mode. It's a chimera of real hardware, emulated hardware,
+semi-emulated hardware that
+[differs across revisions](https://israpps.github.io/PPC-Monitor/docs/Architecture%20Overview.html)
+and game-specific hacks in
+[multiple](https://psi-rockin.github.io/ps2tek/#biospscompatibility)
+[places](https://israpps.github.io/PPC-Monitor/docs/XPARAM.html). As such, it's
+best left alongside the inaccurate emulators and not used for PS1 homebrew
+development.
+
 ## Modifying the code
 
 If you want to write your own examples or projects, here's a quick overview of
@@ -142,12 +212,13 @@ the non-example subfolders in the `src` directory:
 - `src/libc` contains a minimal implementation of the C standard library, which
   should be enough for most purposes. Some functions have been replaced with
   optimized assembly implementations.
-- `src/ps1` contains a basic support library for the hardware, currently
-  consisting mostly of definitions for hardware registers and GPU commands.
+- `src/ps1` contains a basic support library for the hardware, consisting mostly
+  of definitions for hardware registers and GPU commands.
 - `src/vendor` is for third-party libraries (currently only the printf library).
 
-Take a look at `CMakeLists.txt` to see how to add new executables to the build
-system (I promise it won't be as scary as you imagine).
+If you create a new folder and want its contents to be built, remember to add it
+to `CMakeLists.txt` (you may use the existing entries as a reference) and rerun
+both the CMake configure and build commands afterwards.
 
 ## Background
 
@@ -176,6 +247,22 @@ the 1990s when it comes to the PS1.
 
 Everything in this repository, including the vendored copy of
 [Marco Paland's printf library](https://github.com/mpaland/printf), is licensed
-under the MIT license. If you want to build a project or even your own tutorial
-series on top of my code, attribution would be highly appreciated but is not
-strictly required.
+under the MIT license (or the functionally equivalent ISC license). The only
+"hard" requirements are attribution and preserving the license notice; you may
+otherwise freely use any of the code for both non-commercial and commercial
+purposes (such as a paid homebrew game or a book or course).
+
+## See also
+
+- If you are just getting started with PS1 development, Rodrigo Copetti's
+  [PlayStation Architecture](https://copetti.org/writings/consoles/playstation)
+  is a great overview of the console's hardware and capabilities.
+- The [PlayStation specifications (psx-spx)](https://psx-spx.consoledev.net/)
+  page, adapted and expanded from no$psx's documentation, is the main hardware
+  reference for bare-metal PS1 programming and emulation.
+- [573in1](https://github.com/spicyjpeg/573in1) is a real world example of a
+  moderately complex project built on top of the scripts and support library
+  provided in this repository.
+- If you need help or wish to discuss PS1 homebrew development more in general,
+  you may want to check out the
+  [PSX.Dev Discord server](https://discord.gg/QByKPpH).

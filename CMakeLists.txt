@@ -32,10 +32,16 @@ project(
 # Set up compiler flags and initialize the Python environment used to run the
 # scripts in the tools directory.
 include(cmake/setup.cmake)
-include(cmake/virtualenv.cmake)
+include(cmake/tools.cmake)
 
-# Build a "common" library containing code shared across all examples. We are
-# going to link this library into each example.
+#if("${PSXAVENC_PATH}" STREQUAL "PSXAVENC_PATH-NOTFOUND")
+	#set(skipAudioExamples ON)
+	#message(WARNING "Unable to find psxavenc. All examples that require it for \
+#audio encoding will be skipped.")
+#endif()
+
+# Build a "common" library containing code shared across all examples and link
+# it by default into every executable.
 add_library(
 	common OBJECT
 	src/libc/clz.s
@@ -54,77 +60,31 @@ target_include_directories(
 	src
 	src/libc
 )
-
-# Define some helper functions to build each example.
-function(addExample name)
-	add_executable(${name} ${ARGN})
-	target_link_libraries(${name} PRIVATE common)
-
-	# Add a step to run convertExecutable.py after each example is compiled in
-	# order to convert it into a PS1 executable. By default all custom commands
-	# run from the build directory, so paths to files in the source directory
-	# must be prefixed with ${PROJECT_SOURCE_DIR}.
-	add_custom_command(
-		TARGET     ${name} POST_BUILD
-		BYPRODUCTS ${name}.psexe
-		COMMAND
-			"${Python3_EXECUTABLE}"
-			"${PROJECT_SOURCE_DIR}/tools/convertExecutable.py"
-			"$<TARGET_FILE:${name}>"
-			${name}.psexe
-		VERBATIM
-	)
-endfunction()
-
-function(convertImage input bpp)
-	add_custom_command(
-		OUTPUT  ${ARGN}
-		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
-		COMMAND
-			"${Python3_EXECUTABLE}"
-			"${PROJECT_SOURCE_DIR}/tools/convertImage.py"
-			-b ${bpp}
-			"${PROJECT_SOURCE_DIR}/${input}"
-			${ARGN}
-		VERBATIM
-	)
-endfunction()
+link_libraries(common)
 
 # Build the examples and convert any required assets.
-addExample(example00_helloWorld src/00_helloWorld/main.c)
+addPS1Executable(example00_helloWorld    src/00_helloWorld/main.c)
+addPS1Executable(example01_basicGraphics src/01_basicGraphics/main.c)
+addPS1Executable(example02_doubleBuffer  src/02_doubleBuffer/main.c)
+addPS1Executable(example03_dmaChain      src/03_dmaChain/main.c)
 
-addExample(example01_basicGraphics src/01_basicGraphics/main.c)
-
-addExample(example02_doubleBuffer src/02_doubleBuffer/main.c)
-
-addExample(example03_dmaChain src/03_dmaChain/main.c)
-
-addExample(example04_textures src/04_textures/main.c)
+addPS1Executable(example04_textures src/04_textures/main.c)
 convertImage(
 	src/04_textures/texture.png 16
 	example04/textureData.dat
 )
-addBinaryFile(
-	example04_textures textureData
-	"${PROJECT_BINARY_DIR}/example04/textureData.dat"
-)
+addBinaryFile(example04_textures textureData "${PROJECT_BINARY_DIR}/example04/textureData.dat")
 
-addExample(example05_palettes src/05_palettes/main.c)
+addPS1Executable(example05_palettes src/05_palettes/main.c)
 convertImage(
 	src/05_palettes/texture.png 4
 	example05/textureData.dat
 	example05/paletteData.dat
 )
-addBinaryFile(
-	example05_palettes textureData
-	"${PROJECT_BINARY_DIR}/example05/textureData.dat"
-)
-addBinaryFile(
-	example05_palettes paletteData
-	"${PROJECT_BINARY_DIR}/example05/paletteData.dat"
-)
+addBinaryFile(example05_palettes textureData "${PROJECT_BINARY_DIR}/example05/textureData.dat")
+addBinaryFile(example05_palettes paletteData "${PROJECT_BINARY_DIR}/example05/paletteData.dat")
 
-addExample(
+addPS1Executable(
 	example06_fonts
 	src/06_fonts/gpu.c
 	src/06_fonts/main.c
@@ -134,29 +94,23 @@ convertImage(
 	example06/fontTexture.dat
 	example06/fontPalette.dat
 )
-addBinaryFile(
-	example06_fonts fontTexture
-	"${PROJECT_BINARY_DIR}/example06/fontTexture.dat"
-)
-addBinaryFile(
-	example06_fonts fontPalette
-	"${PROJECT_BINARY_DIR}/example06/fontPalette.dat"
-)
+addBinaryFile(example06_fonts fontTexture "${PROJECT_BINARY_DIR}/example06/fontTexture.dat")
+addBinaryFile(example06_fonts fontPalette "${PROJECT_BINARY_DIR}/example06/fontPalette.dat")
 
-addExample(
+addPS1Executable(
 	example07_orderingTable
 	src/07_orderingTable/gpu.c
 	src/07_orderingTable/main.c
 )
 
-addExample(
+addPS1Executable(
 	example08_spinningCube
 	src/08_spinningCube/gpu.c
 	src/08_spinningCube/main.c
 	src/08_spinningCube/trig.c
 )
 
-addExample(
+addPS1Executable(
 	example09_controllers
 	src/09_controllers/font.c
 	src/09_controllers/gpu.c
@@ -167,11 +121,5 @@ convertImage(
 	example09/fontTexture.dat
 	example09/fontPalette.dat
 )
-addBinaryFile(
-	example09_controllers fontTexture
-	"${PROJECT_BINARY_DIR}/example09/fontTexture.dat"
-)
-addBinaryFile(
-	example09_controllers fontPalette
-	"${PROJECT_BINARY_DIR}/example09/fontPalette.dat"
-)
+addBinaryFile(example09_controllers fontTexture "${PROJECT_BINARY_DIR}/example09/fontTexture.dat")
+addBinaryFile(example09_controllers fontPalette "${PROJECT_BINARY_DIR}/example09/fontPalette.dat")

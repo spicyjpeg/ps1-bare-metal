@@ -8,92 +8,144 @@ expected by the PS1's GPU, or 4bpp or 8bpp indexed color data plus a separate
 16bpp color palette. Requires PIL/Pillow and NumPy to be installed.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 __author__  = "spicyjpeg"
 
-import logging
 from argparse import ArgumentParser, FileType, Namespace
 
 import numpy
 from numpy import ndarray
 from PIL   import Image
 
-## RGBA to 16bpp colorspace conversion
+## Input image handling
 
-LOWER_ALPHA_BOUND: int = 0x20
-UPPER_ALPHA_BOUND: int = 0xe0
+# Pillow's built-in quantize() method will use different algorithms, some of
+# which are broken, depending on whether the input image has an alpha channel.
+# As a workaround, all images are "quantized" (with no dithering - images with
+# more colors than allowed are rejected) manually instead. This conversion is
+# performed on indexed color images as well in order to normalize their
+# palettes.
+def quantizeImage(imageObj: Image.Image, numColors: int) -> Image.Image:
+	#if imageObj.mode == "P":
+		#return imageObj
+	if imageObj.mode not in ( "RGB", "RGBA" ):
+		imageObj = imageObj.convert("RGBA")
+
+	image: ndarray = numpy.asarray(imageObj, "B")
+	image          = image.reshape((
+		imageObj.width * imageObj.height,
+		image.shape[2]
+	))
+	clut, image    = numpy.unique(
+		image,
+		return_inverse = True,
+		axis           = 0
+	)
+
+	if clut.shape[0] > numColors:
+		raise RuntimeError(
+			f"source image contains {clut.shape[0]} unique colors (must be "
+			f"{numColors} or less)"
+		)
+
+	image               = image.astype("B").reshape((
+		imageObj.height,
+		imageObj.width
+	))
+	newObj: Image.Image = Image.fromarray(image, "P")
+
+	newObj.putpalette(clut.tobytes(), imageObj.mode)
+	return newObj
+
+def getImagePalette(imageObj: Image.Image) -> ndarray:
+	clut: ndarray = numpy.array(imageObj.getpalette("RGBA"), "B")
+	clut          = clut.reshape(( clut.shape[0] // 4, 4 ))
+
+	# Pillow's PNG decoder does not handle indexed color images with alpha
+	# correctly, so a workaround is needed here to manually integrate the
+	# contents of the image's "tRNs" chunk into the palette.
+	if "transparency" in imageObj.info:
+		alpha: bytes = imageObj.info["transparency"]
+		clut[:, 3]   = numpy.frombuffer(alpha.ljust(clut.shape[0], b"\xff"))
+
+	return clut
+
+## Image data conversion
+
+LOWER_ALPHA_BOUND: int = 32
+UPPER_ALPHA_BOUND: int = 224
 
 # Color 0x0000 is interpreted by the PS1 GPU as fully transparent, so black
 # pixels must be changed to dark gray to prevent them from becoming transparent.
 TRANSPARENT_COLOR: int = 0x0000
 BLACK_COLOR:       int = 0x0421
 
-def convertRGBAto16(
-	inputData: ndarray, transparentColor: int, blackColor: int
-) -> ndarray:
+def to16bpp(inputData: ndarray, forceSTP: bool = False) -> ndarray:
 	source: ndarray = inputData.astype("<H")
+	r:      ndarray = ((source[:, :, 0] * 31) + 127) // 255
+	g:      ndarray = ((source[:, :, 1] * 31) + 127) // 255
+	b:      ndarray = ((source[:, :, 2] * 31) + 127) // 255
 
-	r:    ndarray = ((source[:, :, 0] * 249) + 1014) >> 11
-	g:    ndarray = ((source[:, :, 1] * 249) + 1014) >> 11
-	b:    ndarray = ((source[:, :, 2] * 249) + 1014) >> 11
-	data: ndarray = r | (g << 5) | (b << 10)
+	solid:           ndarray = r | (g << 5) | (b << 10)
+	semitransparent: ndarray = solid | (1 << 15)
 
-	data = numpy.where(data != transparentColor, data, blackColor)
+	data: ndarray = numpy.full_like(solid, TRANSPARENT_COLOR)
 
-	# Process the alpha channel using a simple threshold algorithm.
 	if source.shape[2] == 4:
 		alpha: ndarray = source[:, :, 3]
+	else:
+		alpha: ndarray = numpy.full(source.shape[:-1], 0xff, "B")
 
-		data = numpy.select(
-			(
-				alpha > UPPER_ALPHA_BOUND, # Leave as-is
-				alpha > LOWER_ALPHA_BOUND  # Set semitransparency flag
-			), (
-				data,
-				data | (1 << 15)
-			),
-			transparentColor
+	numpy.copyto(data, semitransparent, where = (alpha >= LOWER_ALPHA_BOUND))
+
+	if not forceSTP:
+		numpy.copyto(data, solid, where = (alpha >= UPPER_ALPHA_BOUND))
+		numpy.copyto(
+			data,
+			BLACK_COLOR,
+			where = (
+				(alpha >= UPPER_ALPHA_BOUND) &
+				(solid == TRANSPARENT_COLOR)
+			)
 		)
 
-	return data.reshape(source.shape[:-1])
-
-## Indexed color image handling
+	return data
 
 def convertIndexedImage(
-	imageObj: Image.Image, maxNumColors: int, transparentColor: int,
-	blackColor: int
+	imageObj: Image.Image,
+	forceSTP: bool = False
 ) -> tuple[ndarray, ndarray]:
-	# PIL/Pillow doesn't provide a proper way to get the number of colors in a
-	# palette, so here's an extremely ugly hack.
-	colorDepth: int   = { "RGB": 3, "RGBA": 4 }[imageObj.palette.mode]
-	clutData:   bytes = imageObj.palette.tobytes()
-	numColors:  int   = len(clutData) // colorDepth
+	clut:      ndarray = getImagePalette(imageObj)
+	numColors: int     = clut.shape[0]
+	padAmount: int     = (16 if (numColors <= 16) else 256) - numColors
 
-	if numColors > maxNumColors:
-		raise RuntimeError(
-			f"palette has too many entries ({numColors} > {maxNumColors})"
-		)
+	# Pad the palette to 16 or 256 colors after converting it to 16bpp.
+	clut = clut.reshape(( 1, numColors, 4 ))
+	clut = to16bpp(clut, forceSTP)
 
-	clut: ndarray = convertRGBAto16(
-		numpy.frombuffer(clutData, "B").reshape(( 1, numColors, colorDepth )),
-		transparentColor, blackColor
-	)
-
-	# Pad the palette to 16 or 256 colors.
-	padAmount: int = maxNumColors > numColors
 	if padAmount:
-		clut = numpy.c_[ clut, numpy.zeros(( 1, padAmount ), "<H") ]
+		clut = numpy.c_[
+			clut,
+			numpy.zeros(( 1, padAmount ), "<H")
+		]
 
 	image: ndarray = numpy.asarray(imageObj, "B")
+
 	if image.shape[1] % 2:
-		image = numpy.c_[ image, numpy.zeros((image.shape[0], 1 ), "B") ]
+		image = numpy.c_[
+			image,
+			numpy.zeros(( imageObj.height, 1 ), "B")
+		]
 
 	# Pack two pixels into each byte for 4bpp images.
-	if maxNumColors <= 16:
+	if numColors <= 16:
 		image = image[:, 0::2] | (image[:, 1::2] << 4)
 
 		if image.shape[1] % 2:
-			image = numpy.c_[ image, numpy.zeros(( image.shape[0], 1 ), "B") ]
+			image = numpy.c_[
+				image,
+				numpy.zeros(( imageObj.height, 1 ), "B")
+			]
 
 	return image, clut
 
@@ -121,35 +173,16 @@ def createParser() -> ArgumentParser:
 		choices = ( 4, 8, 16 ),
 		default = 16,
 		help    = \
-			"Use specified color depth (4/8bpp indexed or 16bpp raw, default "
-			"16bpp)",
+			"Use specified color depth (4/8bpp indexed color or 16bpp RGB, "
+			"default 16bpp)",
 		metavar = "4|8|16"
 	)
 	group.add_argument(
-		"-q", "--quantize",
-		type    = int,
-		help    = \
-			"Quantize image with the given maximum number of colors before "
-			"converting it",
-		metavar = "colors"
-	)
-	group.add_argument(
-		"-T", "--transparent-color",
-		type    = lambda value: int(value, 16),
-		default = TRANSPARENT_COLOR,
-		help    = \
-			f"Use specified 16-bit hex color value for fully transparent "
-			f"pixels (default 0x{TRANSPARENT_COLOR:04x})",
-		metavar = "value"
-	)
-	group.add_argument(
-		"-B", "--black-color",
-		type    = lambda value: int(value, 16),
-		default = BLACK_COLOR,
-		help    = \
-			f"Use specified 16-bit hex color value for black pixels (default "
-			f"0x{BLACK_COLOR:04x})",
-		metavar = "value"
+		"-s", "--force-stp",
+		action = "store_true",
+		help   = \
+			"Set the semitransparency/blending flag on all pixels in the "
+			"output image (useful when using additive or subtractive blending)"
 	)
 
 	group = parser.add_argument_group("File paths")
@@ -176,63 +209,24 @@ def main():
 	parser: ArgumentParser = createParser()
 	args:   Namespace      = parser.parse_args()
 
-	logging.basicConfig(
-		format = "{levelname}: {message}",
-		style  = "{",
-		level  = logging.INFO
-	)
-
-	with args.input as inputImage:
-		inputImage.load()
-
-		match inputImage.mode, args.bpp:
-			case "P", 4 | 8:
-				if args.quantize is not None:
-					logging.warning("requantizing indexed color image")
-
-					image: Image.Image = inputImage.quantize(
-						args.quantize, dither = Image.NONE
-					)
-				else:
-					image: Image.Image = inputImage
-
-			case _, 4 | 8:
-				numColors: int = args.quantize or (2 ** args.bpp)
-				logging.info(f"quantizing image down to {numColors} colors")
-
-				image: Image.Image = inputImage.quantize(
-					numColors, dither = Image.NONE
-				)
-
-			case "P", 16:
-				if args.quantize is not None:
-					parser.error("--quantize is only valid in 4/8bpp mode")
-
-				logging.warning("converting indexed color image back to RGBA")
-
-				image: Image.Image = inputImage.convert("RGBA")
-
-			case _, 16:
-				image: Image.Image = inputImage.convert("RGBA")
-
-	if image.mode == "P":
-		imageData, clutData = convertIndexedImage(
-			image, 2 ** args.bpp, args.transparent_color, args.black_color
-		)
+	if args.bpp == 16:
+		imageData: ndarray = numpy.asarray(args.input)
+		imageData          = to16bpp(imageData, args.force_stp)
 	else:
-		imageData, clutData = convertRGBAto16(
-			numpy.asarray(image), args.transparent_color, args.black_color
-		), None
+		try:
+			image: Image.Image = quantizeImage(args.input, 2 ** args.bpp)
+		except RuntimeError as err:
+			parser.error(err.args[0])
 
-	with args.imageOutput as _file:
-		_file.write(imageData)
+		imageData, clutData = convertIndexedImage(image, args.force_stp)
 
-	if clutData is not None:
 		if args.clutOutput is None:
 			parser.error("path to palette data must be specified")
+		with args.clutOutput as file:
+			file.write(clutData)
 
-		with args.clutOutput as _file:
-			_file.write(clutData)
+	with args.imageOutput as file:
+		file.write(imageData)
 
 if __name__ == "__main__":
 	main()
