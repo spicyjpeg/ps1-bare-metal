@@ -186,6 +186,15 @@ typedef enum {
 } CDROMCommandStatusFlag;
 
 typedef enum {
+	CDROM_CMD_ERR_SEEK_FAILED         = 1 << 2,
+	CDROM_CMD_ERR_LID_OPENED          = 1 << 3,
+	CDROM_CMD_ERR_INVALID_PARAM_VALUE = 1 << 4,
+	CDROM_CMD_ERR_INVALID_PARAM_COUNT = 1 << 5,
+	CDROM_CMD_ERR_INVALID_COMMAND     = 1 << 6,
+	CDROM_CMD_ERR_NO_DISC             = 1 << 7
+} CDROMCommandErrorFlag;
+
+typedef enum {
 	CDROM_MODE_CDDA         = 1 << 0,
 	CDROM_MODE_AUTO_PAUSE   = 1 << 1,
 	CDROM_MODE_CDDA_REPORT  = 1 << 2,

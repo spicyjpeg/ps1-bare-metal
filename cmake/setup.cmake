@@ -100,7 +100,7 @@ function(addBinaryFile target name path)
 		CONFIGURE
 		OUTPUT  "${asmFile}"
 		CONTENT [[
-.section .data.${name}, "aw"
+.section .rodata.${name}, "a"
 .balign 8
 
 .global ${name}
@@ -110,6 +110,45 @@ function(addBinaryFile target name path)
 ${name}:
 	.incbin "${fullPath}"
 ${name}_end:
+]]
+		ESCAPE_QUOTES
+		NEWLINE_STYLE LF
+	)
+
+	target_sources(${target} PRIVATE "${asmFile}")
+	set_source_files_properties(
+		"${asmFile}" PROPERTIES OBJECT_DEPENDS "${fullPath}"
+	)
+endfunction()
+
+function(addBinaryFileWithSize target name sizeName path)
+	set(asmFile "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
+	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE fullPath)
+
+	file(
+		CONFIGURE
+		OUTPUT  "${asmFile}"
+		CONTENT [[
+.section .rodata.${name}, "a"
+.balign 8
+
+.global ${name}
+.type ${name}, @object
+.size ${name}, (${name}_end - ${name})
+
+${name}:
+	.incbin "${fullPath}"
+${name}_end:
+
+.section .rodata.${sizeName}, "a"
+.balign 4
+
+.global ${sizeName}
+.type ${sizeName}, @object
+.size ${sizeName}, 4
+
+${sizeName}:
+	.int (${name}_end - ${name})
 ]]
 		ESCAPE_QUOTES
 		NEWLINE_STYLE LF

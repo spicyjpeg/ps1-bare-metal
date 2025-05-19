@@ -256,11 +256,12 @@ typedef enum {
 } CDROMHSTSFlag;
 
 typedef enum {
-	CDROM_HINT_INT0   = 1 << 0,
-	CDROM_HINT_INT1   = 1 << 1,
-	CDROM_HINT_INT2   = 1 << 2,
-	CDROM_HINT_BFEMPT = 1 << 3,
-	CDROM_HINT_BFWRDY = 1 << 4
+	CDROM_HINT_INT_BITMASK = 7 << 0,
+	CDROM_HINT_INT0        = 1 << 0,
+	CDROM_HINT_INT1        = 1 << 1,
+	CDROM_HINT_INT2        = 1 << 2,
+	CDROM_HINT_BFEMPT      = 1 << 3,
+	CDROM_HINT_BFWRDY      = 1 << 4
 } CDROMHINTFlag;
 
 typedef enum {
@@ -270,14 +271,15 @@ typedef enum {
 } CDROMHCHPCTLFlag;
 
 typedef enum {
-	CDROM_HCLRCTL_CLRINT0   = 1 << 0,
-	CDROM_HCLRCTL_CLRINT1   = 1 << 1,
-	CDROM_HCLRCTL_CLRINT2   = 1 << 2,
-	CDROM_HCLRCTL_CLRBFEMPT = 1 << 3,
-	CDROM_HCLRCTL_CLRBFWRDY = 1 << 4,
-	CDROM_HCLRCTL_SMADPCLR  = 1 << 5,
-	CDROM_HCLRCTL_CLRPRM    = 1 << 6,
-	CDROM_HCLRCTL_CHPRST    = 1 << 7
+	CDROM_HCLRCTL_CLRINT_BITMASK = 7 << 0,
+	CDROM_HCLRCTL_CLRINT0        = 1 << 0,
+	CDROM_HCLRCTL_CLRINT1        = 1 << 1,
+	CDROM_HCLRCTL_CLRINT2        = 1 << 2,
+	CDROM_HCLRCTL_CLRBFEMPT      = 1 << 3,
+	CDROM_HCLRCTL_CLRBFWRDY      = 1 << 4,
+	CDROM_HCLRCTL_SMADPCLR       = 1 << 5,
+	CDROM_HCLRCTL_CLRPRM         = 1 << 6,
+	CDROM_HCLRCTL_CHPRST         = 1 << 7
 } CDROMHCLRCTLFlag;
 
 typedef enum {

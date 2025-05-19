@@ -20,15 +20,15 @@
 # BIOS implementation unnecessarily zeroes out the contents of every cache line)
 # and is not subject to the waitstates imposed by the ROM's 8-bit bus.
 
-.set KSEG1_BASE, 0xa000
-.set CPU_BASE,   0xfffe
+.set KSEG1_BASE, 0xa0000000
+.set CPU_BCC,    0xfffe0130
 
-.set CPU_BCC,     0x130
 .set CPU_BCC_TAG, 1 <<  2
 .set CPU_BCC_DS,  1 <<  7
 .set CPU_BCC_IS1, 1 << 11
 
-.set COP0_STATUS,     $12
+.set COP0_STATUS, $12
+
 .set COP0_STATUS_IsC, 1 << 16
 
 .set ptr,         $a0
@@ -46,11 +46,11 @@ flushCache:
 	# cleared. This jump must be performed using a la/jr combo as immediate
 	# jumps (j) only update the program counter's bottommost 28 bits.
 	la    ptr, _flushCacheInner
-	lui   temp, KSEG1_BASE
+	lui   temp, %hi(KSEG1_BASE)
 	or    ptr, temp
 
 	jr    ptr
-	lui   ptr, CPU_BASE
+	lui   ptr, %hi(CPU_BCC)
 
 .section .text._flushCacheInner, "ax", @progbits
 .type _flushCacheInner, @function
@@ -59,7 +59,7 @@ _flushCacheInner:
 	# Save the current state of the BCC and COP0 status registers so that they
 	# can be restored later.
 	mfc0  savedStatus, COP0_STATUS
-	lw    savedBCC, CPU_BCC(ptr)
+	lw    savedBCC, %lo(CPU_BCC)(ptr)
 
 	# Disable interrupts and the scratchpad, put the instruction cache into "tag
 	# test" mode and proceed to map it directly to the CPU's address space by
@@ -70,8 +70,9 @@ _flushCacheInner:
 	li    temp, ~CPU_BCC_DS
 	and   temp, savedBCC
 	ori   temp, CPU_BCC_TAG | CPU_BCC_IS1
-	sw    temp, CPU_BCC(ptr)
+	sw    temp, %lo(CPU_BCC)(ptr)
 
+	# cop0_setReg(COP0_STATUS, COP0_STATUS_IsC);
 	li    temp, COP0_STATUS_IsC
 	mtc0  temp, COP0_STATUS
 
@@ -106,7 +107,7 @@ _flushCacheInner:
 	# return.
 	mtc0  $0, COP0_STATUS
 	nop
-	sw    savedBCC, CPU_BCC(ptr)
+	sw    savedBCC, %lo(CPU_BCC)(ptr)
 	mtc0  savedStatus, COP0_STATUS
 
 	jr    $ra

@@ -60,7 +60,7 @@ endfunction()
 
 function(addPS1ExecutableAdv name loadAddress stackTop region)
 	add_executable     (${name} ${ARGN})
-	target_link_options(${name} PRIVATE "-Ttext=${address}")
+	target_link_options(${name} PRIVATE "-Ttext=${loadAddress}")
 
 	add_custom_command(
 		TARGET     ${name} POST_BUILD
