@@ -376,7 +376,7 @@ typedef enum {
 	MDEC_CMD_FORMAT_8BPP        =      1 << 27, // MDEC_CMD_OP_DECODE
 	MDEC_CMD_FORMAT_24BPP       =      2 << 27, // MDEC_CMD_OP_DECODE
 	MDEC_CMD_FORMAT_16BPP       =      3 << 27, // MDEC_CMD_OP_DECODE
-	MDEC_CMD_OP_BITMASK         =      7 << 31,
+	MDEC_CMD_OP_BITMASK         =      7 << 29,
 	MDEC_CMD_OP_NOP             =      0 << 29,
 	MDEC_CMD_OP_DECODE          =      1 << 29,
 	MDEC_CMD_OP_SET_QUANT_TABLE =      2 << 29,
