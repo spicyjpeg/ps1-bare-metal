@@ -61,12 +61,9 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 	);
 	GPU_GP1 = gp1_dispBlank(false);
 
-	// Enable and reset the GPU's DMA channel, then tell the GPU to fetch GP0
-	// commands from DMA whenever available.
+	// Enable and reset the GPU's DMA channel.
 	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_GPU);
 	DMA_CHCR(DMA_GPU) = 0;
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 }
 
 static void waitForGP0Ready(void) {
@@ -89,6 +86,9 @@ static void sendGPULinkedList(const void *data) {
 	// Make sure the pointer is aligned to 32 bits (4 bytes). The DMA engine is
 	// not capable of reading unaligned data.
 	assert(!((uint32_t) data % 4));
+
+	// Tell the GPU to fetch GP0 commands from DMA whenever available.
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
 	// Give DMA a pointer to the beginning of the data and tell it to send it in
 	// linked list mode. The DMA unit will start parsing a chain of "packets"

@@ -51,8 +51,6 @@ void setupGPU(GP1VideoMode mode, int width, int height) {
 		| DMA_DPCR_CH_ENABLE(DMA_OTC);
 	DMA_CHCR(DMA_GPU) = 0;
 	DMA_CHCR(DMA_OTC) = 0;
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 }
 
 void waitForGP0Ready(void) {
@@ -75,6 +73,8 @@ void waitForVSync(void) {
 void sendGPULinkedList(const void *data) {
 	waitForGPUDMADone();
 	assert(!((uint32_t) data % 4));
+
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_CHCR(DMA_GPU) = 0
@@ -106,10 +106,14 @@ void sendVRAMData(
 		assert(!(length % DMA_MAX_CHUNK_SIZE));
 	}
 
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
+
 	waitForGP0Ready();
 	GPU_GP0 = gp0_vramWrite();
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
+
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);

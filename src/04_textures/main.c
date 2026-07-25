@@ -65,8 +65,6 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 
 	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_GPU);
 	DMA_CHCR(DMA_GPU) = 0;
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 }
 
 static void waitForGP0Ready(void) {
@@ -89,6 +87,8 @@ static void waitForVSync(void) {
 static void sendGPULinkedList(const void *data) {
 	waitForGPUDMADone();
 	assert(!((uint32_t) data % 4));
+
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_CHCR(DMA_GPU) = 0
@@ -130,15 +130,20 @@ static void sendVRAMData(
 		assert(!(length % DMA_MAX_CHUNK_SIZE));
 	}
 
-	// Put the GPU into VRAM upload mode by sending the appropriate GP0 command
-	// and our coordinates.
+	// Disconnect the GPU from DMA and manually send the GP0 command header to
+	// kick off the VRAM upload.
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
+
 	waitForGP0Ready();
 	GPU_GP0 = gp0_vramWrite();
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
 
-	// Give DMA a pointer to the beginning of the data and tell it to send it in
-	// slice (chunked) mode.
+	// Wire the GPU back to its DMA channel, then give DMA a pointer to the
+	// beginning of the data and tell it to send it in slice (chunked) mode.
+	// This will concatenate our data to the command header.
+	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
+
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
 	DMA_CHCR(DMA_GPU) = 0

@@ -104,7 +104,7 @@ DEF(uint32_t) cop0_getReg(const COP0Register reg) {
 DEF(void) cop0_enableInterrupts(void) {
 	uint32_t status = cop0_getReg(COP0_STATUS);
 
-	cop0_setReg(COP0_STATUS, status | COP0_STATUS_IEc);
+	cop0_setReg(COP0_STATUS, status | COP0_STATUS_IEc | COP0_STATUS_Im2);
 }
 DEF(uint32_t) cop0_disableInterrupts(void) {
 	uint32_t status = cop0_getReg(COP0_STATUS);

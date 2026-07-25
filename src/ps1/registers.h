@@ -32,6 +32,7 @@
 #define F_GPU_PAL  53203425
 
 typedef enum {
+	RAM_BASE   = 0x80000000,
 	DEV0_BASE  = 0xbf000000,
 	CACHE_BASE = 0x9f800000, // Cannot be accessed from KSEG1
 	IO_BASE    = 0xbf801000,

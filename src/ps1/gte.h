@@ -172,29 +172,34 @@ DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 		int16_t v21, int16_t v22, int16_t v23, \
 		int16_t v31, int16_t v32, int16_t v33 \
 	) { \
-		gte_setControlReg(reg0, ((uint32_t) v11 & 0xffff) | ((uint32_t) v12 << 16)); \
-		gte_setControlReg(reg1, ((uint32_t) v13 & 0xffff) | ((uint32_t) v21 << 16)); \
-		gte_setControlReg(reg2, ((uint32_t) v22 & 0xffff) | ((uint32_t) v23 << 16)); \
-		gte_setControlReg(reg3, ((uint32_t) v31 & 0xffff) | ((uint32_t) v32 << 16)); \
+		gte_setControlReg(reg0, ((uint16_t) v11) | ((uint16_t) v12 << 16)); \
+		gte_setControlReg(reg1, ((uint16_t) v13) | ((uint16_t) v21 << 16)); \
+		gte_setControlReg(reg2, ((uint16_t) v22) | ((uint16_t) v23 << 16)); \
+		gte_setControlReg(reg3, ((uint16_t) v31) | ((uint16_t) v32 << 16)); \
 		gte_setControlReg(reg4, v33); \
 	} \
 	DEF(void) gte_load##name(const GTEMatrix *input) { \
-		const uint32_t *values = (const uint32_t *) input; \
-		\
-		gte_setControlReg(reg0, values[0]); \
-		gte_setControlReg(reg1, values[1]); \
-		gte_setControlReg(reg2, values[2]); \
-		gte_setControlReg(reg3, values[3]); \
-		gte_setControlReg(reg4, values[4]); \
+		gte_setControlReg(reg0, ((uint16_t) input->values[0][0]) | ((uint16_t) input->values[0][1] << 16)); \
+		gte_setControlReg(reg1, ((uint16_t) input->values[0][2]) | ((uint16_t) input->values[1][0] << 16)); \
+		gte_setControlReg(reg2, ((uint16_t) input->values[1][1]) | ((uint16_t) input->values[1][2] << 16)); \
+		gte_setControlReg(reg3, ((uint16_t) input->values[2][0]) | ((uint16_t) input->values[2][1] << 16)); \
+		gte_setControlReg(reg4, ((uint16_t) input->values[2][2])); \
 	} \
 	DEF(void) gte_store##name(GTEMatrix *output) { \
-		uint32_t *values = (uint32_t *) output; \
-		\
-		values[0] = gte_getControlReg(reg0); \
-		values[1] = gte_getControlReg(reg1); \
-		values[2] = gte_getControlReg(reg2); \
-		values[3] = gte_getControlReg(reg3); \
-		values[4] = gte_getControlReg(reg4); \
+		uint32_t value0      = gte_getControlReg(reg0); \
+		uint32_t value1      = gte_getControlReg(reg1); \
+		uint32_t value2      = gte_getControlReg(reg2); \
+		uint32_t value3      = gte_getControlReg(reg3); \
+		uint32_t value4      = gte_getControlReg(reg4); \
+		output->values[0][0] = (int16_t) (value0 >>  0); \
+		output->values[0][1] = (int16_t) (value0 >> 16); \
+		output->values[0][2] = (int16_t) (value1 >>  0); \
+		output->values[1][0] = (int16_t) (value1 >> 16); \
+		output->values[1][1] = (int16_t) (value2 >>  0); \
+		output->values[1][2] = (int16_t) (value2 >> 16); \
+		output->values[2][0] = (int16_t) (value3 >>  0); \
+		output->values[2][1] = (int16_t) (value3 >> 16); \
+		output->values[2][2] = (int16_t) (value4 >>  0); \
 	}
 
 MATRIX_FUNCTIONS(
@@ -290,7 +295,7 @@ DEF(void) gte_storeDataReg(
 
 #define VECTOR_FUNCTIONS(reg0, reg1, name) \
 	DEF(void) gte_set##name(int16_t x, int16_t y, int16_t z) { \
-		gte_setDataReg(reg0, ((uint32_t) x & 0xffff) | ((uint32_t) y << 16)); \
+		gte_setDataReg(reg0, ((uint16_t) x) | ((uint16_t) y << 16)); \
 		gte_setDataReg(reg1, z); \
 	} \
 	DEF(void) gte_load##name(const GTEVector16 *input) { \
@@ -313,11 +318,11 @@ DEF(void) gte_setRowVectors(
 	int16_t v21, int16_t v22, int16_t v23,
 	int16_t v31, int16_t v32, int16_t v33
 ) {
-	gte_setDataReg(GTE_VXY0, ((uint32_t) v11 & 0xffff) | ((uint32_t) v12 << 16));
+	gte_setDataReg(GTE_VXY0, ((uint16_t) v11) | ((uint16_t) v12 << 16));
 	gte_setDataReg(GTE_VZ0,  v13);
-	gte_setDataReg(GTE_VXY1, ((uint32_t) v21 & 0xffff) | ((uint32_t) v22 << 16));
+	gte_setDataReg(GTE_VXY1, ((uint16_t) v21) | ((uint16_t) v22 << 16));
 	gte_setDataReg(GTE_VZ1,  v23);
-	gte_setDataReg(GTE_VXY2, ((uint32_t) v31 & 0xffff) | ((uint32_t) v32 << 16));
+	gte_setDataReg(GTE_VXY2, ((uint16_t) v31) | ((uint16_t) v32 << 16));
 	gte_setDataReg(GTE_VZ2,  v33);
 }
 DEF(void) gte_setColumnVectors(
@@ -325,11 +330,11 @@ DEF(void) gte_setColumnVectors(
 	int16_t v21, int16_t v22, int16_t v23,
 	int16_t v31, int16_t v32, int16_t v33
 ) {
-	gte_setDataReg(GTE_VXY0, ((uint32_t) v11 & 0xffff) | ((uint32_t) v21 << 16));
+	gte_setDataReg(GTE_VXY0, ((uint16_t) v11) | ((uint16_t) v21 << 16));
 	gte_setDataReg(GTE_VZ0,  v31);
-	gte_setDataReg(GTE_VXY1, ((uint32_t) v12 & 0xffff) | ((uint32_t) v22 << 16));
+	gte_setDataReg(GTE_VXY1, ((uint16_t) v12) | ((uint16_t) v22 << 16));
 	gte_setDataReg(GTE_VZ1,  v32);
-	gte_setDataReg(GTE_VXY2, ((uint32_t) v13 & 0xffff) | ((uint32_t) v23 << 16));
+	gte_setDataReg(GTE_VXY2, ((uint16_t) v13) | ((uint16_t) v23 << 16));
 	gte_setDataReg(GTE_VZ2,  v33);
 }
 
