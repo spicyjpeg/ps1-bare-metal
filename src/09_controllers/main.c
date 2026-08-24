@@ -90,16 +90,19 @@ static bool waitForAcknowledge(int timeout) {
 	// (it will not if e.g. no device is connected), so we have to implement a
 	// timeout to avoid waiting forever in such cases.
 	for (; timeout > 0; timeout -= 10) {
-		if (IRQ_STAT & (1 << IRQ_SIO0)) {
+		uint16_t a = IRQ_STAT;
+		delayMicroseconds(5);
+		uint16_t b = IRQ_STAT;
+
+		if (a == b && a & (1 << IRQ_SIO0)) {
 			// Reset the interrupt controller and serial interface's flags to
 			// ensure the interrupt can be triggered again.
-			IRQ_STAT     = ~(1 << IRQ_SIO0);
 			SIO_CTRL(0) |= SIO_CTRL_ACKNOWLEDGE;
-
+			IRQ_STAT     = ~(1 << IRQ_SIO0);
 			return true;
 		}
 
-		delayMicroseconds(10);
+		delayMicroseconds(5);
 	}
 
 	return false;
