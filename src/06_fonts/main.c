@@ -148,10 +148,13 @@ static const SpriteInfo fontSprites[] = {
 	{ .x = 90, .y = 45, .width = 6, .height = 9 }  // Invalid character
 };
 
-#define FONT_FIRST_TABLE_CHAR '!'
-#define FONT_SPACE_WIDTH       4
-#define FONT_TAB_WIDTH        32
-#define FONT_LINE_HEIGHT      10
+#define FIRST_TABLE_CHAR   '!'
+#define NUM_CHARACTERS     (sizeof(fontSprites) / sizeof(SpriteInfo))
+#define FIRST_INVALID_CHAR (FIRST_TABLE_CHAR + NUM_CHARACTERS)
+
+#define FONT_SPACE_WIDTH  4
+#define FONT_TAB_WIDTH   32
+#define FONT_LINE_HEIGHT 10
 
 static void printString(
 	GPUDMAChain       *chain,
@@ -170,13 +173,15 @@ static void printString(
 	ptr    = allocateGP0Packet(chain, 1);
 	ptr[0] = gp0_setPage(font->page, false, false);
 
-	// Iterate over every character in the string.
+	// Iterate over every character in the string. Note that char is signed by
+	// default on MIPS platforms, so a cast is needed in order to correctly
+	// parse any non-ASCII characters (not used in this example).
 	for (; *str; str++) {
-		char ch = *str;
+		uint8_t ch = (uint8_t) *str;
 
-		// Check if the character is "special" and shall be handled without
-		// drawing any sprite, or if it's invalid and should be rendered as a
-		// box with a question mark (character code 127).
+		// Check if the character is whitespace and shall be handled without
+		// drawing any sprite, or if it's not present in the font and should be
+		// replaced with the "invalid character" placeholder.
 		switch (ch) {
 			case '\t':
 				currentX += FONT_TAB_WIDTH - 1;
@@ -192,14 +197,14 @@ static void printString(
 				currentX += FONT_SPACE_WIDTH;
 				continue;
 
-			case '\x80' ... '\xff':
-				ch = '\x7f';
+			case FIRST_INVALID_CHAR ... 0xff:
+				ch = 0x7f;
 				break;
 		}
 
-		// If the character was not a tab, newline or space, fetch its
-		// respective entry from the sprite coordinate table.
-		const SpriteInfo *sprite = &fontSprites[ch - FONT_FIRST_TABLE_CHAR];
+		// If the character was not whitespace, fetch its respective entry from
+		// the sprite coordinate table.
+		const SpriteInfo *sprite = &fontSprites[ch - FIRST_TABLE_CHAR];
 
 		// Draw the character, summing the UV coordinates of the spritesheet in
 		// VRAM to those of the sprite itself within the sheet. Enable blending

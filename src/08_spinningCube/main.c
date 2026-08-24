@@ -160,10 +160,7 @@ typedef struct {
 	uint32_t color;
 } Face;
 
-#define NUM_CUBE_VERTICES 8
-#define NUM_CUBE_FACES    6
-
-static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
+static const GTEVector16 cubeVertices[] = {
 	{ .x = -32, .y = -32, .z = -32 },
 	{ .x =  32, .y = -32, .z = -32 },
 	{ .x = -32, .y =  32, .z = -32 },
@@ -188,7 +185,7 @@ static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
 //     | /  |        | /\ |        |  \ |
 //     2----3        3----2        0----1
 //     Correct    Not Z-shaped  Not clockwise
-static const Face cubeFaces[NUM_CUBE_FACES] = {
+static const Face cubeFaces[] = {
 	{ .vertices = { 0, 1, 2, 3 }, .color = 0x0000ff },
 	{ .vertices = { 6, 7, 4, 5 }, .color = 0x00ff00 },
 	{ .vertices = { 4, 5, 0, 1 }, .color = 0x00ffff },
@@ -196,6 +193,8 @@ static const Face cubeFaces[NUM_CUBE_FACES] = {
 	{ .vertices = { 6, 4, 2, 0 }, .color = 0xff00ff },
 	{ .vertices = { 5, 7, 1, 3 }, .color = 0xffff00 }
 };
+
+#define NUM_CUBE_FACES (sizeof(cubeFaces) / sizeof(Face))
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 240

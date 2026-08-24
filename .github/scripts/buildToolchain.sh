@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ROOT_DIR="$(pwd)"
-BINUTILS_VERSION="2.43"
-GCC_VERSION="14.2.0"
+BINUTILS_VERSION="2.46.0"
+GCC_VERSION="16.1.0"
 NUM_JOBS="4"
 
 if [ $# -eq 2 ]; then

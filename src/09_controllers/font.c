@@ -117,6 +117,10 @@ static const SpriteInfo fontSprites[] = {
 	{ .x = 90, .y = 45, .width = 6, .height = 9 }  // Invalid character
 };
 
+#define FIRST_TABLE_CHAR   '!'
+#define NUM_CHARACTERS     (sizeof(fontSprites) / sizeof(SpriteInfo))
+#define FIRST_INVALID_CHAR (FIRST_TABLE_CHAR + NUM_CHARACTERS)
+
 void printString(
 	GPUDMAChain       *chain,
 	const TextureInfo *font,
@@ -128,19 +132,12 @@ void printString(
 
 	uint32_t *ptr;
 
-	// Start by sending a texture page command to tell the GPU to use the font's
-	// spritesheet. The page setting persists when drawing rectangles, so
-	// sending it here just once is enough.
 	ptr    = allocateGP0Packet(chain, 1);
 	ptr[0] = gp0_setPage(font->page, false, false);
 
-	// Iterate over every character in the string.
 	for (; *str; str++) {
-		char ch = *str;
+		uint8_t ch = (uint8_t) *str;
 
-		// Check if the character is "special" and shall be handled without
-		// drawing any sprite, or if it's invalid and should be rendered as a
-		// box with a question mark (character code 127).
 		switch (ch) {
 			case '\t':
 				currentX += FONT_TAB_WIDTH - 1;
@@ -156,26 +153,19 @@ void printString(
 				currentX += FONT_SPACE_WIDTH;
 				continue;
 
-			case '\x80' ... '\xff':
-				ch = '\x7f';
+			case FIRST_INVALID_CHAR ... 0xff:
+				ch = 0x7f;
 				break;
 		}
 
-		// If the character was not a tab, newline or space, fetch its
-		// respective entry from the sprite coordinate table.
-		const SpriteInfo *sprite = &fontSprites[ch - FONT_FIRST_TABLE_CHAR];
+		const SpriteInfo *sprite = &fontSprites[ch - FIRST_TABLE_CHAR];
 
-		// Draw the character, summing the UV coordinates of the spritesheet in
-		// VRAM to those of the sprite itself within the sheet. Enable blending
-		// to make sure any semitransparent pixels in the font get rendered
-		// correctly.
 		ptr    = allocateGP0Packet(chain, 4);
 		ptr[0] = gp0_rectangle(true, true, true);
 		ptr[1] = gp0_xy(currentX, currentY);
 		ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
 		ptr[3] = gp0_xy(sprite->width, sprite->height);
 
-		// Move onto the next character.
 		currentX += sprite->width;
 	}
 }

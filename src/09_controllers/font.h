@@ -19,10 +19,9 @@
 #include <stdint.h>
 #include "gpu.h"
 
-#define FONT_FIRST_TABLE_CHAR '!'
-#define FONT_SPACE_WIDTH       4
-#define FONT_TAB_WIDTH        32
-#define FONT_LINE_HEIGHT      10
+#define FONT_SPACE_WIDTH  4
+#define FONT_TAB_WIDTH   32
+#define FONT_LINE_HEIGHT 10
 
 typedef struct {
 	uint8_t x, y, width, height;
