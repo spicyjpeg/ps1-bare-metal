@@ -53,6 +53,7 @@ add_library(
 	src/libc/string.c
 	src/libc/string.s
 	src/ps1/cache.s
+	src/libc/compiler_rt.c
 	src/vendor/printf.c
 )
 target_include_directories(
