@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,17 +46,11 @@ SECTIONS {
 
 	/* Global constructor/destructor arrays */
 
-	.preinit_array : ALIGN(4) {
-		_preinitArrayStart = .;
-
-		KEEP(*(.preinit_array))
-
-		_preinitArrayEnd = .;
-	} > APP_RAM
-
 	.init_array : ALIGN(4) {
 		_initArrayStart = .;
 
+		KEEP(*(SORT(.preinit_array.*)))
+		KEEP(*(.preinit_array))
 		KEEP(*(SORT(.init_array.*) SORT(.ctors.*)))
 		KEEP(*(.init_array .ctors))
 

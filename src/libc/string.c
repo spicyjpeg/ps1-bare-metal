@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -72,7 +72,7 @@ void *memset(void *dest, int ch, size_t count) {
 	return dest;
 }
 
-void *memcpy(void *restrict dest, const void *restrict src, size_t count) {
+void *memcpy(void *__restrict dest, const void *__restrict src, size_t count) {
 	uint8_t       *_dest = (uint8_t *)       dest;
 	const uint8_t *_src  = (const uint8_t *) src;
 
@@ -83,7 +83,12 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t count) {
 }
 #endif
 
-void *memccpy(void *restrict dest, const void *restrict src, int ch, size_t count) {
+void *memccpy(
+	void *__restrict       dest,
+	const void *__restrict src,
+	int                    ch,
+	size_t                 count
+) {
 	uint8_t       *_dest = (uint8_t *)       dest;
 	const uint8_t *_src  = (const uint8_t *) src;
 
@@ -148,7 +153,7 @@ void *memchr(const void *ptr, int ch, size_t count) {
 
 /* String manipulation */
 
-char *strcpy(char *restrict dest, const char *restrict src) {
+char *strcpy(char *__restrict dest, const char *__restrict src) {
 	char *_dest = dest;
 
 	while (*src)
@@ -158,7 +163,7 @@ char *strcpy(char *restrict dest, const char *restrict src) {
 	return dest;
 }
 
-char *strncpy(char *restrict dest, const char *restrict src, size_t count) {
+char *strncpy(char *__restrict dest, const char *__restrict src, size_t count) {
 	char *_dest = dest;
 
 	for (; count && *src; count--)
@@ -258,7 +263,7 @@ size_t strnlen(const char *str, size_t count) {
 	return length;
 }
 
-char *strcat(char *restrict dest, const char *restrict src) {
+char *strcat(char *__restrict dest, const char *__restrict src) {
 	char *_dest = &dest[strlen(dest)];
 
 	while (*src)
@@ -268,7 +273,7 @@ char *strcat(char *restrict dest, const char *restrict src) {
 	return dest;
 }
 
-char *strncat(char *restrict dest, const char *restrict src, size_t count) {
+char *strncat(char *__restrict dest, const char *__restrict src, size_t count) {
 	char *_dest = &dest[strlen(dest)];
 
 	for (; count && *src; count--)
@@ -304,7 +309,7 @@ char *strndup(const char *str, size_t count) {
 
 static char *_strtokPtr = 0, *_strtokEndPtr = 0;
 
-char *strtok(char *restrict str, const char *restrict delim) {
+char *strtok(char *__restrict str, const char *__restrict delim) {
 	if (str) {
 		_strtokPtr    = str;
 		_strtokEndPtr = &str[strlen(str)];
@@ -330,7 +335,11 @@ char *strtok(char *restrict str, const char *restrict delim) {
 
 /* Number parsers */
 
-long long strtoll(const char *restrict str, char **restrict strEnd, int base) {
+long long strtoll(
+	const char *__restrict str,
+	char **__restrict      strEnd,
+	int                    base
+) {
 	if (!str)
 		return 0;
 	while (isspace(*str))
@@ -420,8 +429,4 @@ _exit:
 		*strEnd = (char *) str;
 
 	return (sign == '-') ? (-value) : value;
-}
-
-long strtol(const char *restrict str, char **restrict strEnd, int base) {
-	return (long) strtoll(str, strEnd, base);
 }

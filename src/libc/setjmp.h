@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,17 +19,19 @@
 #include <stdint.h>
 
 typedef struct {
-	uint32_t ra;
+	uint32_t ra, sp, fp;
 	uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-	uint32_t gp, sp, fp;
-} jmp_buf;
+	uint32_t gp;
+} JumpBuffer;
+
+typedef JumpBuffer jmp_buf[1];
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int setjmp(jmp_buf *env);
-void longjmp(jmp_buf *env, int status);
+int  setjmp (jmp_buf env);
+void longjmp(jmp_buf env, int status);
 
 #ifdef __cplusplus
 }

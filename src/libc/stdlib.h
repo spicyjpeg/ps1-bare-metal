@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,17 +30,32 @@ static inline long labs(long value) {
 	return (value < 0) ? (-value) : value;
 }
 
-void abort(void);
-
-long strtol(const char *str, char **strEnd, int base);
-long long strtoll(const char *str, char **strEnd, int base);
-
+// crt0.c
 void *sbrk(ptrdiff_t incr);
 
+// malloc.c
 void *malloc(size_t size);
 void *calloc(size_t num, size_t size);
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
+
+// misc.c
+void abort(void);
+
+// string.c
+long long strtoll(
+	const char *__restrict str,
+	char **__restrict      strEnd,
+	int                    base
+);
+
+static inline long strtol(
+	const char *__restrict str,
+	char **__restrict      strEnd,
+	int                    base
+) {
+	return (long) strtoll(str, strEnd, base);
+}
 
 #ifdef __cplusplus
 }

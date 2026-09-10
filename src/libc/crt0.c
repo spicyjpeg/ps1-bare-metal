@@ -26,9 +26,8 @@ typedef void (*Function)(void);
 // to turn them into pointers is to declare them as arrays.
 extern char _bssStart[], _bssEnd[];
 
-extern const Function _preinitArrayStart[], _preinitArrayEnd[];
-extern const Function _initArrayStart[],    _initArrayEnd[];
-extern const Function _finiArrayStart[],    _finiArrayEnd[];
+extern const Function _initArrayStart[], _initArrayEnd[];
+extern const Function _finiArrayStart[], _finiArrayEnd[];
 
 /* Heap API (used by malloc) */
 
@@ -63,8 +62,6 @@ int _start(int argc, const char **argv) {
 
 	// Invoke all global constructors if any, then main() and finally all global
 	// destructors.
-	for (const Function *ctor = _preinitArrayStart; ctor < _preinitArrayEnd; ctor++)
-		(*ctor)();
 	for (const Function *ctor = _initArrayStart; ctor < _initArrayEnd; ctor++)
 		(*ctor)();
 
