@@ -53,6 +53,7 @@ add_library(
 	src/libc/string.c
 	src/libc/string.s
 	src/ps1/cache.s
+	src/libc/compiler_rt.c
 	src/vendor/printf.c
 )
 target_include_directories(
@@ -123,3 +124,17 @@ convertImage(
 )
 addBinaryFile(example09_controllers fontTexture "${PROJECT_BINARY_DIR}/example09/fontTexture.dat")
 addBinaryFile(example09_controllers fontPalette "${PROJECT_BINARY_DIR}/example09/fontPalette.dat")
+
+addPS1Executable(
+	example10_readCdrom
+	src/10_readCdrom/cdromMgr.c
+	src/10_readCdrom/gpu.c
+	src/10_readCdrom/main.c
+)
+convertImage(
+	src/10_readCdrom/font.png 4
+	example10/fontTexture.dat
+	example10/fontPalette.dat
+)
+addBinaryFile(example10_readCdrom fontTexture "${PROJECT_BINARY_DIR}/example10/fontTexture.dat")
+addBinaryFile(example10_readCdrom fontPalette "${PROJECT_BINARY_DIR}/example10/fontPalette.dat")
