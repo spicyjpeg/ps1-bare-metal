@@ -29,15 +29,12 @@
  * having hundreds of tiny textures for each character would be extremely
  * inefficient, and then use a lookup table to obtain the UV coordinates, width
  * and height of each character in a string.
- *
- * NOTE: in order to make the code easier to read, I have moved all the
- * GPU-related functions from previous examples to a separate source file.
  */
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "gpu.h"
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
@@ -221,24 +218,29 @@ static void printString(
 	}
 }
 
-#define SCREEN_WIDTH     320
-#define SCREEN_HEIGHT    240
-#define FONT_WIDTH        96
-#define FONT_HEIGHT       56
+#define SCREEN_HRES   GP1_HRES_320
+#define SCREEN_VRES   GP1_VRES_256
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240
+
+#define FONT_WIDTH       96
+#define FONT_HEIGHT      56
 #define FONT_COLOR_DEPTH GP0_COLOR_4BPP
 
 extern const uint8_t fontTexture[], fontPalette[];
 
 int main(int argc, const char **argv) {
-	initSerialIO(115200);
+	(void) argc;
+	(void) argv;
 
-	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
-		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-	} else {
-		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
-	}
+	initSerialIO(115200);
+	setupGPU(
+		getCurrentVideoMode(),
+		SCREEN_HRES,
+		SCREEN_VRES,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+	);
 
 	TextureInfo font;
 

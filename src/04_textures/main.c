@@ -38,68 +38,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-static void setupGPU(GP1VideoMode mode, int width, int height) {
-	int x = 0x760;
-	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
-
-	GP1HorizontalRes horizontalRes = GP1_HRES_320;
-	GP1VerticalRes   verticalRes   = GP1_VRES_256;
-
-	int offsetX = (width  * gp1_clockMultiplierH(horizontalRes)) / 2;
-	int offsetY = (height / gp1_clockDividerV(verticalRes))      / 2;
-
-	GPU_GP1 = gp1_resetGPU();
-	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
-	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
-	GPU_GP1 = gp1_fbMode(
-		horizontalRes,
-		verticalRes,
-		mode,
-		false,
-		GP1_COLOR_16BPP
-	);
-	GPU_GP1 = gp1_dispBlank(false);
-
-	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_GPU);
-	DMA_CHCR(DMA_GPU) = 0;
-}
-
-static void waitForGP0Ready(void) {
-	while (!(GPU_GP1 & GP1_STAT_CMD_READY))
-		__asm__ volatile("");
-}
-
-static void waitForGPUDMADone(void) {
-	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
-		__asm__ volatile("");
-}
-
-static void waitForVSync(void) {
-	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
-		__asm__ volatile("");
-
-	IRQ_STAT = ~(1 << IRQ_VSYNC);
-}
-
-static void sendGPULinkedList(const void *data) {
-	waitForGPUDMADone();
-	assert(!((uint32_t) data % 4));
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
-
-	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_LIST
-		| DMA_CHCR_ENABLE;
-}
-
 #define DMA_MAX_CHUNK_SIZE 16
 
-static void sendVRAMData(
+static void sendVRAMData_(
 	const void *data,
 	int        x,
 	int        y,
@@ -152,40 +97,21 @@ static void sendVRAMData(
 		| DMA_CHCR_ENABLE;
 }
 
-#define GPU_CHAIN_BUFFER_SIZE 1024
-
-typedef struct {
-	uint32_t data[GPU_CHAIN_BUFFER_SIZE];
-	uint32_t *nextPacket;
-} GPUDMAChain;
-
-static uint32_t *allocateGP0Packet(GPUDMAChain *chain, int numCommands) {
-	assert((numCommands >= 0) && (numCommands <= DMA_MAX_CHUNK_SIZE));
-
-	uint32_t *ptr      = chain->nextPacket;
-	chain->nextPacket += numCommands + 1;
-
-	*ptr = gp0_tag(numCommands, chain->nextPacket);
-	assert(chain->nextPacket < &(chain->data)[GPU_CHAIN_BUFFER_SIZE]);
-
-	return &ptr[1];
-}
-
 // Once our texture has been uploaded to VRAM, we are going to save the metadata
 // required to use it for drawing into this structure.
 typedef struct {
 	uint8_t  u, v;
 	uint16_t width, height;
 	uint16_t page;
-} TextureInfo;
+} TextureInfo_;
 
-static void uploadTexture(
-	TextureInfo *info,
-	const void  *data,
-	int         x,
-	int         y,
-	int         width,
-	int         height
+static void uploadTexture_(
+	TextureInfo_ *info,
+	const void   *data,
+	int          x,
+	int          y,
+	int          width,
+	int          height
 ) {
 	// Make sure the texture's size is valid. The GPU does not support textures
 	// larger than 256x256 pixels.
@@ -193,7 +119,7 @@ static void uploadTexture(
 
 	// Upload the texture to VRAM, wait for the process to complete and flush
 	// any previously used texture from the GPU's internal cache.
-	sendVRAMData(data, x, y, width, height);
+	sendVRAMData_(data, x, y, width, height);
 	waitForGPUDMADone();
 	GPU_GP0 = gp0_flushCache();
 
@@ -216,10 +142,13 @@ static void uploadTexture(
 	info->height = (uint16_t) height;
 }
 
-#define SCREEN_WIDTH   320
-#define SCREEN_HEIGHT  240
-#define TEXTURE_WIDTH   32
-#define TEXTURE_HEIGHT  32
+#define SCREEN_HRES   GP1_HRES_320
+#define SCREEN_VRES   GP1_VRES_256
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240
+
+#define TEXTURE_WIDTH  32
+#define TEXTURE_HEIGHT 32
 
 // We're going to convert our texture into raw binary data using a Python script
 // and embed it into this extern array through CMake. See CMakeLists.txt for
@@ -227,20 +156,22 @@ static void uploadTexture(
 extern const uint8_t textureData[];
 
 int main(int argc, const char **argv) {
-	initSerialIO(115200);
+	(void) argc;
+	(void) argv;
 
-	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
-		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-	} else {
-		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
-	}
+	initSerialIO(115200);
+	setupGPU(
+		getCurrentVideoMode(),
+		SCREEN_HRES,
+		SCREEN_VRES,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+	);
 
 	// Load the texture, placing it next to the two framebuffers in VRAM.
-	TextureInfo texture;
+	TextureInfo_ texture;
 
-	uploadTexture(
+	uploadTexture_(
 		&texture,
 		textureData,
 		SCREEN_WIDTH * 2,

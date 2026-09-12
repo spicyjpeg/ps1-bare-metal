@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,9 +15,13 @@
  */
 
 #include <stdint.h>
-#include "font.h"
-#include "gpu.h"
+#include "common/font.h"
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
+
+typedef struct {
+	uint8_t x, y, width, height;
+} SpriteInfo;
 
 static const SpriteInfo fontSprites[] = {
 	{ .x =  6, .y =  0, .width = 2, .height = 9 }, // !
@@ -168,4 +172,56 @@ void printString(
 
 		currentX += sprite->width;
 	}
+}
+
+void printStringOrdered(
+	GPUOrderedDMAChain *chain,
+	const TextureInfo  *font,
+	int                x,
+	int                y,
+	int                zIndex,
+	const char         *str
+) {
+	int currentX = x, currentY = y;
+
+	uint32_t *ptr;
+
+	for (; *str; str++) {
+		uint8_t ch = (uint8_t) *str;
+
+		switch (ch) {
+			case '\t':
+				currentX += FONT_TAB_WIDTH - 1;
+				currentX -= currentX % FONT_TAB_WIDTH;
+				continue;
+
+			case '\n':
+				currentX  = x;
+				currentY += FONT_LINE_HEIGHT;
+				continue;
+
+			case ' ':
+				currentX += FONT_SPACE_WIDTH;
+				continue;
+
+			case FIRST_INVALID_CHAR ... 0xff:
+				ch = 0x7f;
+				break;
+		}
+
+		const SpriteInfo *sprite = &fontSprites[ch - FIRST_TABLE_CHAR];
+
+		ptr    = allocateOrderedGP0Packet(chain, zIndex, 4);
+		ptr[0] = gp0_rectangle(true, true, true);
+		ptr[1] = gp0_xy(currentX, currentY);
+		ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
+		ptr[3] = gp0_xy(sprite->width, sprite->height);
+
+		currentX += sprite->width;
+	}
+
+	// DMA sends ordering table packets in last-to-first order, so the texture
+	// page command needs to be inserted last.
+	ptr    = allocateOrderedGP0Packet(chain, zIndex, 1);
+	ptr[0] = gp0_setPage(font->page, false, false);
 }

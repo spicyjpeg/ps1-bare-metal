@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,19 +18,25 @@
 
 #include <stdint.h>
 #include "ps1/gpucmd.h"
+#include "ps1/registers.h"
 
-// In order for Z averaging to work properly, GPU_ORDERING_TABLE_SIZE should be
-// set to either a relatively high value (1024 or more) or a multiple of 12; see
-// setupGTE() for more details. Higher values will take up more memory but are
-// required to render more complex scenes with wide depth ranges correctly.
-#define GPU_CHAIN_BUFFER_SIZE   1024
+// In order for GTE Z averaging to work properly, GPU_ORDERING_TABLE_SIZE should
+// be set to either a relatively high value (1024 or more) or a multiple of 12
+// (i.e. both 3 and 4). Higher values will take up more memory but are required
+// to render more complex scenes with wide depth ranges correctly.
+#define GPU_CHAIN_BUFFER_SIZE   2048
 #define GPU_ORDERING_TABLE_SIZE  240
+
+typedef struct {
+	uint32_t data[GPU_CHAIN_BUFFER_SIZE];
+	uint32_t *nextPacket;
+} GPUDMAChain;
 
 typedef struct {
 	uint32_t data[GPU_CHAIN_BUFFER_SIZE];
 	uint32_t orderingTable[GPU_ORDERING_TABLE_SIZE];
 	uint32_t *nextPacket;
-} GPUDMAChain;
+} GPUOrderedDMAChain;
 
 typedef struct {
 	uint8_t  u, v;
@@ -42,7 +48,19 @@ typedef struct {
 extern "C" {
 #endif
 
-void setupGPU(GP1VideoMode mode, int width, int height);
+static inline GP1VideoMode getCurrentVideoMode(void) {
+	return ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL)
+		? GP1_MODE_PAL
+		: GP1_MODE_NTSC;
+}
+
+void setupGPU(
+	GP1VideoMode     mode,
+	GP1HorizontalRes horizontalRes,
+	GP1VerticalRes   verticalRes,
+	int              width,
+	int              height
+);
 void waitForGP0Ready(void);
 void waitForGPUDMADone(void);
 void waitForVSync(void);
@@ -55,8 +73,21 @@ void sendVRAMData(
 	int        width,
 	int        height
 );
+void receiveVRAMData(
+	void *data,
+	int  x,
+	int  y,
+	int  width,
+	int  height
+);
+
 void clearOrderingTable(uint32_t *table, int numEntries);
-uint32_t *allocateGP0Packet(GPUDMAChain *chain, int zIndex, int numCommands);
+uint32_t *allocateGP0Packet(GPUDMAChain *chain, int numCommands);
+uint32_t *allocateOrderedGP0Packet(
+	GPUOrderedDMAChain *chain,
+	int                zIndex,
+	int                numCommands
+);
 
 void uploadTexture(
 	TextureInfo *info,

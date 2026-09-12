@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023-2025 spicyjpeg
+# ps1-bare-metal - (C) 2023-2026 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -40,10 +40,10 @@ include(cmake/tools.cmake)
 #audio encoding will be skipped.")
 #endif()
 
-# Build a "common" library containing code shared across all examples and link
-# it by default into every executable.
+# Build a support library containing code common to all examples (mostly
+# standard C library functions) and link it by default into every executable.
 add_library(
-	common OBJECT
+	c OBJECT
 	src/libc/clz.s
 	src/libc/crt0.c
 	src/libc/cxxsupport.cpp
@@ -56,70 +56,49 @@ add_library(
 	src/vendor/printf.c
 )
 target_include_directories(
-	common PUBLIC
+	c PUBLIC
 	src
 	src/libc
 )
-link_libraries(common)
+link_libraries(c)
 
-# Build the examples and convert any required assets.
+# Use the convertImage() helper defined in tools.cmake to generate raw bitmap
+# and palette data for the images used by some examples.
+convertImage(assets/test16bpp.png 16 assets/test16bppTexture.dat)
+convertImage(assets/test4bpp.png   4 assets/test4bppTexture.dat assets/test4bppPalette.dat)
+convertImage(assets/font.png       4 assets/fontTexture.dat     assets/fontPalette.dat)
+
+# Build the examples and embed the converted assets where appropriate.
 addPS1Executable(example00_helloWorld    src/00_helloWorld/main.c)
 addPS1Executable(example01_basicGraphics src/01_basicGraphics/main.c)
-addPS1Executable(example02_doubleBuffer  src/02_doubleBuffer/main.c)
-addPS1Executable(example03_dmaChain      src/03_dmaChain/main.c)
+addPS1Executable(example02_doubleBuffer  src/common/gpu.c src/02_doubleBuffer/main.c)
+addPS1Executable(example03_dmaChain      src/common/gpu.c src/03_dmaChain/main.c)
 
-addPS1Executable(example04_textures src/04_textures/main.c)
-convertImage(
-	src/04_textures/texture.png 16
-	example04/textureData.dat
-)
-addBinaryFile(example04_textures textureData "${PROJECT_BINARY_DIR}/example04/textureData.dat")
+addPS1Executable(example04_textures src/common/gpu.c src/04_textures/main.c)
+addBinaryFile(example04_textures textureData "${PROJECT_BINARY_DIR}/assets/test16bppTexture.dat")
 
-addPS1Executable(example05_palettes src/05_palettes/main.c)
-convertImage(
-	src/05_palettes/texture.png 4
-	example05/textureData.dat
-	example05/paletteData.dat
-)
-addBinaryFile(example05_palettes textureData "${PROJECT_BINARY_DIR}/example05/textureData.dat")
-addBinaryFile(example05_palettes paletteData "${PROJECT_BINARY_DIR}/example05/paletteData.dat")
+addPS1Executable(example05_palettes src/common/gpu.c src/05_palettes/main.c)
+addBinaryFile(example05_palettes textureData "${PROJECT_BINARY_DIR}/assets/test4bppTexture.dat")
+addBinaryFile(example05_palettes paletteData "${PROJECT_BINARY_DIR}/assets/test4bppPalette.dat")
 
-addPS1Executable(
-	example06_fonts
-	src/06_fonts/gpu.c
-	src/06_fonts/main.c
-)
-convertImage(
-	src/06_fonts/font.png 4
-	example06/fontTexture.dat
-	example06/fontPalette.dat
-)
-addBinaryFile(example06_fonts fontTexture "${PROJECT_BINARY_DIR}/example06/fontTexture.dat")
-addBinaryFile(example06_fonts fontPalette "${PROJECT_BINARY_DIR}/example06/fontPalette.dat")
+addPS1Executable(example06_fonts src/common/gpu.c src/06_fonts/main.c)
+addBinaryFile(example06_fonts fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example06_fonts fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
 
-addPS1Executable(
-	example07_orderingTable
-	src/07_orderingTable/gpu.c
-	src/07_orderingTable/main.c
-)
+addPS1Executable(example07_orderingTable src/common/gpu.c src/07_orderingTable/main.c)
 
 addPS1Executable(
 	example08_spinningCube
-	src/08_spinningCube/gpu.c
+	src/common/gpu.c
+	src/common/trig.c
 	src/08_spinningCube/main.c
-	src/08_spinningCube/trig.c
 )
 
 addPS1Executable(
 	example09_controllers
-	src/09_controllers/font.c
-	src/09_controllers/gpu.c
+	src/common/font.c
+	src/common/gpu.c
 	src/09_controllers/main.c
 )
-convertImage(
-	src/09_controllers/font.png 4
-	example09/fontTexture.dat
-	example09/fontPalette.dat
-)
-addBinaryFile(example09_controllers fontTexture "${PROJECT_BINARY_DIR}/example09/fontTexture.dat")
-addBinaryFile(example09_controllers fontPalette "${PROJECT_BINARY_DIR}/example09/fontPalette.dat")
+addBinaryFile(example09_controllers fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example09_controllers fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")

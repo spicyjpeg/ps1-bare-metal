@@ -47,6 +47,9 @@ static void printCharacter(char ch) {
 }
 
 int main(int argc, const char **argv) {
+	(void) argc;
+	(void) argv;
+
 	// Reset the serial interface and initialize it to output data at 115200bps,
 	// 8 data bits, 1 stop bit and no parity.
 	SIO_CTRL(1) = SIO_CTRL_RESET;

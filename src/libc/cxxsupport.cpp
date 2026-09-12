@@ -44,23 +44,37 @@ void operator delete[](void *ptr) noexcept {
 }
 
 void operator delete(void *ptr, size_t size) noexcept {
+	(void) size;
+
 	free(ptr);
 }
 
 void operator delete[](void *ptr, size_t size) noexcept {
+	(void) size;
+
 	free(ptr);
 }
 
 /* Placement new/delete operators */
 
 void *operator new(size_t size, void *ptr) noexcept {
+	(void) size;
+
 	return ptr;
 }
 
 void *operator new[](size_t size, void *ptr) noexcept {
+	(void) size;
+
 	return ptr;
 }
 
-void operator delete(void *ptr, void *place) noexcept {}
+void operator delete(void *ptr, void *place) noexcept {
+	(void) ptr;
+	(void) place;
+}
 
-void operator delete[](void *ptr, void *place) noexcept {}
+void operator delete[](void *ptr, void *place) noexcept {
+	(void) ptr;
+	(void) place;
+}

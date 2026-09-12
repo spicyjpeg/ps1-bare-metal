@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,39 +17,45 @@
 /*
  * We saw how to initialize the GPU and get basic graphics on screen in the last
  * tutorial. It's now time to add motion to the mix: we're going to draw a
- * square which, in true DVD player screensaver fashion, will bounce around on
- * the screen.
+ * square bouncing around the screen, DVD player screensaver style. This may
+ * sound simple, but there are a few caveats we'll have to look out for.
  *
- * This may sound simple in theory, but there are a few caveats we'll have to
- * look out for. First of all we will need some sort of timer for our animation,
- * ideally something synchronized to the display output in order to avoid
- * updating the position of our square while the picture is still being sent by
- * the GPU to the monitor (and stabilize the frame rate). We'll also have to
- * ensure the frame we are sending in the first place is not actively being
- * updated by the GPU, otherwise screen tearing will be prominent. Hiding a
- * frame while it is being drawn may sound tricky, but there is a very simple
- * way to accomplish it: we are going to keep *two* frames in VRAM, and draw one
- * while the other is being displayed. Once drawing is done and the other frame
- * has been fully sent to the display, we're going to swap the buffers (so that
- * the newly rendered frame will be displayed) and start over.
+ * We need some sort of timer for our animation, synchronized to the display
+ * output so that the position of our square is only updated once per frame;
+ * moreover, we shouldn't draw to the same frame that is currently being sent to
+ * the display (doing so would introduce screen tearing and flicker). We are
+ * thus going to keep *two* frames in VRAM, drawing one while while the other is
+ * being displayed, then swap them and run our update logic each time the GPU is
+ * done sending the previous frame (i.e. during the vertical sync/blanking
+ * interval). This will also cap our frame rate to the display's refresh rate
+ * (50 or 60 Hz depending on video mode).
  *
- * This is an extremely common practice (the device you are looking at right now
- * is no doubt using it) known as double buffering, and you can read more about
- * it here:
+ * This is a common practice known as page flipping or double buffering. You can
+ * read more about it here if you are not familiar with it:
  *     https://gameprogrammingpatterns.com/double-buffer.html
+ *
+ * NOTE: from this example onwards, any GPU function introduced in a previous
+ * example will be omitted and the respective copy from common/gpu.c will be
+ * used instead. To prevent conflicts with gpu.c definitions, some newly
+ * introduced (such as waitForVSync() below) or modified (such as setupGPU())
+ * functions will have to be suffixed with an underscore.
  */
 
 #include <stdbool.h>
 #include <stdio.h>
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-static void setupGPU(GP1VideoMode mode, int width, int height) {
+static void setupGPU_(
+	GP1VideoMode     mode,
+	GP1HorizontalRes horizontalRes,
+	GP1VerticalRes   verticalRes,
+	int              width,
+	int              height
+) {
 	int x = 0x760;
 	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
-
-	GP1HorizontalRes horizontalRes = GP1_HRES_320;
-	GP1VerticalRes   verticalRes   = GP1_VRES_256;
 
 	int offsetX = (width  * gp1_clockMultiplierH(horizontalRes)) / 2;
 	int offsetY = (height / gp1_clockDividerV(verticalRes))      / 2;
@@ -61,42 +67,49 @@ static void setupGPU(GP1VideoMode mode, int width, int height) {
 		horizontalRes,
 		verticalRes,
 		mode,
-		false,
+		verticalRes == GP1_VRES_512,
 		GP1_COLOR_16BPP
 	);
 	GPU_GP1 = gp1_dispBlank(false);
-}
 
-static void waitForGP0Ready(void) {
-	while (!(GPU_GP1 & GP1_STAT_CMD_READY))
-		__asm__ volatile("");
-}
-
-static void waitForVSync(void) {
 	// The GPU won't tell us directly whenever it is done sending a frame to the
 	// display, but it will send a signal to another peripheral known as the
-	// interrupt controller (which will be covered in a future tutorial). We can
-	// thus wait until the interrupt controller's vertical blank flag gets set,
-	// then reset (acknowledge) it so that it can be set again by the GPU.
+	// interrupt request (IRQ) controller. The IRQ controller may also force the
+	// CPU to jump to handling code outside of our control (typically in the
+	// console's BIOS kernel) when that happens, making us unable to reliably
+	// tell if it happened (especially if said code resets the IRQ flag before
+	// we ever see it). To prevent that we can "mask" the signal: the IRQ
+	// controller will still track it, but it will no longer invoke the handler.
+	IRQ_MASK &= ~(1 << IRQ_VSYNC);
+}
+
+static void waitForVSync_(void) {
+	// With the vsync IRQ masked, we can safely poll its respective flag and
+	// wait until it gets set, then reset (acknowledge) it so that it can be set
+	// again by the GPU.
 	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
 
 	IRQ_STAT = ~(1 << IRQ_VSYNC);
 }
 
+#define SCREEN_HRES   GP1_HRES_320
+#define SCREEN_VRES   GP1_VRES_256
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 240
 
 int main(int argc, const char **argv) {
-	initSerialIO(115200);
+	(void) argc;
+	(void) argv;
 
-	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
-		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-	} else {
-		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
-	}
+	initSerialIO(115200);
+	setupGPU_(
+		getCurrentVideoMode(),
+		SCREEN_HRES,
+		SCREEN_VRES,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+	);
 
 	int x = 0, velocityX = 1;
 	int y = 0, velocityY = 1;
@@ -105,8 +118,8 @@ int main(int argc, const char **argv) {
 
 	for (;;) {
 		// Determine the VRAM location of the current frame. We're going to
-		// place the two frames next to each other in VRAM, at (0, 0) and
-		// (320, 0) respectively.
+		// place the two buffers next to each other in VRAM, at (0, 0) and
+		// (SCREEN_WIDTH, 0) respectively.
 		int frameX = usingSecondFrame ? SCREEN_WIDTH : 0;
 		int frameY = 0;
 
@@ -144,11 +157,10 @@ int main(int argc, const char **argv) {
 		if ((y <= 0) || (y >= (SCREEN_HEIGHT - 32)))
 			velocityY = -velocityY;
 
-		// Wait for the GPU to finish drawing and displaying the contents of the
-		// previous frame, then tell it to start sending the newly drawn frame
-		// to the video output.
+		// Wait for the GPU to reach the sync window, then tell it to start
+		// outputting the newly drawn frame and loop to the next frame.
 		waitForGP0Ready();
-		waitForVSync();
+		waitForVSync_();
 
 		GPU_GP1 = gp1_fbOffset(frameX, frameY);
 	}

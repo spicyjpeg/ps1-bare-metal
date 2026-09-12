@@ -18,9 +18,9 @@
  * This is a version of the previous example modified to use an indexed color
  * texture instead of a raw one. The idea behind indexed color images is
  * remarkably simple: by limiting the maximum number of unique colors in an
- * image and storing their values separately, it is possible to reduce the size
- * of the image data by replacing each pixel with an index to its color into the
- * so-called CLUT (color lookup table) or palette.
+ * image and storing their values separately in a "palette" or CLUT (color
+ * lookup table), it is possible to reduce the size of the image data by
+ * replacing each pixel color with an index into the palette.
  *
  * The PS1's GPU supports two indexed color formats: 4 bits per pixel (up to 16
  * colors) and 8 bits per pixel (up to 256 colors). 4bpp and 8bpp textures are
@@ -36,125 +36,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
-
-static void setupGPU(GP1VideoMode mode, int width, int height) {
-	int x = 0x760;
-	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
-
-	GP1HorizontalRes horizontalRes = GP1_HRES_320;
-	GP1VerticalRes   verticalRes   = GP1_VRES_256;
-
-	int offsetX = (width  * gp1_clockMultiplierH(horizontalRes)) / 2;
-	int offsetY = (height / gp1_clockDividerV(verticalRes))      / 2;
-
-	GPU_GP1 = gp1_resetGPU();
-	GPU_GP1 = gp1_fbRangeH(x - offsetX, x + offsetX);
-	GPU_GP1 = gp1_fbRangeV(y - offsetY, y + offsetY);
-	GPU_GP1 = gp1_fbMode(
-		horizontalRes,
-		verticalRes,
-		mode,
-		false,
-		GP1_COLOR_16BPP
-	);
-	GPU_GP1 = gp1_dispBlank(false);
-
-	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_GPU);
-	DMA_CHCR(DMA_GPU) = 0;
-}
-
-static void waitForGP0Ready(void) {
-	while (!(GPU_GP1 & GP1_STAT_CMD_READY))
-		__asm__ volatile("");
-}
-
-static void waitForGPUDMADone(void) {
-	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
-		__asm__ volatile("");
-}
-
-static void waitForVSync(void) {
-	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
-		__asm__ volatile("");
-
-	IRQ_STAT = ~(1 << IRQ_VSYNC);
-}
-
-static void sendGPULinkedList(const void *data) {
-	waitForGPUDMADone();
-	assert(!((uint32_t) data % 4));
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
-
-	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_LIST
-		| DMA_CHCR_ENABLE;
-}
-
-#define DMA_MAX_CHUNK_SIZE 16
-
-static void sendVRAMData(
-	const void *data,
-	int        x,
-	int        y,
-	int        width,
-	int        height
-) {
-	waitForGPUDMADone();
-	assert(!((uint32_t) data % 4));
-
-	size_t length = (width * height + 1) / 2;
-	size_t chunkSize, numChunks;
-
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
-
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
-	}
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
-
-	waitForGP0Ready();
-	GPU_GP0 = gp0_vramWrite();
-	GPU_GP0 = gp0_xy(x, y);
-	GPU_GP0 = gp0_xy(width, height);
-
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
-
-	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
-}
-
-#define GPU_CHAIN_BUFFER_SIZE 1024
-
-typedef struct {
-	uint32_t data[GPU_CHAIN_BUFFER_SIZE];
-	uint32_t *nextPacket;
-} GPUDMAChain;
-
-static uint32_t *allocateGP0Packet(GPUDMAChain *chain, int numCommands) {
-	assert((numCommands >= 0) && (numCommands <= DMA_MAX_CHUNK_SIZE));
-
-	uint32_t *ptr      = chain->nextPacket;
-	chain->nextPacket += numCommands + 1;
-
-	*ptr = gp0_tag(numCommands, chain->nextPacket);
-	assert(chain->nextPacket < &(chain->data)[GPU_CHAIN_BUFFER_SIZE]);
-
-	return &ptr[1];
-}
 
 // We need to add a new entry to this structure to store the CLUT attribute,
 // another 16-bit field which will contain the coordinates of our texture's
@@ -163,10 +47,10 @@ typedef struct {
 	uint8_t  u, v;
 	uint16_t width, height;
 	uint16_t page, clut;
-} TextureInfo;
+} TextureInfo_;
 
-static void uploadIndexedTexture(
-	TextureInfo   *info,
+static void uploadIndexedTexture_(
+	TextureInfo_  *info,
 	const void    *image,
 	const void    *palette,
 	int           imageX,
@@ -215,10 +99,13 @@ static void uploadIndexedTexture(
 	info->height = (uint16_t) height;
 }
 
-#define SCREEN_WIDTH        320
-#define SCREEN_HEIGHT       240
-#define TEXTURE_WIDTH        32
-#define TEXTURE_HEIGHT       32
+#define SCREEN_HRES   GP1_HRES_320
+#define SCREEN_VRES   GP1_VRES_256
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240
+
+#define TEXTURE_WIDTH       32
+#define TEXTURE_HEIGHT      32
 #define TEXTURE_COLOR_DEPTH GP0_COLOR_4BPP
 
 // The Python script will generate two separate files containing the image and
@@ -226,21 +113,23 @@ static void uploadIndexedTexture(
 extern const uint8_t textureData[], paletteData[];
 
 int main(int argc, const char **argv) {
-	initSerialIO(115200);
+	(void) argc;
+	(void) argv;
 
-	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
-		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-	} else {
-		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
-	}
+	initSerialIO(115200);
+	setupGPU(
+		getCurrentVideoMode(),
+		SCREEN_HRES,
+		SCREEN_VRES,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+	);
 
 	// Load the texture, placing the image next to the two framebuffers in VRAM
 	// and the palette below the image.
-	TextureInfo texture;
+	TextureInfo_ texture;
 
-	uploadIndexedTexture(
+	uploadIndexedTexture_(
 		&texture,
 		textureData,
 		paletteData,

@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,8 +39,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "font.h"
-#include "gpu.h"
+#include "common/font.h"
+#include "common/gpu.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
@@ -81,18 +81,22 @@ static void initControllerBus(void) {
 		| SIO_CTRL_TX_ENABLE
 		| SIO_CTRL_RX_ENABLE
 		| SIO_CTRL_DSR_IRQ_ENABLE;
+
+	// As with vsync, prevent DSR pulses from triggering any interrupt handling
+	// code in the BIOS kernel or otherwise outside of our control.
+	IRQ_MASK &= ~(1 << IRQ_SIO0);
 }
 
 static bool waitForAcknowledge(int timeout) {
 	// Controllers and memory cards will acknowledge bytes received by sending
 	// short pulses over the DSR line, which will be forwarded by the serial
-	// interface to the interrupt controller. This is not guaranteed to happen
-	// (it will not if e.g. no device is connected), so we have to implement a
+	// interface to the IRQ controller. This is not guaranteed to happen (it
+	// will not if e.g. no device is connected), so we have to implement a
 	// timeout to avoid waiting forever in such cases.
 	for (; timeout > 0; timeout -= 10) {
 		if (IRQ_STAT & (1 << IRQ_SIO0)) {
-			// Reset the interrupt controller and serial interface's flags to
-			// ensure the interrupt can be triggered again.
+			// Reset the IRQ controller and serial interface's flags to ensure
+			// the interrupt can be triggered again.
 			IRQ_STAT     = ~(1 << IRQ_SIO0);
 			SIO_CTRL(0) |= SIO_CTRL_ACKNOWLEDGE;
 
@@ -319,25 +323,30 @@ static void printControllerInfo(int port, char *output) {
 		ptr += sprintf(ptr, "%02X ", response[i]);
 }
 
-#define SCREEN_WIDTH     320
-#define SCREEN_HEIGHT    240
-#define FONT_WIDTH        96
-#define FONT_HEIGHT       56
+#define SCREEN_HRES   GP1_HRES_320
+#define SCREEN_VRES   GP1_VRES_256
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240
+
+#define FONT_WIDTH       96
+#define FONT_HEIGHT      56
 #define FONT_COLOR_DEPTH GP0_COLOR_4BPP
 
 extern const uint8_t fontTexture[], fontPalette[];
 
 int main(int argc, const char **argv) {
+	(void) argc;
+	(void) argv;
+
 	initSerialIO(115200);
 	initControllerBus();
-
-	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
-		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
-	} else {
-		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
-	}
+	setupGPU(
+		getCurrentVideoMode(),
+		SCREEN_HRES,
+		SCREEN_VRES,
+		SCREEN_WIDTH,
+		SCREEN_HEIGHT
+	);
 
 	TextureInfo font;
 

@@ -50,9 +50,9 @@ chance you already have a suitable toolchain set up (try running
 `mipsel-none-elf-gcc` and `mipsel-linux-gnu-gcc` in a terminal). The other
 dependencies can be obtained through a package manager.
 
-The Python scripts require a few additional dependencies, which can be installed
-in a virtual environment by running the following commands from the root
-directory of the repository:
+The Python scripts require a few additional dependencies, which must be
+installed in a virtual environment by running the following commands from the
+repository's root:
 
 ```bash
 # Windows (using PowerShell)
@@ -209,11 +209,15 @@ development.
 If you want to write your own examples or projects, here's a quick overview of
 the non-example subfolders in the `src` directory:
 
-- `src/libc` contains a minimal implementation of the C standard library, which
-  should be enough for most purposes. Some functions have been replaced with
-  optimized assembly implementations.
-- `src/ps1` contains a basic support library for the hardware, consisting mostly
-  of definitions for hardware registers and GPU commands.
+- `src/libc` contains a barebones implementation of the C standard library,
+  which should be enough for most purposes. A few functions have been replaced
+  with optimized assembly implementations;
+- `src/ps1` contains a set of low-level helper headers: hardware register
+  definitions, GPU command builders, coprocessor accessors that wrap inline
+  assembly and so on;
+- `src/common` can be considered a higher-level support library, consisting of
+  common functions that would otherwise be duplicated across most examples.
+  This is essentially the "SDK" the examples sit on top of;
 - `src/vendor` is for third-party libraries (currently only the printf library).
 
 If you create a new folder and want its contents to be built, remember to add it

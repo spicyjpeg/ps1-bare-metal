@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
  *     https://www.coranac.com/2009/07/sines
  */
 
-#include "trig.h"
+#include "common/trig.h"
 
 #define A (1 << 12)
 #define B 19900

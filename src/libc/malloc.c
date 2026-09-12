@@ -176,7 +176,7 @@ void *realloc(void *ptr, size_t size) {
 	}
 
 	// Do we have free memory after it?
-	if (((prev->next)->ptr - ptr) > _size) {
+	if (((uintptr_t) prev->next->ptr - (uintptr_t) ptr) > _size) {
 		_updateHeapUsage(size - prev->size);
 		prev->size = _size;
 		return ptr;
