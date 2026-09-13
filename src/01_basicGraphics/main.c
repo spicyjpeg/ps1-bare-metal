@@ -43,8 +43,8 @@ static void setupGPU(
 	GP1VideoMode     mode,
 	GP1HorizontalRes horizontalRes,
 	GP1VerticalRes   verticalRes,
-	int              width,
-	int              height
+	unsigned int     width,
+	unsigned int     height
 ) {
 	// Set the origin of the displayed framebuffer relative to the GPU's
 	// internal video clocks. The values below will center the picture on most

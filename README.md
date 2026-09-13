@@ -1,28 +1,33 @@
 
 # PlayStation 1 bare-metal C examples
 
-This repository contains a series of homebrew tutorials and well-commented
-examples for the original Sony PlayStation, built using no external SDKs or
-tools other than an up-to-date, unmodified GCC toolchain targeting the MIPS
-architecture, CMake as the build system and some Python scripts.
+This is a C homebrew programming tutorial for the original Sony PlayStation, in
+the form of a series of well-commented examples showcasing each of the console's
+features. All examples are built using no external SDKs or tools other than an
+up-to-date, unmodified GCC toolchain targeting the MIPS architecture, CMake as
+the build system and some Python scripts.
 
 The following examples are currently available:
 
-| #   | Screenshot                                                                    | Description                                                                       |
-| --: | :---------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
-|   0 |                                                                               | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)           |
-|   1 | <img alt="Example 1" src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
-|   2 | <img alt="Example 2" src="src/02_doubleBuffer/screenshot.png" width="100" />  | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
-|   3 | <img alt="Example 3" src="src/03_dmaChain/screenshot.png" width="100" />      | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
-|   4 | <img alt="Example 4" src="src/04_textures/screenshot.png" width="100" />      | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
-|   5 | <img alt="Example 5" src="src/05_palettes/screenshot.png" width="100" />      | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
-|   6 | <img alt="Example 6" src="src/06_fonts/screenshot.png" width="100" />         | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
-|   7 | <img alt="Example 7" src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
-|   8 | <img alt="Example 8" src="src/08_spinningCube/screenshot.png" width="100" />  | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
-|   9 | <img alt="Example 9" src="src/09_controllers/screenshot.png" width="100" />   | [Getting input from connected controllers](src/09_controllers/main.c)             |
+| #   | Screenshot                                                                      | Description                                                                       |
+| --: | :------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------- |
+|   0 |                                                                                 | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)           |
+|   1 | <img alt="Example 1"  src="src/01_basicGraphics/screenshot.png"  width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
+|   2 | <img alt="Example 2"  src="src/02_doubleBuffer/screenshot.png"   width="100" /> | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
+|   3 | <img alt="Example 3"  src="src/03_dmaChain/screenshot.png"       width="100" /> | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
+|   4 | <img alt="Example 4"  src="src/04_textures/screenshot.png"       width="100" /> | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
+|   5 | <img alt="Example 5"  src="src/05_palettes/screenshot.png"       width="100" /> | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
+|   6 | <img alt="Example 6"  src="src/06_fonts/screenshot.png"          width="100" /> | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
+|   7 | <img alt="Example 7"  src="src/07_orderingTable/screenshot.png"  width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
+|   8 | <img alt="Example 8"  src="src/08_spinningCube/screenshot.png"   width="100" /> | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
+|   9 | <img alt="Example 9"  src="src/09_faceLighting/screenshot.png"   width="100" /> | [Adding light sources and real-time face lighting](src/09_faceLighting/main.c)    |
+|  10 | <img alt="Example 10" src="src/10_mipmaps/screenshot.png"        width="100" /> | [Implementing mipmapping for far away textures](src/10_mipmaps/main.c)            |
+|  11 | <img alt="Example 11" src="src/11_controllers/screenshot.png"    width="100" /> | [Getting input from connected controllers](src/11_controllers/main.c)             |
 
-New examples showing how to make use of more hardware features will be added
-over time.
+New examples demonstrating more hardware features will be added over time.
+*Since I strive for this repository to be a high-quality learning resource with*
+*a focus on clarity and correctness, all code and assets are authored by hand*
+*with no use of LLMs or generative AI whatsoever.*
 
 ## Building the examples
 
@@ -226,16 +231,15 @@ both the CMake configure and build commands afterwards.
 
 ## Background
 
-I have been occasionally asked if I could provide an example of PS1 homebrew
-programming that is completely self-contained, permissively licensed and does
-not depend on an external SDK. While there are a number of PS1 SDK options
-around (including some I have contributed to), their workflows may not suit
-everyone and some of the most popular options are additionally encumbered with
-legal issues that make them a non-starter for commercial homebrew games, and/or
-limitations that are hard to work around. As I have been moving away from using
-such libraries myself, I set out to take what I am currently building for my
-projects, clean it up and turn it into a tutorial series for other people to
-follow.
+I have been occasionally asked, particularly in the pre-AI era, if I could
+provide an example of PS1 homebrew programming that is completely self-contained
+and permissively licensed. While there are a number of PS1 SDK options around
+(some of which I have contributed to), their workflows may not suit everyone and
+the most popular options from a few years ago were additionally encumbered with
+potential legal issues that made them a non-starter for commercial projects. As
+I slowly moved away from them over time, I set out to take the custom code I
+replaced them with, clean it up and turn it into a step-by-step tutorial series
+for other people to follow.
 
 I want this repo to be an introduction to bare-metal platforms and the PS1 for
 anybody who already has some experience with C/C++ but not necessarily with the
@@ -254,7 +258,7 @@ Everything in this repository, including the vendored copy of
 under the MIT license (or the functionally equivalent ISC license). The only
 "hard" requirements are attribution and preserving the license notice; you may
 otherwise freely use any of the code for both non-commercial and commercial
-purposes (such as a paid homebrew game or a book or course).
+purposes (such as a paid homebrew game, a book or a course).
 
 ## See also
 
@@ -264,9 +268,9 @@ purposes (such as a paid homebrew game or a book or course).
 - The [PlayStation specifications (psx-spx)](https://psx-spx.consoledev.net/)
   page, adapted and expanded from no$psx's documentation, is the main hardware
   reference for bare-metal PS1 programming and emulation.
-- [573in1](https://github.com/spicyjpeg/573in1) is a real world example of a
-  moderately complex project built on top of the scripts and support library
-  provided in this repository.
+- [ps1-ram-tester](https://github.com/spicyjpeg/ps1-ram-tester) and
+  [573in1](https://github.com/spicyjpeg/573in1) are two real world examples of
+  moderately complex projects built on top of this repository.
 - If you need help or wish to discuss PS1 homebrew development more in general,
   you may want to check out the
   [PSX.Dev Discord server](https://discord.gg/QByKPpH).

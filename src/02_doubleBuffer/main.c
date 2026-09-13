@@ -51,8 +51,8 @@ static void setupGPU_(
 	GP1VideoMode     mode,
 	GP1HorizontalRes horizontalRes,
 	GP1VerticalRes   verticalRes,
-	int              width,
-	int              height
+	unsigned int     width,
+	unsigned int     height
 ) {
 	int x = 0x760;
 	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;

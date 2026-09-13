@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "common/gpu.h"
@@ -42,8 +43,7 @@
 #include "ps1/registers.h"
 
 // We are going to store the ordering table for each frame as part of the DMA
-// chain structure. We'll have 32 different "buckets" and thus Z indices at our
-// disposal.
+// chain structure. We'll have 32 different Z indices at our disposal.
 #define DMA_MAX_CHUNK_SIZE       16
 #define GPU_ORDERING_TABLE_SIZE_ 32
 
@@ -53,12 +53,12 @@ typedef struct {
 	uint32_t *nextPacket;
 } GPUOrderedDMAChain_;
 
-static void clearOrderingTable_(uint32_t *table, int numEntries) {
+static void clearOrderingTable_(uint32_t *table, size_t numEntries) {
 	// Set up the OTC DMA channel to write a new empty ordering table to RAM.
 	// The table is always reversed and generated "backwards" (the last item in
 	// the table is the first one that will be written), so we must give DMA a
 	// pointer to the end of the table rather than its beginning.
-	DMA_MADR(DMA_OTC) = (uint32_t) &table[numEntries - 1];
+	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
 	DMA_BCR (DMA_OTC) = numEntries;
 	DMA_CHCR(DMA_OTC) = 0
 		| DMA_CHCR_READ
@@ -79,12 +79,12 @@ static void clearOrderingTable_(uint32_t *table, int numEntries) {
 // take precedence.
 static uint32_t *allocateOrderedGP0Packet_(
 	GPUOrderedDMAChain_ *chain,
-	int                 zIndex,
-	int                 numCommands
+	unsigned int        zIndex,
+	size_t              numCommands
 ) {
 	// Ensure both the packet length and index are within valid range.
-	assert((numCommands >= 0) && (numCommands <= DMA_MAX_CHUNK_SIZE));
-	assert((zIndex      >= 0) && (zIndex      <  GPU_ORDERING_TABLE_SIZE_));
+	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
+	assert(zIndex      <  GPU_ORDERING_TABLE_SIZE_);
 
 	uint32_t *ptr      = chain->nextPacket;
 	chain->nextPacket += numCommands + 1;

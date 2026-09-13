@@ -67,6 +67,7 @@ link_libraries(c)
 convertImage(assets/test16bpp.png 16 assets/test16bppTexture.dat)
 convertImage(assets/test4bpp.png   4 assets/test4bppTexture.dat assets/test4bppPalette.dat)
 convertImage(assets/font.png       4 assets/fontTexture.dat     assets/fontPalette.dat)
+convertImage(assets/mipmap.png     8 assets/mipmapTexture.dat   assets/mipmapPalette.dat)
 
 # Build the examples and embed the converted assets where appropriate.
 addPS1Executable(example00_helloWorld    src/00_helloWorld/main.c)
@@ -85,20 +86,14 @@ addPS1Executable(example06_fonts src/common/gpu.c src/06_fonts/main.c)
 addBinaryFile(example06_fonts fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
 addBinaryFile(example06_fonts fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
 
-addPS1Executable(example07_orderingTable src/common/gpu.c src/07_orderingTable/main.c)
+addPS1Executable(example07_orderingTable src/common/gpu.c                                    src/07_orderingTable/main.c)
+addPS1Executable(example08_spinningCube  src/common/gpu.c src/common/trig.c                  src/08_spinningCube/main.c)
+addPS1Executable(example09_faceLighting  src/common/gpu.c src/common/gte.c src/common/trig.c src/09_faceLighting/main.c)
 
-addPS1Executable(
-	example08_spinningCube
-	src/common/gpu.c
-	src/common/trig.c
-	src/08_spinningCube/main.c
-)
+addPS1Executable(example10_mipmaps src/common/gpu.c src/common/gte.c src/common/trig.c src/10_mipmaps/main.c)
+addBinaryFile(example10_mipmaps textureData "${PROJECT_BINARY_DIR}/assets/mipmapTexture.dat")
+addBinaryFile(example10_mipmaps paletteData "${PROJECT_BINARY_DIR}/assets/mipmapPalette.dat")
 
-addPS1Executable(
-	example09_controllers
-	src/common/font.c
-	src/common/gpu.c
-	src/09_controllers/main.c
-)
-addBinaryFile(example09_controllers fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example09_controllers fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addPS1Executable(example11_controllers src/common/font.c src/common/gpu.c src/11_controllers/main.c)
+addBinaryFile(example11_controllers fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example11_controllers fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")

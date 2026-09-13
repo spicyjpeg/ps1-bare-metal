@@ -21,7 +21,8 @@ fi
 ## Download binutils and GCC
 
 if [ ! -d binutils-$BINUTILS_VERSION ]; then
-	wget "https://ftpmirror.gnu.org/gnu/binutils/binutils-$BINUTILS_VERSION.tar.xz" \
+	wget --timeout=15 "https://ftpmirror.gnu.org/gnu/binutils/binutils-$BINUTILS_VERSION.tar.xz" \
+		|| wget --timeout=15 "https://ftp.gnu.org/gnu/binutils/binutils-$BINUTILS_VERSION.tar.xz" \
 		|| exit 1
 	tar Jxf binutils-$BINUTILS_VERSION.tar.xz \
 		|| exit 1
@@ -30,7 +31,8 @@ if [ ! -d binutils-$BINUTILS_VERSION ]; then
 fi
 
 if [ ! -d gcc-$GCC_VERSION ]; then
-	wget "https://ftpmirror.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.xz" \
+	wget --timeout=15 "https://ftpmirror.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.xz" \
+		|| wget --timeout=15 "https://ftp.gnu.org/gnu/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.xz" \
 		|| exit 1
 	tar Jxf gcc-$GCC_VERSION.tar.xz \
 		|| exit 1

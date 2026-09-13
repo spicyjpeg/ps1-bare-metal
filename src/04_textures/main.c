@@ -36,6 +36,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "common/gpu.h"
@@ -45,14 +46,14 @@
 #define DMA_MAX_CHUNK_SIZE 16
 
 static void sendVRAMData_(
-	const void *data,
-	int        x,
-	int        y,
-	int        width,
-	int        height
+	const void   *data,
+	unsigned int x,
+	unsigned int y,
+	unsigned int width,
+	unsigned int height
 ) {
 	waitForGPUDMADone();
-	assert(!((uint32_t) data % 4));
+	assert(!((uintptr_t) data % 4));
 
 	// Calculate how many 32-bit words will be sent from the width and height of
 	// the texture. If more than 16 words have to be sent, configure DMA to
@@ -89,7 +90,7 @@ static void sendVRAMData_(
 	// This will concatenate our data to the command header.
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
-	DMA_MADR(DMA_GPU) = (uint32_t) data;
+	DMA_MADR(DMA_GPU) = (uintptr_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
 	DMA_CHCR(DMA_GPU) = 0
 		| DMA_CHCR_WRITE
@@ -108,10 +109,10 @@ typedef struct {
 static void uploadTexture_(
 	TextureInfo_ *info,
 	const void   *data,
-	int          x,
-	int          y,
-	int          width,
-	int          height
+	unsigned int x,
+	unsigned int y,
+	unsigned int width,
+	unsigned int height
 ) {
 	// Make sure the texture's size is valid. The GPU does not support textures
 	// larger than 256x256 pixels.

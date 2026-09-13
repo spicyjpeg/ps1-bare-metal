@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "common/gpu.h"
@@ -45,8 +46,8 @@ static void setupGPU_(
 	GP1VideoMode     mode,
 	GP1HorizontalRes horizontalRes,
 	GP1VerticalRes   verticalRes,
-	int              width,
-	int              height
+	unsigned int     width,
+	unsigned int     height
 ) {
 	int x = 0x760;
 	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
@@ -85,7 +86,7 @@ static void sendGPULinkedList_(const void *data) {
 
 	// Make sure the pointer is aligned to 32 bits (4 bytes). The DMA engine is
 	// not capable of reading unaligned data.
-	assert(!((uint32_t) data % 4));
+	assert(!((uintptr_t) data % 4));
 
 	// Tell the GPU to fetch GP0 commands from DMA whenever available.
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
@@ -94,7 +95,7 @@ static void sendGPULinkedList_(const void *data) {
 	// "linked list" mode. The DMA unit will start running in the background and
 	// parsing a chain of "packets", each consisting of a 32-bit header followed
 	// by zero or more 32-bit GP0 command words.
-	DMA_MADR(DMA_GPU) = (uint32_t) data;
+	DMA_MADR(DMA_GPU) = (uintptr_t) data;
 	DMA_CHCR(DMA_GPU) = 0
 		| DMA_CHCR_WRITE
 		| DMA_CHCR_MODE_LIST
@@ -112,11 +113,10 @@ typedef struct {
 	uint32_t *nextPacket;
 } GPUDMAChain_;
 
-static uint32_t *allocateGP0Packet_(GPUDMAChain_ *chain, int numCommands) {
-	// Ensure no more than 16 command words are sent to the GPU at once, as
-	// sending larger packets may overrun the GP0 command FIFO and result in
-	// corrupted data.
-	assert((numCommands >= 0) && (numCommands <= DMA_MAX_CHUNK_SIZE));
+static uint32_t *allocateGP0Packet_(GPUDMAChain_ *chain, size_t numCommands) {
+	// Ensure no more than 16 command words are sent to the GPU at once, as they
+	// would overrun the GP0 FIFO.
+	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
 
 	// Grab the current pointer to the next packet then increment it to allocate
 	// a new packet. We have to allocate an extra word for the packet's header,

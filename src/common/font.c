@@ -179,7 +179,7 @@ void printStringOrdered(
 	const TextureInfo  *font,
 	int                x,
 	int                y,
-	int                zIndex,
+	unsigned int       zIndex,
 	const char         *str
 ) {
 	int currentX = x, currentY = y;

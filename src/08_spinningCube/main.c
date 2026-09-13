@@ -57,7 +57,7 @@
 // bits long). We'll define this unit value to make their handling easier.
 #define GTE_UNIT (1 << 12)
 
-static void setupGTE(int width, int height) {
+static void setupGTE(unsigned int width, unsigned int height) {
 	// Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
 	// enabled through the status register in coprocessor 0, which is always
 	// accessible.
@@ -88,8 +88,8 @@ static void setupGTE(int width, int height) {
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
 // matrix stored in its registers. This matrix can be used, among other things,
 // to rotate the model by multiplying it by the appropriate rotation matrices.
-// The two functions below handle manipulation of this matrix.
-static void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
+// The functions below handle manipulation of this matrix.
+static void multiplyRotationMatrixByVectors(GTEMatrix *output) {
 	// Multiply the GTE's current matrix by the matrix whose column vectors are
 	// V0/V1/V2, then store the result to the provided location. This has to be
 	// done one column at a time, as the GTE only supports multiplying a matrix
@@ -110,48 +110,41 @@ static void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
 	output->values[2][2] = (int16_t) gte_getDataReg(GTE_IR3);
 }
 
-static void rotateCurrentMatrix(int yaw, int pitch, int roll) {
-	GTEMatrix multiplied;
+static void rotateCurrentMatrixX(int angle) {
+	// Compute an X- or Y-axis rotation matrix (Z rotation is not used in this
+	// example), then "combine" it with the current one by multiplying the two
+	// and loading the result back into the GTE. isin() and icos() are simple
+	// 20.12 -> 1.12 fixed-point sine and cosine implementations defined in
+	// common/trig.c.
+	int s = isin(angle);
+	int c = icos(angle);
 
-	// For each axis, compute the rotation matrix then "combine" it with the
-	// GTE's current matrix by multiplying the two and writing the result back
-	// to the GTE's registers.
-	if (yaw) {
-		int s = isin(yaw);
-		int c = icos(yaw);
+	gte_setColumnVectors(
+		GTE_UNIT, 0,  0,
+		       0, c, -s,
+		       0, s,  c
+	);
 
-		gte_setColumnVectors(
-			c, -s,        0,
-			s,  c,        0,
-			0,  0, GTE_UNIT
-		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
-	}
-	if (pitch) {
-		int s = isin(pitch);
-		int c = icos(pitch);
+	GTEMatrix result;
 
-		gte_setColumnVectors(
-			 c,        0, s,
-			 0, GTE_UNIT, 0,
-			-s,        0, c
-		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
-	}
-	if (roll) {
-		int s = isin(roll);
-		int c = icos(roll);
+	multiplyRotationMatrixByVectors(&result);
+	gte_loadRotationMatrix(&result);
+}
 
-		gte_setColumnVectors(
-			GTE_UNIT, 0,  0,
-			       0, c, -s,
-			       0, s,  c
-		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
-	}
+static void rotateCurrentMatrixY(int angle) {
+	int s = isin(angle);
+	int c = icos(angle);
+
+	gte_setColumnVectors(
+		 c,        0, s,
+		 0, GTE_UNIT, 0,
+		-s,        0, c
+	);
+
+	GTEMatrix result;
+
+	multiplyRotationMatrixByVectors(&result);
+	gte_loadRotationMatrix(&result);
 }
 
 // We're going to store the 3D model of our cube as two separate arrays, one
@@ -219,6 +212,12 @@ int main(int argc, const char **argv) {
 	);
 	setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+	// Set up the GTE's translation vector (added to each vertex) to move the
+	// cube away from the camera.
+	gte_setControlReg(GTE_TRX,   0);
+	gte_setControlReg(GTE_TRY,   0);
+	gte_setControlReg(GTE_TRZ, 128);
+
 	GPUOrderedDMAChain dmaChains[2];
 	bool               usingSecondFrame = false;
 	int                frameCounter     = 0;
@@ -237,20 +236,14 @@ int main(int argc, const char **argv) {
 		clearOrderingTable(chain->orderingTable, GPU_ORDERING_TABLE_SIZE);
 		chain->nextPacket = chain->data;
 
-		// Reset the GTE's translation vector (added to each vertex) and
-		// transformation matrix, then modify the matrix to rotate the cube. The
-		// translation vector is used here to move the cube away from the camera
-		// so it can be seen.
-		gte_setControlReg(GTE_TRX,   0);
-		gte_setControlReg(GTE_TRY,   0);
-		gte_setControlReg(GTE_TRZ, 128);
+		// Reset and recompute the rotation matrix to animate the cube.
 		gte_setRotationMatrix(
 			GTE_UNIT,        0,        0,
 			       0, GTE_UNIT,        0,
 			       0,        0, GTE_UNIT
 		);
-
-		rotateCurrentMatrix(0, frameCounter * 16, frameCounter * 12);
+		rotateCurrentMatrixX(frameCounter * 12);
+		rotateCurrentMatrixY(frameCounter * 16);
 		frameCounter++;
 
 		// Draw the cube one face at a time.
@@ -260,41 +253,44 @@ int main(int argc, const char **argv) {
 			// Apply perspective projection to the first 3 vertices. The GTE can
 			// only process up to 3 vertices at a time; since we are using quads
 			// rather than triangles, we'll have to transform the last one
-			// separately.
+			// separately. The SF flag sets the data format to 4.12 fixed-point.
 			gte_loadV0(&cubeVertices[face->vertices[0]]);
 			gte_loadV1(&cubeVertices[face->vertices[1]]);
 			gte_loadV2(&cubeVertices[face->vertices[2]]);
 			gte_command(GTE_CMD_RTPT | GTE_SF);
 
-			// Determine the winding order of the vertices on screen. If they
+			// Determine the winding order of the projected vertices (and area
+			// of their respective triangle) using the shoelace formula. If they
 			// are ordered clockwise then the face is visible, otherwise it can
 			// be culled as it is not facing the camera. Note that
-			// gte_getDataReg() always returns a 32-bit unsigned value, but most
+			// gte_getDataReg() always returns a 32-bit unsigned value, but some
 			// GTE registers should be interpreted as signed.
 			gte_command(GTE_CMD_NCLIP);
+			int area = (int) gte_getDataReg(GTE_MAC0);
 
-			if (((int) gte_getDataReg(GTE_MAC0)) <= 0)
+			if (area <= 0)
 				continue;
 
-			// Save the first transformed vertex (the GTE only keeps the X/Y
-			// coordinates of the last 3 vertices processed and Z coordinates of
-			// the last 4 vertices processed) and apply projection to the last
-			// vertex.
+			// Save the first vertex before projecting the last one, which will
+			// evict the first from the GTE's 3-entry queue of projected X/Y
+			// values.
 			uint32_t xy0 = gte_getDataReg(GTE_SXY0);
 
 			gte_loadV0(&cubeVertices[face->vertices[3]]);
 			gte_command(GTE_CMD_RTPS | GTE_SF);
 
-			// Calculate the average Z coordinate of all vertices and use it to
-			// determine the ordering table bucket index for this face.
+			// Compute the average Z coordinate of all four vertices and use it
+			// to determine the ordering table bucket index for this face. No
+			// saving or restoring is needed here since the GTE is equipped with
+			// a 4-entry Z queue.
 			gte_command(GTE_CMD_AVSZ4 | GTE_SF);
 			int zIndex = (int) gte_getDataReg(GTE_OTZ);
 
 			if ((zIndex < 0) || (zIndex >= GPU_ORDERING_TABLE_SIZE))
 				continue;
 
-			// Create a new quad and give its vertices the X/Y coordinates
-			// calculated by the GTE.
+			// Allocate a quad command and fill it in with X/Y coordinates
+			// directly from the queue.
 			ptr    = allocateOrderedGP0Packet(chain, zIndex, 5);
 			ptr[0] = face->color | gp0_shadedQuad(false, false, false);
 			ptr[1] = xy0;

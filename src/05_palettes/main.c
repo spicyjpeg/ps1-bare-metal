@@ -53,12 +53,12 @@ static void uploadIndexedTexture_(
 	TextureInfo_  *info,
 	const void    *image,
 	const void    *palette,
-	int           imageX,
-	int           imageY,
-	int           paletteX,
-	int           paletteY,
-	int           width,
-	int           height,
+	unsigned int  imageX,
+	unsigned int  imageY,
+	unsigned int  paletteX,
+	unsigned int  paletteY,
+	unsigned int  width,
+	unsigned int  height,
 	GP0ColorDepth colorDepth
 ) {
 	assert((width <= 256) && (height <= 256));
@@ -66,7 +66,7 @@ static void uploadIndexedTexture_(
 	// Determine how large the palette is and by which factor the image is
 	// squished horizontally in VRAM from the color depth.
 	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;
-	int widthDivider = (colorDepth == GP0_COLOR_8BPP) ?   2 :  4;
+	int widthDivider = (colorDepth == GP0_COLOR_8BPP) ?   1 :  2;
 
 	// Make sure the palette is aligned correctly within VRAM and does not
 	// exceed its bounds.
@@ -74,7 +74,7 @@ static void uploadIndexedTexture_(
 
 	// Upload the image and palette data separately, then flush any previously
 	// used texture from the GPU's internal cache.
-	sendVRAMData(image, imageX, imageY, width / widthDivider, height);
+	sendVRAMData(image, imageX, imageY, width >> widthDivider, height);
 	waitForGPUDMADone();
 	sendVRAMData(palette, paletteX, paletteY, numColors, 1);
 	waitForGPUDMADone();
@@ -93,8 +93,8 @@ static void uploadIndexedTexture_(
 	// UV coordinate calculation is slightly more complex than before. The GPU
 	// expects coordinates to be in texture pixels rather than VRAM pixels, so
 	// the U coordinate has to be multiplied by the previously computed divider.
-	info->u      = (uint8_t)  ((imageX %  64) * widthDivider);
-	info->v      = (uint8_t)   (imageY % 256);
+	info->u      = (uint8_t)  ((imageX %  64) << widthDivider);
+	info->v      = (uint8_t)  (imageY  % 256);
 	info->width  = (uint16_t) width;
 	info->height = (uint16_t) height;
 }

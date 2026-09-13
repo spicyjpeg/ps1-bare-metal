@@ -111,8 +111,8 @@ static bool waitForAcknowledge(int timeout) {
 
 // As the controller bus is shared with memory cards, an addressing mechanism is
 // used to ensure packets are processed by a single device at a time. The first
-// byte of each request packet is thus the "address" of the peripheral that
-// shall respond to it.
+// byte of each request packet is the "address" of the peripheral that shall
+// respond to it.
 typedef enum {
 	SIO0_ADDR_CONTROLLER  = 0x01,
 	SIO0_ADDR_MEMORY_CARD = 0x81

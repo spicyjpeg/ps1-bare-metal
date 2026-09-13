@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -84,13 +84,18 @@ typedef enum {
 	GTE_SF          =  1 << 19  // Shift results by 12 bits
 } GTECommandFlag;
 
-DEF(void) gte_command(const uint32_t cmd) {
+// At least two dummy cycles are required after the last register write prior to
+// issuing a command (or before reading the result directly in the case of ORGB
+// or LZCR).
+DEF(void) gte_loadDelay(void) {
 	__asm__ volatile(
 		"nop\n"
 		"nop\n"
-		"cop2 %0\n"
-		:: "i"(cmd)
 	);
+}
+DEF(void) gte_command(const uint32_t cmd) {
+	gte_loadDelay();
+	__asm__ volatile("cop2 %0\n" :: "i"(cmd));
 }
 
 /* Control register definitions */
@@ -186,11 +191,12 @@ DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 		gte_setControlReg(reg4, ((uint16_t) input->values[2][2])); \
 	} \
 	DEF(void) gte_store##name(GTEMatrix *output) { \
-		uint32_t value0      = gte_getControlReg(reg0); \
-		uint32_t value1      = gte_getControlReg(reg1); \
-		uint32_t value2      = gte_getControlReg(reg2); \
-		uint32_t value3      = gte_getControlReg(reg3); \
-		uint32_t value4      = gte_getControlReg(reg4); \
+		uint32_t value0 = gte_getControlReg(reg0); \
+		uint32_t value1 = gte_getControlReg(reg1); \
+		uint32_t value2 = gte_getControlReg(reg2); \
+		uint32_t value3 = gte_getControlReg(reg3); \
+		uint32_t value4 = gte_getControlReg(reg4); \
+		\
 		output->values[0][0] = (int16_t) (value0 >>  0); \
 		output->values[0][1] = (int16_t) (value0 >> 16); \
 		output->values[0][2] = (int16_t) (value1 >>  0); \
@@ -202,30 +208,9 @@ DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 		output->values[2][2] = (int16_t) (value4 >>  0); \
 	}
 
-MATRIX_FUNCTIONS(
-	GTE_RT11RT12,
-	GTE_RT13RT21,
-	GTE_RT22RT23,
-	GTE_RT31RT32,
-	GTE_RT33,
-	RotationMatrix
-)
-MATRIX_FUNCTIONS(
-	GTE_L11L12,
-	GTE_L13L21,
-	GTE_L22L23,
-	GTE_L31L32,
-	GTE_L33,
-	LightMatrix
-)
-MATRIX_FUNCTIONS(
-	GTE_LC11LC12,
-	GTE_LC13LC21,
-	GTE_LC22LC23,
-	GTE_LC31LC32,
-	GTE_LC33,
-	LightColorMatrix
-)
+MATRIX_FUNCTIONS(GTE_RT11RT12, GTE_RT13RT21, GTE_RT22RT23, GTE_RT31RT32, GTE_RT33, RotationMatrix)
+MATRIX_FUNCTIONS(GTE_L11L12,   GTE_L13L21,   GTE_L22L23,   GTE_L31L32,   GTE_L33,  LightMatrix)
+MATRIX_FUNCTIONS(GTE_LC11LC12, GTE_LC13LC21, GTE_LC22LC23, GTE_LC31LC32, GTE_LC33, LightColorMatrix)
 
 #undef MATRIX_FUNCTIONS
 

@@ -16,48 +16,45 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <assert.h>
+#include "ps1/gte.h"
 
 #define DEF(type) static inline type __attribute__((always_inline))
+
+#define GTE_UNIT  (1 << 12)
+#define GTE_SQRT2 (GTE_UNIT * 141421 / 100000)
+#define GTE_SQRT3 (GTE_UNIT * 173205 / 100000)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-DEF(int) abs(int value) {
-	return (value < 0) ? (-value) : value;
+DEF(unsigned int) floorLog2(int x) {
+	assert(x > 0);
+
+	gte_setDataReg(GTE_LZCS, x);
+	gte_loadDelay();
+	return 31 - gte_getDataReg(GTE_LZCR);
 }
-DEF(long) labs(long value) {
-	return (value < 0) ? (-value) : value;
+DEF(unsigned int) ceilLog2(int x) {
+	assert(x > 0);
+
+	gte_setDataReg(GTE_LZCS, x - 1);
+	gte_loadDelay();
+	return 32 - gte_getDataReg(GTE_LZCR);
 }
 
-// crt0.c
-void *sbrk(ptrdiff_t incr);
+void setupGTE(unsigned int width, unsigned int height);
 
-// malloc.c
-void *malloc(size_t size);
-void *calloc(size_t num, size_t size);
-void *realloc(void *ptr, size_t size);
-void free(void *ptr);
+void multiplyRotationMatrixByVectors  (GTEMatrix *output);
+void multiplyLightMatrixByVectors     (GTEMatrix *output);
+void multiplyLightColorMatrixByVectors(GTEMatrix *output);
 
-// misc.c
-void abort(void);
+void rotateCurrentMatrixX(int angle);
+void rotateCurrentMatrixY(int angle);
+void rotateCurrentMatrixZ(int angle);
 
-// string.c
-long long strtoll(
-	const char *__restrict str,
-	char **__restrict      strEnd,
-	int                    base
-);
-
-DEF(long) strtol(
-	const char *__restrict str,
-	char **__restrict      strEnd,
-	int                    base
-) {
-	return (long) strtoll(str, strEnd, base);
-}
+void transformLightMatrix(void);
 
 #ifdef __cplusplus
 }

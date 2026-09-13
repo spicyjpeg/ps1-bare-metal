@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
@@ -58,8 +59,8 @@ void setupGPU(
 	GP1VideoMode     mode,
 	GP1HorizontalRes horizontalRes,
 	GP1VerticalRes   verticalRes,
-	int              width,
-	int              height
+	unsigned int     width,
+	unsigned int     height
 );
 void waitForGP0Ready(void);
 void waitForGPUDMADone(void);
@@ -67,46 +68,46 @@ void waitForVSync(void);
 
 void sendGPULinkedList(const void *data);
 void sendVRAMData(
-	const void *data,
-	int        x,
-	int        y,
-	int        width,
-	int        height
+	const void   *data,
+	unsigned int x,
+	unsigned int y,
+	unsigned int width,
+	unsigned int height
 );
 void receiveVRAMData(
-	void *data,
-	int  x,
-	int  y,
-	int  width,
-	int  height
+	void         *data,
+	unsigned int x,
+	unsigned int y,
+	unsigned int width,
+	unsigned int height
 );
 
-void clearOrderingTable(uint32_t *table, int numEntries);
-uint32_t *allocateGP0Packet(GPUDMAChain *chain, int numCommands);
+void clearOrderingTable(uint32_t *table, size_t numEntries);
+uint32_t *allocateGP0Packet(GPUDMAChain *chain, size_t numCommands);
 uint32_t *allocateOrderedGP0Packet(
 	GPUOrderedDMAChain *chain,
-	int                zIndex,
-	int                numCommands
+	unsigned int       zIndex,
+	size_t             numCommands
 );
 
 void uploadTexture(
-	TextureInfo *info,
-	const void  *data,
-	int         x,
-	int         y,
-	int         width,
-	int         height
+	TextureInfo  *info,
+	const void   *data,
+	unsigned int x,
+	unsigned int y,
+	unsigned int width,
+	unsigned int height
 );
 void uploadIndexedTexture(
 	TextureInfo   *info,
 	const void    *image,
 	const void    *palette,
-	int           imageX,
-	int           imageY,
-	int           paletteX,
-	int           paletteY,
-	int           width,
-	int           height,
+	unsigned int  imageX,
+	unsigned int  imageY,
+	unsigned int  paletteX,
+	unsigned int  paletteY,
+	unsigned int  width,
+	unsigned int  height,
 	GP0ColorDepth colorDepth
 );
 
