@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,37 +20,35 @@
 /* Serial port stdin/stdout */
 
 void initSerialIO(int baud) {
-	SIO_CTRL(1) = SIO_CTRL_RESET;
+	SIO_CR(1) = SIO_CR_INTRST;
 
-	SIO_MODE(1) = 0
-		| SIO_MODE_BAUD_DIV1
-		| SIO_MODE_DATA_8
-		| SIO_MODE_STOP_1;
-	SIO_BAUD(1) = F_CPU / baud;
-	SIO_CTRL(1) = 0
-		| SIO_CTRL_TX_ENABLE
-		| SIO_CTRL_RX_ENABLE
-		| SIO_CTRL_RTS;
+	SIO_MR(1) = 0
+		| SIO_MR_BR_DIV1
+		| SIO_MR_CHLEN_8
+		| SIO_MR_SB_1;
+	SIO_BR(1) = F_CPU / baud;
+	SIO_CR(1) = 0
+		| SIO_CR_TXEN
+		| SIO_CR_RXEN
+		| SIO_CR_RTS;
 }
 
 void _putchar(char ch) {
 	// The serial interface will buffer but not send any data if the CTS input
 	// is not asserted, so we are going to abort if CTS is not set to avoid
 	// waiting forever.
-	while (
-		(SIO_STAT(1) & (SIO_STAT_TX_NOT_FULL | SIO_STAT_CTS)) == SIO_STAT_CTS
-	)
+	while ((SIO_SR(1) & (SIO_SR_TXRDY | SIO_SR_CTS)) == SIO_SR_CTS)
 		__asm__ volatile("");
 
-	if (SIO_STAT(1) & SIO_STAT_CTS)
-		SIO_DATA(1) = ch;
+	if (SIO_SR(1) & SIO_SR_CTS)
+		SIO_DR(1) = ch;
 }
 
 int _getchar(void) {
-	while (!(SIO_STAT(1) & SIO_STAT_RX_NOT_EMPTY))
+	while (!(SIO_SR(1) & SIO_SR_RXRDY))
 		__asm__ volatile("");
 
-	return SIO_DATA(1);
+	return SIO_DR(1);
 }
 
 int _puts(const char *str) {

@@ -55,9 +55,9 @@ typedef enum {
 
 /* PCSX-Redux emulator API */
 
-#define PCSX_MAGIC        _MMIO32(DEV8_BASE | 0x80)
-#define PCSX_PUTC         _MMIO8 (DEV8_BASE | 0x80)
-#define PCSX_EXEC_SLOT    _MMIO8 (DEV8_BASE | 0x81)
-#define PCSX_EXIT         _MMIO16(DEV8_BASE | 0x82)
+#define PCSX_MAGIC        _MMIO32(DEV8_BASE | 0x80) // Read
+#define PCSX_PUTC         _MMIO8 (DEV8_BASE | 0x80) // Write
+#define PCSX_EXEC_SLOT    _MMIO8 (DEV8_BASE | 0x81) // Write
+#define PCSX_EXIT         _MMIO16(DEV8_BASE | 0x82) // Write
 #define PCSX_MESSAGE      _MMIO32(DEV8_BASE | 0x84)
 #define PCSX_KERNEL_CHECK _MMIO8 (DEV8_BASE | 0x88)

@@ -132,7 +132,7 @@ void printString(
 	int               y,
 	const char        *str
 ) {
-	int currentX = x, currentY = y;
+	int offsetX = 0, offsetY = 0;
 
 	uint32_t *ptr;
 
@@ -144,17 +144,17 @@ void printString(
 
 		switch (ch) {
 			case '\t':
-				currentX += FONT_TAB_WIDTH - 1;
-				currentX -= currentX % FONT_TAB_WIDTH;
+				offsetX += FONT_TAB_WIDTH;
+				offsetX -= offsetX % FONT_TAB_WIDTH;
 				continue;
 
 			case '\n':
-				currentX  = x;
-				currentY += FONT_LINE_HEIGHT;
+				offsetX  = 0;
+				offsetY += FONT_LINE_HEIGHT;
 				continue;
 
 			case ' ':
-				currentX += FONT_SPACE_WIDTH;
+				offsetX += FONT_SPACE_WIDTH;
 				continue;
 
 			case FIRST_INVALID_CHAR ... 0xff:
@@ -166,11 +166,11 @@ void printString(
 
 		ptr    = allocateGP0Packet(chain, 4);
 		ptr[0] = gp0_rectangle(true, true, true);
-		ptr[1] = gp0_xy(currentX, currentY);
+		ptr[1] = gp0_xy(x + offsetX, y + offsetY);
 		ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
 		ptr[3] = gp0_xy(sprite->width, sprite->height);
 
-		currentX += sprite->width;
+		offsetX += sprite->width;
 	}
 }
 
@@ -182,7 +182,7 @@ void printStringOrdered(
 	unsigned int       zIndex,
 	const char         *str
 ) {
-	int currentX = x, currentY = y;
+	int offsetX = 0, offsetY = 0;
 
 	uint32_t *ptr;
 
@@ -191,17 +191,17 @@ void printStringOrdered(
 
 		switch (ch) {
 			case '\t':
-				currentX += FONT_TAB_WIDTH - 1;
-				currentX -= currentX % FONT_TAB_WIDTH;
+				offsetX += FONT_TAB_WIDTH;
+				offsetX -= offsetX % FONT_TAB_WIDTH;
 				continue;
 
 			case '\n':
-				currentX  = x;
-				currentY += FONT_LINE_HEIGHT;
+				offsetX  = 0;
+				offsetY += FONT_LINE_HEIGHT;
 				continue;
 
 			case ' ':
-				currentX += FONT_SPACE_WIDTH;
+				offsetX += FONT_SPACE_WIDTH;
 				continue;
 
 			case FIRST_INVALID_CHAR ... 0xff:
@@ -213,15 +213,56 @@ void printStringOrdered(
 
 		ptr    = allocateOrderedGP0Packet(chain, zIndex, 4);
 		ptr[0] = gp0_rectangle(true, true, true);
-		ptr[1] = gp0_xy(currentX, currentY);
+		ptr[1] = gp0_xy(x + offsetX, y + offsetY);
 		ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
 		ptr[3] = gp0_xy(sprite->width, sprite->height);
 
-		currentX += sprite->width;
+		offsetX += sprite->width;
 	}
 
 	// DMA sends ordering table packets in last-to-first order, so the texture
 	// page command needs to be inserted last.
 	ptr    = allocateOrderedGP0Packet(chain, zIndex, 1);
 	ptr[0] = gp0_setPage(font->page, false, false);
+}
+
+int getStringWidth(const char *str) {
+	if (!str)
+		return 0;
+
+	int offsetX = 0, maxWidth = 0;
+
+	for (; *str; str++) {
+		uint8_t ch = (uint8_t) *str;
+
+		switch (ch) {
+			case '\t':
+				offsetX += FONT_TAB_WIDTH;
+				offsetX -= offsetX % FONT_TAB_WIDTH;
+				continue;
+
+			case '\n':
+				if (offsetX > maxWidth)
+					maxWidth = offsetX;
+
+				offsetX = 0;
+				continue;
+
+			case ' ':
+				offsetX += FONT_SPACE_WIDTH;
+				continue;
+
+			case FIRST_INVALID_CHAR ... 0xff:
+				ch = 0x7f;
+				break;
+		}
+
+		const SpriteInfo *sprite = &fontSprites[ch - FIRST_TABLE_CHAR];
+		offsetX                 += sprite->width;
+	}
+
+	if (offsetX > maxWidth)
+		maxWidth = offsetX;
+
+	return maxWidth;
 }

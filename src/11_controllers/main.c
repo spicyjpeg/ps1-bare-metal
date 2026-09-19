@@ -49,7 +49,7 @@ static void delayMicroseconds(int time) {
 	// assuming a 33.8688 MHz clock (1 us = 33.8688 = ~33.875 = 271 / 8 cycles).
 	// The loop consists of a branch and a decrement, thus each iteration will
 	// burn 2 cycles.
-	time = ((time * 271) + 4) / 8;
+	time = (time * 271 + 4) / 8;
 
 	__asm__ volatile(
 		// The .set noreorder directive will prevent the assembler from trying
@@ -71,16 +71,16 @@ static void initControllerBus(void) {
 	// controllers and memory cards (250000bps, 8 data bits) and configure it to
 	// send a signal to the interrupt controller whenever the DSR input is
 	// pulsed (see below).
-	SIO_CTRL(0) = SIO_CTRL_RESET;
+	SIO_CR(0) = SIO_CR_INTRST;
 
-	SIO_MODE(0) = 0
-		| SIO_MODE_BAUD_DIV1
-		| SIO_MODE_DATA_8;
-	SIO_BAUD(0) = F_CPU / 250000;
-	SIO_CTRL(0) = 0
-		| SIO_CTRL_TX_ENABLE
-		| SIO_CTRL_RX_ENABLE
-		| SIO_CTRL_DSR_IRQ_ENABLE;
+	SIO_MR(0) = 0
+		| SIO_MR_BR_DIV1
+		| SIO_MR_CHLEN_8;
+	SIO_BR(0) = F_CPU / 250000;
+	SIO_CR(0) = 0
+		| SIO_CR_TXEN
+		| SIO_CR_RXEN
+		| SIO_CR_DSRIEN;
 
 	// As with vsync, prevent DSR pulses from triggering any interrupt handling
 	// code in the BIOS kernel or otherwise outside of our control.
@@ -97,8 +97,8 @@ static bool waitForAcknowledge(int timeout) {
 		if (IRQ_STAT & (1 << IRQ_SIO0)) {
 			// Reset the IRQ controller and serial interface's flags to ensure
 			// the interrupt can be triggered again.
-			IRQ_STAT     = ~(1 << IRQ_SIO0);
-			SIO_CTRL(0) |= SIO_CTRL_ACKNOWLEDGE;
+			IRQ_STAT   = ~(1 << IRQ_SIO0);
+			SIO_CR(0) |= SIO_CR_ERRRST;
 
 			return true;
 		}
@@ -142,7 +142,7 @@ typedef enum {
 	SIO0_CARD_READ       = 'R', // Read 128-byte sector
 	SIO0_CARD_GET_SIZE   = 'S', // Retrieve size information
 	SIO0_CARD_WRITE      = 'W'  // Write 128-byte sector
-} SIO0_DeviceCommand;
+} SIO0DeviceCommand;
 
 #define DTR_DELAY    60
 #define DSR_TIMEOUT 120
@@ -152,24 +152,22 @@ static void selectControllerPort(int port) {
 	// card ports is going to have its DTR (port select) signal asserted. The
 	// actual serial bus is shared between all ports, however devices will not
 	// process packets if DTR is not asserted on the port they are plugged into.
-	if (port)
-		SIO_CTRL(0) |= SIO_CTRL_CS_PORT_2;
-	else
-		SIO_CTRL(0) &= ~SIO_CTRL_CS_PORT_2;
+	uint16_t cr = port ? SIO_CR_PORT_2 : SIO_CR_PORT_1;
+	SIO_CR(0)   = (SIO_CR(0) & ~SIO_CR_PORT_BITMASK) | cr;
 }
 
 static uint8_t exchangeByte(uint8_t value) {
 	// Wait until the interface is ready to accept a byte to send, then wait for
 	// it to finish receiving the byte sent by the device.
-	while (!(SIO_STAT(0) & SIO_STAT_TX_NOT_FULL))
+	while (!(SIO_SR(0) & SIO_SR_TXRDY))
 		__asm__ volatile("");
 
-	SIO_DATA(0) = value;
+	SIO_DR(0) = value;
 
-	while (!(SIO_STAT(0) & SIO_STAT_RX_NOT_EMPTY))
+	while (!(SIO_SR(0) & SIO_SR_RXRDY))
 		__asm__ volatile("");
 
-	return SIO_DATA(0);
+	return SIO_DR(0);
 }
 
 static size_t exchangeSIO0Packet(
@@ -182,8 +180,8 @@ static size_t exchangeSIO0Packet(
 	// Reset the interrupt flag and assert the DTR signal to tell the controller
 	// or memory card that we're about to send a packet. Devices may take some
 	// time to prepare for incoming bytes so we need a small delay here.
-	IRQ_STAT     = ~(1 << IRQ_SIO0);
-	SIO_CTRL(0) |= SIO_CTRL_DTR | SIO_CTRL_ACKNOWLEDGE;
+	IRQ_STAT   = ~(1 << IRQ_SIO0);
+	SIO_CR(0) |= SIO_CR_DTR | SIO_CR_ERRRST;
 	delayMicroseconds(DTR_DELAY);
 
 	size_t respLength = 0;
@@ -192,11 +190,11 @@ static size_t exchangeSIO0Packet(
 	// the DSR line. If no response is received assume no device is connected,
 	// otherwise make sure the serial interface's data buffer is empty to
 	// prepare for the actual packet transfer.
-	SIO_DATA(0) = address;
+	SIO_DR(0) = address;
 
 	if (waitForAcknowledge(DSR_TIMEOUT)) {
-		while (SIO_STAT(0) & SIO_STAT_RX_NOT_EMPTY)
-			SIO_DATA(0);
+		while (SIO_SR(0) & SIO_SR_RXRDY)
+			SIO_DR(0);
 
 		// Send and receive the packet simultaneously one byte at a time,
 		// padding it with zeroes if the packet we are receiving is longer than
@@ -221,7 +219,7 @@ static size_t exchangeSIO0Packet(
 
 	// Release DSR, allowing the device to go idle.
 	delayMicroseconds(DTR_DELAY);
-	SIO_CTRL(0) &= ~SIO_CTRL_DTR;
+	SIO_CR(0) &= ~SIO_CR_DTR;
 
 	return respLength;
 }
@@ -268,9 +266,11 @@ static const char *const buttonNames[] = {
 };
 
 static void printControllerInfo(int port, char *output) {
+	char *ptr = output;
+	ptr      += sprintf(ptr, "Port %d:\n", port + 1);
+
 	// Build the request packet.
 	uint8_t request[4], response[8];
-	char    *ptr = output;
 
 	request[0] = SIO0_PAD_POLL; // Command
 	request[1] = 0x00;          // Multitap address
@@ -288,8 +288,6 @@ static void printControllerInfo(int port, char *output) {
 		sizeof(request),
 		sizeof(response)
 	);
-
-	ptr += sprintf(ptr, "Port %d:\n", port + 1);
 
 	if (respLength < 4) {
 		// All controllers reply with at least 4 bytes of data.
@@ -396,11 +394,10 @@ int main(int argc, const char **argv) {
 		// Poll both controller ports once per frame. Memory cards are ignored
 		// in this example.
 		for (int i = 0; i < 2; i++) {
-			int  offset = i * 64;
-			char buffer[256];
+			char info[256];
 
-			printControllerInfo(i, buffer);
-			printString(chain, &font, 16, 32 + offset, buffer);
+			printControllerInfo(i, info);
+			printString(chain, &font, 16, 32 + 64 * i, info);
 		}
 
 		*(chain->nextPacket) = gp0_endTag(0);

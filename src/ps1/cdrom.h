@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,92 +20,6 @@
 
 #define DEF(type) static inline type __attribute__((always_inline))
 
-/* CD-ROM XA sector header structure */
-
-typedef struct __attribute__((packed)) {
-	uint8_t file, channel, submode, codingInfo;
-} CDROMXAHeader;
-
-typedef enum {
-	CDROM_XA_SM_END_OF_RECORD = 1 << 0,
-	CDROM_XA_SM_TYPE_VIDEO    = 1 << 1,
-	CDROM_XA_SM_TYPE_AUDIO    = 1 << 2,
-	CDROM_XA_SM_TYPE_DATA     = 1 << 3,
-	CDROM_XA_SM_TRIGGER       = 1 << 4,
-	CDROM_XA_SM_FORM2         = 1 << 5,
-	CDROM_XA_SM_REAL_TIME     = 1 << 6,
-	CDROM_XA_SM_END_OF_FILE   = 1 << 7
-} CDROMXASubmodeFlag;
-
-typedef enum {
-	CDROM_XA_CI_STEREO              = 1 << 0,
-	CDROM_XA_CI_SAMPLE_RATE_BITMASK = 1 << 2,
-	CDROM_XA_CI_SAMPLE_RATE_18900   = 0 << 2,
-	CDROM_XA_CI_SAMPLE_RATE_37800   = 1 << 2,
-	CDROM_XA_CI_BITS_BITMASK        = 1 << 4,
-	CDROM_XA_CI_BITS_4              = 0 << 4,
-	CDROM_XA_CI_BITS_8              = 1 << 4,
-	CDROM_XA_CI_EMPHASIS            = 1 << 6
-} CDROMXACodingInfoFlag;
-
-/* CD-ROM drive data types */
-
-typedef struct __attribute__((packed)) {
-	uint8_t minute, second, frame;
-} CDROMMSF;
-
-typedef struct __attribute__((packed)) {
-	CDROMMSF      absoluteMSF;
-	uint8_t       mode;
-	CDROMXAHeader header;
-} CDROMGetlocLResult;
-
-typedef struct __attribute__((packed)) {
-	uint8_t  track, index;
-	CDROMMSF relativeMSF, absoluteMSF;
-} CDROMGetlocPResult;
-
-typedef struct __attribute__((packed)) {
-	uint8_t status, flag, type, atip;
-	char    license[4];
-} CDROMGetIDResult;
-
-typedef struct __attribute__((packed)) {
-	uint8_t  status, track, index;
-	CDROMMSF msf;
-	uint16_t peak;
-} CDROMReportPacket;
-
-DEF(uint8_t) cdrom_encodeBCD(uint8_t value) {
-	// output = units + tens * 16
-	//        = units + tens * 10 + tens * 6
-	//        = value             + tens * 6
-	return value + (value / 10) * 6;
-}
-
-DEF(uint8_t) cdrom_decodeBCD(uint8_t value) {
-	// output = low + high * 10
-	//        = low + high * 16 - high * 6
-	//        = value           - high * 6
-	return value - (value >> 4) * 6;
-}
-
-DEF(void) cdrom_convertLBAToMSF(CDROMMSF *msf, unsigned int lba) {
-	lba += 150; // Skip lead-in area (LBA 0 is always at 00:02:00)
-
-	msf->minute = cdrom_encodeBCD( lba / (75 * 60));
-	msf->second = cdrom_encodeBCD((lba / 75) % 60);
-	msf->frame  = cdrom_encodeBCD( lba % 75);
-}
-
-DEF(unsigned int) cdrom_convertMSFToLBA(const CDROMMSF *msf) {
-	return 0
-		+ cdrom_decodeBCD(msf->minute) * (75 * 60)
-		+ cdrom_decodeBCD(msf->second) * 75
-		+ cdrom_decodeBCD(msf->frame)
-		- 150;
-}
-
 /* CD-ROM drive command and status definitions */
 
 typedef enum {
@@ -114,7 +28,7 @@ typedef enum {
 	CDROM_CMD_PLAY       = 0x03,
 	CDROM_CMD_FORWARD    = 0x04,
 	CDROM_CMD_BACKWARD   = 0x05,
-	CDROM_CMD_READ_N     = 0x06,
+	CDROM_CMD_READN      = 0x06,
 	CDROM_CMD_STANDBY    = 0x07,
 	CDROM_CMD_STOP       = 0x08,
 	CDROM_CMD_PAUSE      = 0x09,
@@ -124,19 +38,21 @@ typedef enum {
 	CDROM_CMD_SETFILTER  = 0x0d,
 	CDROM_CMD_SETMODE    = 0x0e,
 	CDROM_CMD_GETPARAM   = 0x0f,
-	CDROM_CMD_GETLOC_L   = 0x10,
-	CDROM_CMD_GETLOC_P   = 0x11,
+	CDROM_CMD_GETLOCL    = 0x10,
+	CDROM_CMD_GETLOCP    = 0x11,
 	CDROM_CMD_SETSESSION = 0x12,
-	CDROM_CMD_GET_TN     = 0x13,
-	CDROM_CMD_GET_TD     = 0x14,
-	CDROM_CMD_SEEK_L     = 0x15,
-	CDROM_CMD_SEEK_P     = 0x16,
+	CDROM_CMD_GETTN      = 0x13,
+	CDROM_CMD_GETTD      = 0x14,
+	CDROM_CMD_SEEKL      = 0x15,
+	CDROM_CMD_SEEKP      = 0x16,
+	CDROM_CMD_SETCLOCK   = 0x17, // DTL-H2000 only, removed
+	CDROM_CMD_GETCLOCK   = 0x18, // DTL-H2000 only, removed
 	CDROM_CMD_TEST       = 0x19,
-	CDROM_CMD_GET_ID     = 0x1a,
-	CDROM_CMD_READ_S     = 0x1b,
+	CDROM_CMD_GETID      = 0x1a,
+	CDROM_CMD_READS      = 0x1b,
 	CDROM_CMD_RESET      = 0x1c,
-	CDROM_CMD_GET_Q      = 0x1d, // Versions 0xc1 and later only
-	CDROM_CMD_READ_TOC   = 0x1e, // Versions 0xc1 and later only
+	CDROM_CMD_GETQ       = 0x1d, // Versions 0xc1 and later only
+	CDROM_CMD_READTOC    = 0x1e, // Versions 0xc1 and later only
 	CDROM_CMD_UNLOCK0    = 0x50, // Versions 0xc1 and later only
 	CDROM_CMD_UNLOCK1    = 0x51, // Versions 0xc1 and later only
 	CDROM_CMD_UNLOCK2    = 0x52, // Versions 0xc1 and later only
@@ -175,36 +91,90 @@ typedef enum {
 } CDROMIRQType;
 
 typedef enum {
-	CDROM_CMD_STAT_ERROR      = 1 << 0,
-	CDROM_CMD_STAT_SPINDLE_ON = 1 << 1,
-	CDROM_CMD_STAT_SEEK_ERROR = 1 << 2,
-	CDROM_CMD_STAT_ID_ERROR   = 1 << 3,
-	CDROM_CMD_STAT_LID_OPEN   = 1 << 4,
-	CDROM_CMD_STAT_READING    = 1 << 5,
-	CDROM_CMD_STAT_SEEKING    = 1 << 6,
-	CDROM_CMD_STAT_PLAYING    = 1 << 7
+	CDROM_CMDSTAT_ERROR      = 1 << 0,
+	CDROM_CMDSTAT_SPINDLE_ON = 1 << 1,
+	CDROM_CMDSTAT_SEEK_ERROR = 1 << 2,
+	CDROM_CMDSTAT_ID_ERROR   = 1 << 3,
+	CDROM_CMDSTAT_LID_OPEN   = 1 << 4,
+	CDROM_CMDSTAT_READING    = 1 << 5,
+	CDROM_CMDSTAT_SEEKING    = 1 << 6,
+	CDROM_CMDSTAT_PLAYING    = 1 << 7
 } CDROMCommandStatusFlag;
 
 typedef enum {
-	CDROM_CMD_ERR_SEEK_FAILED         = 1 << 2,
-	CDROM_CMD_ERR_LID_OPENED          = 1 << 3,
-	CDROM_CMD_ERR_INVALID_PARAM_VALUE = 1 << 4,
-	CDROM_CMD_ERR_INVALID_PARAM_COUNT = 1 << 5,
-	CDROM_CMD_ERR_INVALID_COMMAND     = 1 << 6,
-	CDROM_CMD_ERR_NO_DISC             = 1 << 7
+	CDROM_CMDERR_SEEK_FAILED         = 1 << 2,
+	CDROM_CMDERR_LID_OPENED          = 1 << 3,
+	CDROM_CMDERR_INVALID_PARAM_VALUE = 1 << 4,
+	CDROM_CMDERR_INVALID_PARAM_COUNT = 1 << 5,
+	CDROM_CMDERR_INVALID_COMMAND     = 1 << 6,
+	CDROM_CMDERR_NO_DISC             = 1 << 7
 } CDROMCommandErrorFlag;
 
 typedef enum {
-	CDROM_MODE_CDDA         = 1 << 0,
-	CDROM_MODE_AUTO_PAUSE   = 1 << 1,
-	CDROM_MODE_CDDA_REPORT  = 1 << 2,
-	CDROM_MODE_XA_FILTER    = 1 << 3,
-	CDROM_MODE_SIZE_BITMASK = 3 << 4,
-	CDROM_MODE_SIZE_2048    = 0 << 4,
-	CDROM_MODE_SIZE_2340    = 2 << 4,
-	CDROM_MODE_XA_ADPCM     = 1 << 6,
-	CDROM_MODE_SPEED_1X     = 0 << 7,
-	CDROM_MODE_SPEED_2X     = 1 << 7
+	CDROM_MODE_CDDA          = 1 << 0,
+	CDROM_MODE_AUTO_PAUSE    = 1 << 1,
+	CDROM_MODE_CDDA_REPORT   = 1 << 2,
+	CDROM_MODE_XA_FILTER     = 1 << 3,
+	CDROM_MODE_SIZE_BITMASK  = 3 << 4,
+	CDROM_MODE_SIZE_2048     = 0 << 4,
+	CDROM_MODE_SIZE_2328     = 1 << 4,
+	CDROM_MODE_SIZE_2340     = 2 << 4,
+	CDROM_MODE_XA_ADPCM      = 1 << 6,
+	CDROM_MODE_SPEED_BITMASK = 1 << 7,
+	CDROM_MODE_SPEED_1X      = 0 << 7,
+	CDROM_MODE_SPEED_2X      = 1 << 7
 } CDROMModeFlag;
+
+/* CD-XA sector header definitions */
+
+typedef enum {
+	XA_SM_END_OF_RECORD = 1 << 0,
+	XA_SM_TYPE_VIDEO    = 1 << 1,
+	XA_SM_TYPE_AUDIO    = 1 << 2,
+	XA_SM_TYPE_DATA     = 1 << 3,
+	XA_SM_TRIGGER       = 1 << 4,
+	XA_SM_FORM2         = 1 << 5,
+	XA_SM_REAL_TIME     = 1 << 6,
+	XA_SM_END_OF_FILE   = 1 << 7
+} XASubmodeFlag;
+
+typedef enum {
+	XA_CI_STEREO              = 1 << 0,
+	XA_CI_SAMPLE_RATE_BITMASK = 3 << 2,
+	XA_CI_SAMPLE_RATE_37800   = 0 << 2,
+	XA_CI_SAMPLE_RATE_18900   = 1 << 2,
+	XA_CI_BITS_BITMASK        = 3 << 4,
+	XA_CI_BITS_4              = 0 << 4,
+	XA_CI_BITS_8              = 1 << 4,
+	XA_CI_EMPHASIS            = 1 << 6
+} XACodingInfoFlag;
+
+/* Sector address conversion */
+
+DEF(uint8_t) cdrom_encodeBCD(uint8_t value) {
+	return 0
+		| ((value % 10) << 0)
+		| ((value / 10) << 4);
+}
+DEF(uint8_t) cdrom_decodeBCD(uint8_t value) {
+	return 0
+		+ ((value & 15) *  1)
+		+ ((value >> 4) * 10);
+}
+
+DEF(void) cdrom_lbaToMSF(uint8_t *msf, unsigned int lba) {
+	lba += 150; // Skip lead-in area (LBA 0 is always at 00:02:00)
+
+	msf[0] = cdrom_encodeBCD(lba  / 4500);
+	msf[1] = cdrom_encodeBCD((lba /   75) % 60);
+	msf[2] = cdrom_encodeBCD((lba /    1) % 75);
+}
+DEF(unsigned int) cdrom_msfToLBA(const uint8_t *msf) {
+	return 0
+		+ cdrom_decodeBCD(msf[0]) * 4500
+		+ cdrom_decodeBCD(msf[1]) *   75
+		+ cdrom_decodeBCD(msf[2])
+		- 150;
+}
 
 #undef DEF

@@ -18,12 +18,21 @@ ENTRY(_start)
 
 MEMORY {
 	/*
-	 * Only 2 MB of main RAM are available on a regular console, but some
-	 * development kits are fitted with 8 MB and most emulators have an option
-	 * to extend RAM to 8 MB as well. You may change the length below from
-	 * 0x1f0000 to 0x7f0000 allow the linker to use the additional memory. Note
-	 * that the first 64 KB at 0x80000000-0x8000ffff are always reserved for use
-	 * by the kernel.
+	 * Only 2 MB of main RAM are available on a stock PS1, but some development
+	 * kits are fitted with 8 MB and PS1-based arcade systems often come with 4
+	 * or even 16 MB; consoles may also be modified with additional RAM. You may
+	 * change the length below from 0x1f0000 to 0x3f0000, 0x7f0000 or 0xff0000
+	 * to allow the linker to use the additional memory, though with some
+	 * caveats:
+	 * - the first 64 KB at 0x80000000-0x8000ffff are reserved for use by the
+	 *   BIOS kernel during executable loading. They can be overwritten once
+	 *   your code is running (as long as it doesn't depend on the kernel), but
+	 *   initialized sections such as .text or .data cannot be placed there;
+	 * - most ways to load executables, including the BIOS as well as serial
+	 *   loaders, are not capable of handling initialized sections that cross
+	 *   the 2 MB boundary for a variety of reasons (conflicts with the default
+	 *   stack top or the loader itself, incorrect default RAM configuration and
+	 *   so on).
 	 */
 	APP_RAM (rwx) : ORIGIN = 0x80010000, LENGTH = 0x1f0000
 }

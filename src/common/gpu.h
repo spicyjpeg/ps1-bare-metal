@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 static inline GP1VideoMode getCurrentVideoMode(void) {
-	return ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL)
+	return ((GPU_STAT & GPU_STAT_FB_MODE_BITMASK) == GPU_STAT_FB_MODE_PAL)
 		? GP1_MODE_PAL
 		: GP1_MODE_NTSC;
 }

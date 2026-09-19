@@ -59,7 +59,7 @@ void setupGPU(
 }
 
 void waitForGP0Ready(void) {
-	while (!(GPU_GP1 & GP1_STAT_WRITE_READY))
+	while (!(GPU_STAT & GPU_STAT_WRITE_READY))
 		__asm__ volatile("");
 }
 

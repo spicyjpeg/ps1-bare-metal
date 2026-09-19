@@ -16,35 +16,25 @@
 
 #pragma once
 
-#include <stdint.h>
-#include "common/gpu.h"
+#include "ps1/registers.h"
 
-#define FONT_SPACE_WIDTH  4
-#define FONT_TAB_WIDTH   64
-#define FONT_LINE_HEIGHT 10
+#define DEF(type)     static inline type __attribute__((always_inline))
+#define DIV(num, den) (((num) + (den) / 2) / (den))
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void printString(
-	GPUDMAChain       *chain,
-	const TextureInfo *font,
-	int               x,
-	int               y,
-	const char        *str
-);
-void printStringOrdered(
-	GPUOrderedDMAChain *chain,
-	const TextureInfo  *font,
-	int                x,
-	int                y,
-	unsigned int       zIndex,
-	const char         *str
-);
-
-int getStringWidth(const char *str);
-
-#ifdef __cplusplus
+DEF(void) delayCycles(int time) {
+	__asm__ volatile(
+		".set push\n"
+		".set noreorder\n"
+		"bgtz  %0, .\n"
+		"addiu %0, -2\n"
+		".set pop\n"
+		: "+r"(time)
+	);
 }
-#endif
+
+DEF(void) delayMicroseconds(int time) {
+	delayCycles(DIV(time * DIV(F_CPU * 8, 1000000), 8));
+}
+
+#undef DEF
+#undef DIV

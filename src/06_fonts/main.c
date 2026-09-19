@@ -150,7 +150,7 @@ static const SpriteInfo fontSprites[] = {
 #define FIRST_INVALID_CHAR (FIRST_TABLE_CHAR + NUM_CHARACTERS)
 
 #define FONT_SPACE_WIDTH  4
-#define FONT_TAB_WIDTH   32
+#define FONT_TAB_WIDTH   64
 #define FONT_LINE_HEIGHT 10
 
 static void printString(
@@ -160,7 +160,7 @@ static void printString(
 	int               y,
 	const char        *str
 ) {
-	int currentX = x, currentY = y;
+	int offsetX = 0, offsetY = 0;
 
 	uint32_t *ptr;
 
@@ -181,17 +181,17 @@ static void printString(
 		// replaced with the "invalid character" placeholder.
 		switch (ch) {
 			case '\t':
-				currentX += FONT_TAB_WIDTH - 1;
-				currentX -= currentX % FONT_TAB_WIDTH;
+				offsetX += FONT_TAB_WIDTH;
+				offsetX -= offsetX % FONT_TAB_WIDTH;
 				continue;
 
 			case '\n':
-				currentX  = x;
-				currentY += FONT_LINE_HEIGHT;
+				offsetX  = 0;
+				offsetY += FONT_LINE_HEIGHT;
 				continue;
 
 			case ' ':
-				currentX += FONT_SPACE_WIDTH;
+				offsetX += FONT_SPACE_WIDTH;
 				continue;
 
 			case FIRST_INVALID_CHAR ... 0xff:
@@ -209,12 +209,12 @@ static void printString(
 		// correctly.
 		ptr    = allocateGP0Packet(chain, 4);
 		ptr[0] = gp0_rectangle(true, true, true);
-		ptr[1] = gp0_xy(currentX, currentY);
+		ptr[1] = gp0_xy(x + offsetX, y + offsetY);
 		ptr[2] = gp0_uv(font->u + sprite->x, font->v + sprite->y, font->clut);
 		ptr[3] = gp0_xy(sprite->width, sprite->height);
 
 		// Move onto the next character.
-		currentX += sprite->width;
+		offsetX += sprite->width;
 	}
 }
 

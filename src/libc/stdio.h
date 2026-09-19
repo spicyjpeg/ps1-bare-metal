@@ -16,7 +16,6 @@
 
 #pragma once
 
-// Include printf() from the third-party library.
 #include "vendor/printf.h"
 
 #define putchar _putchar
@@ -27,13 +26,6 @@
 extern "C" {
 #endif
 
-/**
- * @brief Initializes the serial port (SIO1) with the given baud rate, no
- * parity, 8 data bits and 1 stop bit. Must be called prior to using putchar(),
- * getchar(), puts() or printf().
- *
- * @param baud
- */
 void initSerialIO(int baud);
 
 void _putchar(char ch);
