@@ -29,7 +29,7 @@
  * intervention is needed to stop or restart playback of a properly encoded
  * sample after it ends.
  *
- * The only minor complication comes from the fact the SPU only supports onez
+ * The only minor complication comes from the fact the SPU only supports one
  * data format - a variant of the proprietary "bit rate reduction" (BRR) ADPCM
  * codec introduced with the S-DSP and subsequently used on later PlayStations.
  * The build script for this example uses psxavenc to perform the encoding and
