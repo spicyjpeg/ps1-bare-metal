@@ -84,18 +84,22 @@ typedef enum {
 	GTE_SF          =  1 << 19  // Shift results by 12 bits
 } GTECommandFlag;
 
-// At least two dummy cycles are required after the last register write prior to
-// issuing a command (or before reading the result directly in the case of ORGB
-// or LZCR).
+// After the last register write, at least one dummy cycle is required prior to
+// issuing a command. In the case of IRGB/ORGB and LZCS/LZCR, two cycles are
+// required before reading the result.
 DEF(void) gte_loadDelay(void) {
 	__asm__ volatile(
 		"nop\n"
 		"nop\n"
 	);
 }
-DEF(void) gte_command(const uint32_t cmd) {
-	gte_loadDelay();
-	__asm__ volatile("cop2 %0\n" :: "i"(cmd));
+
+DEF(void) gte_command(const uint32_t opcode) {
+	__asm__ volatile(
+		"nop\n"
+		"cop2 %0\n"
+		:: "i"(opcode)
+	);
 }
 
 /* Control register definitions */

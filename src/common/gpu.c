@@ -66,6 +66,8 @@ void waitForGP0Ready(void) {
 void waitForGPUDMADone(void) {
 	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
+	while (!(GPU_STAT & GPU_STAT_WRITE_READY))
+		__asm__ volatile("");
 }
 
 void waitForVSync(void) {

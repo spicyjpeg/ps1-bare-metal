@@ -67,6 +67,18 @@ typedef enum {
 #define BIU_CTRL_ADDR_BITS(value)   (((value) & 31) << 16)
 #define BIU_CTRL_DMA_DELAY(value)   (((value) & 15) << 24)
 
+typedef enum {
+	BIU_COM_DELAY_RECOVERY_BITMASK  = 15 <<  0,
+	BIU_COM_DELAY_HOLD_BITMASK      = 15 <<  4,
+	BIU_COM_DELAY_FLOAT_BITMASK     = 15 <<  8,
+	BIU_COM_DELAY_PRESTROBE_BITMASK = 15 << 12
+} BIUCommonDelayFlag;
+
+#define BIU_COM_DELAY_RECOVERY(value)  (((value) & 15) <<  0)
+#define BIU_COM_DELAY_HOLD(value)      (((value) & 15) <<  4)
+#define BIU_COM_DELAY_FLOAT(value)     (((value) & 15) <<  8)
+#define BIU_COM_DELAY_PRESTROBE(value) (((value) & 15) << 12)
+
 #define BIU_DEV0_ADDR _MMIO32(IO_BASE | 0x000) // PIO/arcade
 #define BIU_DEV8_ADDR _MMIO32(IO_BASE | 0x004) // PIO/debug
 #define BIU_DEV0_CTRL _MMIO32(IO_BASE | 0x008) // PIO/arcade
@@ -102,10 +114,10 @@ typedef enum {
 	SIO_MR_CHLEN_6       = 1 << 2,
 	SIO_MR_CHLEN_7       = 2 << 2,
 	SIO_MR_CHLEN_8       = 3 << 2,
-	SIO_MR_P_BITMASK     = 3 << 4,
-	SIO_MR_P_NONE        = 0 << 4,
-	SIO_MR_P_EVEN        = 1 << 4,
-	SIO_MR_P_ODD         = 3 << 4,
+	SIO_MR_PE            = 1 << 4,
+	SIO_MR_P_BITMASK     = 1 << 5,
+	SIO_MR_P_ODD         = 0 << 5,
+	SIO_MR_P_EVEN        = 1 << 5,
 	SIO_MR_SB_BITMASK    = 3 << 6, // SIO1 only
 	SIO_MR_SB_1          = 1 << 6, // SIO1 only
 	SIO_MR_SB_1_5        = 2 << 6, // SIO1 only
@@ -145,14 +157,14 @@ typedef enum {
 /* DRAM controller */
 
 typedef enum {
-	DRAM_CTRL_UNKNOWN1        = 1 <<  3,
+	DRAM_CTRL_BYTE_CAS        = 1 <<  3,
 	DRAM_CTRL_REFRESH_BITMASK = 3 <<  4,
 	DRAM_CTRL_REFRESH_256     = 0 <<  4,
 	DRAM_CTRL_REFRESH_320     = 1 <<  4,
 	DRAM_CTRL_REFRESH_384     = 2 <<  4,
 	DRAM_CTRL_REFRESH_448     = 3 <<  4,
 	DRAM_CTRL_FETCH_DELAY     = 1 <<  7,
-	DRAM_CTRL_UNKNOWN2        = 1 <<  8,
+	DRAM_CTRL_UNKNOWN         = 1 <<  8,
 	DRAM_CTRL_SIZE_BITMASK    = (1 << 9) | (1 << 11),
 	DRAM_CTRL_SIZE_1MB        = (0 << 9) | (0 << 11),
 	DRAM_CTRL_SIZE_2MB        = (0 << 9) | (1 << 11),
@@ -240,27 +252,27 @@ typedef enum {
 /* Timers */
 
 typedef enum {
-	TIMER_CTRL_ENABLE_SYNC     = 1 <<  0,
-	TIMER_CTRL_SYNC_BITMASK    = 3 <<  1,
-	TIMER_CTRL_SYNC_PAUSE      = 0 <<  1,
-	TIMER_CTRL_SYNC_RESET1     = 1 <<  1,
-	TIMER_CTRL_SYNC_RESET2     = 2 <<  1,
-	TIMER_CTRL_SYNC_PAUSE_ONCE = 3 <<  1,
-	TIMER_CTRL_RELOAD          = 1 <<  3,
-	TIMER_CTRL_IRQ_ON_RELOAD   = 1 <<  4,
-	TIMER_CTRL_IRQ_ON_OVERFLOW = 1 <<  5,
-	TIMER_CTRL_IRQ_REPEAT      = 1 <<  6,
-	TIMER_CTRL_IRQ_LATCH       = 1 <<  7,
-	TIMER_CTRL_EXT_CLOCK       = 1 <<  8,
-	TIMER_CTRL_PRESCALE        = 1 <<  9,
-	TIMER_CTRL_IRQ             = 1 << 10,
-	TIMER_CTRL_RELOADED        = 1 << 11,
-	TIMER_CTRL_OVERFLOWED      = 1 << 12
-} TimerControlFlag;
+	TIMER_MODE_GATF            = 1 <<  0,
+	TIMER_MODE_GATM_BITMASK    = 3 <<  1,
+	TIMER_MODE_GATM_GATE       = 0 <<  1,
+	TIMER_MODE_GATM_RESET      = 1 <<  1,
+	TIMER_MODE_GATM_GATE_RESET = 2 <<  1,
+	TIMER_MODE_GATM_GATE_ONCE  = 3 <<  1,
+	TIMER_MODE_ZRET            = 1 <<  3,
+	TIMER_MODE_CMP             = 1 <<  4,
+	TIMER_MODE_OVFL            = 1 <<  5,
+	TIMER_MODE_REPT            = 1 <<  6,
+	TIMER_MODE_LEVL            = 1 <<  7,
+	TIMER_MODE_EXTC            = 1 <<  8,
+	TIMER_MODE_PSCL            = 1 <<  9,
+	TIMER_MODE_INTF            = 1 << 10,
+	TIMER_MODE_EQUF            = 1 << 11,
+	TIMER_MODE_OVFF            = 1 << 12
+} TimerModeFlag;
 
-#define TIMER_VALUE(N)  _MMIO16((IO_BASE | 0x100) + (16 * (N)))
-#define TIMER_CTRL(N)   _MMIO16((IO_BASE | 0x104) + (16 * (N)))
-#define TIMER_RELOAD(N) _MMIO16((IO_BASE | 0x108) + (16 * (N)))
+#define TIMER_COUNT(N) _MMIO16((IO_BASE | 0x100) + (16 * (N)))
+#define TIMER_MODE(N)  _MMIO16((IO_BASE | 0x104) + (16 * (N)))
+#define TIMER_COMP(N)  _MMIO16((IO_BASE | 0x108) + (16 * (N)))
 
 /* CD-ROM drive */
 
@@ -555,7 +567,7 @@ typedef enum {
 #define SPU_ESA      _MMIO16(IO_BASE | 0xda2)
 #define SPU_IRQA     _MMIO16(IO_BASE | 0xda4)
 #define SPU_TSA      _MMIO16(IO_BASE | 0xda6)
-#define SPU_DATAX    _MMIO16(IO_BASE | 0xda8)
+#define SPU_DATA     _MMIO16(IO_BASE | 0xda8)
 #define SPU_ATTR     _MMIO16(IO_BASE | 0xdaa)
 #define SPU_RAM_CTRL _MMIO16(IO_BASE | 0xdac)
 #define SPU_STATX    _MMIO16(IO_BASE | 0xdae)

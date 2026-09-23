@@ -147,6 +147,7 @@ int main(int argc, const char **argv) {
 
 		GPUOrderedDMAChain *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame          = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -162,7 +163,6 @@ int main(int argc, const char **argv) {
 		);
 		rotateCurrentMatrixX(frameCounter * 12);
 		rotateCurrentMatrixY(frameCounter * 16);
-		frameCounter++;
 
 		// Set the light matrix, each row of which is a unit vector pointing
 		// *to* the light source (i.e. with the opposite direction of the light

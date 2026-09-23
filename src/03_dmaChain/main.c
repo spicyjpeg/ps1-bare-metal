@@ -79,10 +79,17 @@ static void setupGPU_(
 	DMA_CHCR(DMA_OTC) = 0;
 }
 
-static void sendGPULinkedList_(const void *data) {
-	// Wait until the DMA channel has finished sending data and is ready.
+static void waitForGPUDMADone_(void) {
+	// Wait for the GPU's DMA channel to finish any pending transfer, then wait
+	// for the GPU itself to flush the last chunk.
 	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
+	while (!(GPU_STAT & GPU_STAT_WRITE_READY))
+		__asm__ volatile("");
+}
+
+static void sendGPULinkedList_(const void *data) {
+	waitForGPUDMADone_();
 
 	// Make sure the pointer is aligned to 32 bits (4 bytes). The DMA engine is
 	// not capable of reading unaligned data.

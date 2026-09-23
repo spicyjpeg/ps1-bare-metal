@@ -204,6 +204,7 @@ int main(int argc, const char **argv) {
 
 		GPUOrderedDMAChain *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame          = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -220,7 +221,6 @@ int main(int argc, const char **argv) {
 			GTE_TRZ,
 			PLANE_HEIGHT / 2 - frameCounter % PLANE_FACE_SIZE
 		);
-		frameCounter++;
 
 		for (int i = 0; i < NUM_PLANE_FACES; i++) {
 			const Face *face = &planeFaces[i];

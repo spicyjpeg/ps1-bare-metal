@@ -139,15 +139,15 @@ typedef enum {
 	SIO0_CFG_RESPONSE_SETUP = 'O', // Configure poll response format
 
 	// Memory card commands
-	SIO0_CARD_READ       = 'R', // Read 128-byte sector
-	SIO0_CARD_GET_SIZE   = 'S', // Retrieve size information
-	SIO0_CARD_WRITE      = 'W'  // Write 128-byte sector
+	SIO0_CARD_READ     = 'R', // Read 128-byte sector
+	SIO0_CARD_GET_SIZE = 'S', // Retrieve size information
+	SIO0_CARD_WRITE    = 'W'  // Write 128-byte sector
 } SIO0DeviceCommand;
 
 #define DTR_DELAY    60
 #define DSR_TIMEOUT 120
 
-static void selectControllerPort(int port) {
+static inline void selectControllerPort(int port) {
 	// Set or clear the bit that controls which set of controller and memory
 	// card ports is going to have its DTR (port select) signal asserted. The
 	// actual serial bus is shared between all ports, however devices will not
@@ -228,22 +228,22 @@ static size_t exchangeSIO0Packet(
 // device type identifier as well as a bitfield describing the state of up to 16
 // buttons.
 static const char *const controllerTypes[] = {
-	"Unknown",            // ID 0x0
-	"Mouse",              // ID 0x1
+	"unknown",            // ID 0x0
+	"mouse",              // ID 0x1
 	"neGcon",             // ID 0x2
 	"Konami Justifier",   // ID 0x3
-	"Digital controller", // ID 0x4
-	"Analog stick",       // ID 0x5
+	"digital controller", // ID 0x4
+	"analog stick",       // ID 0x5
 	"Guncon",             // ID 0x6
-	"Analog controller",  // ID 0x7
-	"Multitap",           // ID 0x8
-	"Keyboard",           // ID 0x9
-	"Unknown",            // ID 0xa
-	"Unknown",            // ID 0xb
-	"Unknown",            // ID 0xc
-	"Unknown",            // ID 0xd
+	"analog controller",  // ID 0x7
+	"multitap",           // ID 0x8
+	"keyboard",           // ID 0x9
+	"unknown",            // ID 0xa
+	"unknown",            // ID 0xb
+	"unknown",            // ID 0xc
+	"unknown",            // ID 0xd
 	"Jogcon",             // ID 0xe
-	"Configuration mode"  // ID 0xf
+	"configuration mode"  // ID 0xf
 };
 
 static const char *const buttonNames[] = {

@@ -25,14 +25,14 @@
 typedef enum {
 	CDROM_CMD_NOP        = 0x01,
 	CDROM_CMD_SETLOC     = 0x02,
-	CDROM_CMD_PLAY       = 0x03,
-	CDROM_CMD_FORWARD    = 0x04,
-	CDROM_CMD_BACKWARD   = 0x05,
-	CDROM_CMD_READN      = 0x06,
-	CDROM_CMD_STANDBY    = 0x07,
-	CDROM_CMD_STOP       = 0x08,
-	CDROM_CMD_PAUSE      = 0x09,
-	CDROM_CMD_INIT       = 0x0a,
+	CDROM_CMD_PLAY       = 0x03, // Sends data ready IRQs in report mode
+	CDROM_CMD_FORWARD    = 0x04, // Sends data ready IRQs in report mode
+	CDROM_CMD_BACKWARD   = 0x05, // Sends data ready IRQs in report mode
+	CDROM_CMD_READN      = 0x06, // Sends data ready IRQs
+	CDROM_CMD_STANDBY    = 0x07, // Sends complete IRQ
+	CDROM_CMD_STOP       = 0x08, // Sends complete IRQ
+	CDROM_CMD_PAUSE      = 0x09, // Sends complete IRQ
+	CDROM_CMD_INIT       = 0x0a, // Sends complete IRQ
 	CDROM_CMD_MUTE       = 0x0b,
 	CDROM_CMD_DEMUTE     = 0x0c,
 	CDROM_CMD_SETFILTER  = 0x0d,
@@ -40,27 +40,27 @@ typedef enum {
 	CDROM_CMD_GETPARAM   = 0x0f,
 	CDROM_CMD_GETLOCL    = 0x10,
 	CDROM_CMD_GETLOCP    = 0x11,
-	CDROM_CMD_SETSESSION = 0x12,
+	CDROM_CMD_SETSESSION = 0x12, // Sends complete IRQ
 	CDROM_CMD_GETTN      = 0x13,
 	CDROM_CMD_GETTD      = 0x14,
-	CDROM_CMD_SEEKL      = 0x15,
-	CDROM_CMD_SEEKP      = 0x16,
-	CDROM_CMD_SETCLOCK   = 0x17, // DTL-H2000 only, removed
-	CDROM_CMD_GETCLOCK   = 0x18, // DTL-H2000 only, removed
+	CDROM_CMD_SEEKL      = 0x15, // Sends complete IRQ
+	CDROM_CMD_SEEKP      = 0x16, // Sends complete IRQ
+	CDROM_CMD_SETCLOCK   = 0x17, // Broken (DTL-H2000 leftover)
+	CDROM_CMD_GETCLOCK   = 0x18, // Broken (DTL-H2000 leftover)
 	CDROM_CMD_TEST       = 0x19,
-	CDROM_CMD_GETID      = 0x1a,
-	CDROM_CMD_READS      = 0x1b,
+	CDROM_CMD_GETID      = 0x1a, // Sends complete IRQ
+	CDROM_CMD_READS      = 0x1b, // Sends data ready IRQs
 	CDROM_CMD_RESET      = 0x1c,
-	CDROM_CMD_GETQ       = 0x1d, // Versions 0xc1 and later only
-	CDROM_CMD_READTOC    = 0x1e, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK0    = 0x50, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK1    = 0x51, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK2    = 0x52, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK3    = 0x53, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK4    = 0x54, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK5    = 0x55, // Versions 0xc1 and later only
-	CDROM_CMD_UNLOCK6    = 0x56, // Versions 0xc1 and later only
-	CDROM_CMD_LOCK       = 0x57  // Versions 0xc1 and later only
+	CDROM_CMD_GETQ       = 0x1d, // Versions 0xc1 and later, sends complete IRQ
+	CDROM_CMD_READTOC    = 0x1e, // Versions 0xc1 and later, sends complete IRQ
+	CDROM_CMD_UNLOCK0    = 0x50, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK1    = 0x51, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK2    = 0x52, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK3    = 0x53, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK4    = 0x54, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK5    = 0x55, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_UNLOCK6    = 0x56, // Non-Japanese versions 0xc1 and later
+	CDROM_CMD_LOCK       = 0x57  // Non-Japanese versions 0xc1 and later
 } CDROMCommand;
 
 typedef enum {
@@ -68,17 +68,17 @@ typedef enum {
 	CDROM_TEST_GET_ID_COUNTERS      = 0x05,
 	CDROM_TEST_GET_VERSION          = 0x20,
 	CDROM_TEST_GET_SWITCHES         = 0x21,
-	CDROM_TEST_GET_REGION           = 0x22, // Versions 0xc1 and later only
-	CDROM_TEST_GET_SERVO_TYPE       = 0x23, // Versions 0xc1 and later only
-	CDROM_TEST_GET_DSP_TYPE         = 0x24, // Versions 0xc1 and later only
-	CDROM_TEST_GET_DECODER_TYPE     = 0x25, // Versions 0xc1 and later only
+	CDROM_TEST_GET_REGION           = 0x22, // Versions 0xc1 and later
+	CDROM_TEST_GET_SERVO_TYPE       = 0x23, // Versions 0xc1 and later
+	CDROM_TEST_GET_DSP_TYPE         = 0x24, // Versions 0xc1 and later
+	CDROM_TEST_GET_DECODER_TYPE     = 0x25, // Versions 0xc1 and later
 	CDROM_TEST_DSP_CMD              = 0x50,
-	CDROM_TEST_DSP_CMD_RESP         = 0x51, // Versions 0xc2 and later only
+	CDROM_TEST_DSP_CMD_RESP         = 0x51, // Versions 0xc2 and later
 	CDROM_TEST_MCU_PEEK             = 0x60,
-	CDROM_TEST_DECODER_GET_REG      = 0x71, // Versions 0xc1 and later only
-	CDROM_TEST_DECODER_SET_REG      = 0x72, // Versions 0xc1 and later only
-	CDROM_TEST_DECODER_GET_SRAM_PTR = 0x75, // Versions 0xc1 and later only
-	CDROM_TEST_DECODER_SET_SRAM_PTR = 0x76  // Versions 0xc1 and later only
+	CDROM_TEST_DECODER_GET_REG      = 0x71, // Versions 0xc1 and later
+	CDROM_TEST_DECODER_SET_REG      = 0x72, // Versions 0xc1 and later
+	CDROM_TEST_DECODER_GET_SRAM_PTR = 0x75, // Versions 0xc1 and later
+	CDROM_TEST_DECODER_SET_SRAM_PTR = 0x76  // Versions 0xc1 and later
 } CDROMTestCommand;
 
 typedef enum {

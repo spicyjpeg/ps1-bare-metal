@@ -267,6 +267,7 @@ int main(int argc, const char **argv) {
 
 		GPUDMAChain *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame   = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -301,7 +302,7 @@ int main(int argc, const char **argv) {
 		// temporary buffer then printing it.
 		char buffer[32];
 
-		snprintf(buffer, sizeof(buffer), "Current frame: %d", frameCounter++);
+		snprintf(buffer, sizeof(buffer), "Current frame: %d", frameCounter);
 		printString(chain, &font, 16, 64, buffer);
 
 		*(chain->nextPacket) = gp0_endTag(0);

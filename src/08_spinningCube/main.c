@@ -228,6 +228,7 @@ int main(int argc, const char **argv) {
 
 		GPUOrderedDMAChain *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame          = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -244,7 +245,6 @@ int main(int argc, const char **argv) {
 		);
 		rotateCurrentMatrixX(frameCounter * 12);
 		rotateCurrentMatrixY(frameCounter * 16);
-		frameCounter++;
 
 		// Draw the cube one face at a time.
 		for (int i = 0; i < (int) NUM_CUBE_FACES; i++) {

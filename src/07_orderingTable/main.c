@@ -57,7 +57,10 @@ static void clearOrderingTable_(uint32_t *table, size_t numEntries) {
 	// Set up the OTC DMA channel to write a new empty ordering table to RAM.
 	// The table is always reversed and generated "backwards" (the last item in
 	// the table is the first one that will be written), so we must give DMA a
-	// pointer to the end of the table rather than its beginning.
+	// pointer to the end of the table rather than its beginning. Since OTC is
+	// not connected to an external peripheral, it must run in "burst" mode
+	// (transferring all data at once with no chunking nor synchronization)
+	// rather than the slice mode we used for GPU DMA.
 	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
 	DMA_BCR (DMA_OTC) = numEntries;
 	DMA_CHCR(DMA_OTC) = 0
@@ -129,6 +132,7 @@ int main(int argc, const char **argv) {
 
 		GPUOrderedDMAChain_ *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame           = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -143,16 +147,13 @@ int main(int argc, const char **argv) {
 		// but the table will reorder them as they are sent to the GPU.
 		int x = 16, y = 24;
 
-		int frontSquareIndex = (frameCounter++ / 10) % 16;
+		int frontSquare = (frameCounter / 10) % 16;
 
 		for (int i = 0; i < 16; i++) {
-			uint32_t color = gp0_rgb(i * 15, i * 15, 0);
-			int      zIndex;
-
-			if (i < frontSquareIndex)
-				zIndex = frontSquareIndex - i;
-			else
-				zIndex = i - frontSquareIndex;
+			uint32_t color  = gp0_rgb(i * 15, i * 15, 0);
+			int      zIndex = (i < frontSquare)
+				? (frontSquare - i)
+				: (i - frontSquare);
 
 			ptr    = allocateOrderedGP0Packet_(chain, zIndex, 3);
 			ptr[0] = color | gp0_rectangle(false, false, false);

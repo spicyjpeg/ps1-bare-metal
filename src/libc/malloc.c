@@ -159,7 +159,7 @@ void *realloc(void *ptr, size_t size) {
 		prev->size = _size;
 
 		if (!prev->next)
-			sbrk((ptr - sbrk(0)) + _size);
+			sbrk(((uintptr_t) ptr - (uintptr_t) sbrk(0)) + _size);
 
 		return ptr;
 	}
@@ -227,7 +227,8 @@ void free(void *ptr) {
 	} else {
 		// At the end, shrink heap
 		void  *top  = sbrk(0);
-		size_t size = (top - (cur->prev)->ptr) - (cur->prev)->size;
+		size_t size =
+			((uintptr_t) top - (uintptr_t) cur->prev->ptr) - (cur->prev)->size;
 		_mallocTail = cur->prev;
 
 		sbrk(-size);
