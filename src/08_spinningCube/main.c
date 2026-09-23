@@ -78,11 +78,8 @@ static void setupGTE(unsigned int width, unsigned int height) {
 	// Set the scaling factor for Z averaging. For each polygon drawn, the GTE
 	// will sum the transformed Z coordinates of its vertices multiplied by this
 	// value in order to derive the ordering table bucket index the polygon will
-	// be sorted into. This will work best if the ordering table length is a
-	// multiple of 12 (i.e. both 3 and 4) or high enough to make any rounding
-	// error negligible.
-	gte_setControlReg(GTE_ZSF3, GPU_ORDERING_TABLE_SIZE / 3);
-	gte_setControlReg(GTE_ZSF4, GPU_ORDERING_TABLE_SIZE / 4);
+	// be sorted into.
+	gte_setZScaleFactor((ONE * ORDERING_TABLE_SIZE) / 0x7fff);
 }
 
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
