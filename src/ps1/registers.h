@@ -45,27 +45,27 @@ typedef enum {
 /* Bus interface */
 
 typedef enum {
-	BIU_CTRL_WRITE_DELAY_BITMASK = 15 <<  0,
-	BIU_CTRL_READ_DELAY_BITMASK  = 15 <<  4,
-	BIU_CTRL_RECOVERY            =  1 <<  8,
-	BIU_CTRL_HOLD                =  1 <<  9,
-	BIU_CTRL_FLOAT               =  1 << 10,
-	BIU_CTRL_PRESTROBE           =  1 << 11,
-	BIU_CTRL_WIDTH_8             =  0 << 12,
-	BIU_CTRL_WIDTH_16            =  1 << 12,
-	BIU_CTRL_AUTO_INCR           =  1 << 13,
-	BIU_CTRL_ADDR_BITS_BITMASK   = 31 << 16,
-	BIU_CTRL_DMA_DELAY_BITMASK   = 15 << 24,
-	BIU_CTRL_ADDR_ERROR          =  1 << 28,
-	BIU_CTRL_DMA_DELAY_ENABLE    =  1 << 29,
-	BIU_CTRL_DMA32               =  1 << 30,
-	BIU_CTRL_WAIT                =  1 << 31
-} BIUControlFlag;
+	BIU_DEV_DELAY_WRITE_CYCLES_BITMASK = 15 <<  0,
+	BIU_DEV_DELAY_READ_CYCLES_BITMASK  = 15 <<  4,
+	BIU_DEV_DELAY_RECOVERY             =  1 <<  8,
+	BIU_DEV_DELAY_HOLD                 =  1 <<  9,
+	BIU_DEV_DELAY_FLOAT                =  1 << 10,
+	BIU_DEV_DELAY_PRESTROBE            =  1 << 11,
+	BIU_DEV_DELAY_WIDTH_8              =  0 << 12,
+	BIU_DEV_DELAY_WIDTH_16             =  1 << 12,
+	BIU_DEV_DELAY_AUTO_INCR            =  1 << 13,
+	BIU_DEV_DELAY_ADDR_BITS_BITMASK    = 31 << 16,
+	BIU_DEV_DELAY_DMA_CYCLES_BITMASK   = 15 << 24,
+	BIU_DEV_DELAY_ADDR_ERROR           =  1 << 28,
+	BIU_DEV_DELAY_DMA_CYCLES_ENABLE    =  1 << 29,
+	BIU_DEV_DELAY_DMA32                =  1 << 30,
+	BIU_DEV_DELAY_WAIT                 =  1 << 31
+} BIUDeviceDelayFlag;
 
-#define BIU_CTRL_WRITE_DELAY(value) (((value) & 15) <<  0)
-#define BIU_CTRL_READ_DELAY(value)  (((value) & 15) <<  4)
-#define BIU_CTRL_ADDR_BITS(value)   (((value) & 31) << 16)
-#define BIU_CTRL_DMA_DELAY(value)   (((value) & 15) << 24)
+#define BIU_DEV_DELAY_WRITE_CYCLES(value) (((value) & 15) <<  0)
+#define BIU_DEV_DELAY_READ_CYCLES(value)  (((value) & 15) <<  4)
+#define BIU_DEV_DELAY_ADDR_BITS(value)    (((value) & 31) << 16)
+#define BIU_DEV_DELAY_DMA_CYCLES(value)   (((value) & 15) << 24)
 
 typedef enum {
 	BIU_COM_DELAY_RECOVERY_BITMASK  = 15 <<  0,
@@ -79,15 +79,15 @@ typedef enum {
 #define BIU_COM_DELAY_FLOAT(value)     (((value) & 15) <<  8)
 #define BIU_COM_DELAY_PRESTROBE(value) (((value) & 15) << 12)
 
-#define BIU_DEV0_ADDR _MMIO32(IO_BASE | 0x000) // PIO/arcade
-#define BIU_DEV8_ADDR _MMIO32(IO_BASE | 0x004) // PIO/debug
-#define BIU_DEV0_CTRL _MMIO32(IO_BASE | 0x008) // PIO/arcade
-#define BIU_DEV1_CTRL _MMIO32(IO_BASE | 0x00c) // PIO/arcade/debug
-#define BIU_DEV2_CTRL _MMIO32(IO_BASE | 0x010) // BIOS ROM
-#define BIU_DEV4_CTRL _MMIO32(IO_BASE | 0x014) // SPU
-#define BIU_DEV5_CTRL _MMIO32(IO_BASE | 0x018) // CD-ROM
-#define BIU_DEV8_CTRL _MMIO32(IO_BASE | 0x01c) // PIO/debug
-#define BIU_COM_DELAY _MMIO32(IO_BASE | 0x020)
+#define BIU_DEV0_ADDR  _MMIO32(IO_BASE | 0x000) // PIO/arcade
+#define BIU_DEV8_ADDR  _MMIO32(IO_BASE | 0x004) // PIO/debug
+#define BIU_DEV0_DELAY _MMIO32(IO_BASE | 0x008) // PIO/arcade
+#define BIU_DEV1_DELAY _MMIO32(IO_BASE | 0x00c) // PIO/arcade/debug
+#define BIU_DEV2_DELAY _MMIO32(IO_BASE | 0x010) // BIOS ROM
+#define BIU_DEV4_DELAY _MMIO32(IO_BASE | 0x014) // SPU
+#define BIU_DEV5_DELAY _MMIO32(IO_BASE | 0x018) // CD-ROM
+#define BIU_DEV8_DELAY _MMIO32(IO_BASE | 0x01c) // PIO/debug
+#define BIU_COM_DELAY  _MMIO32(IO_BASE | 0x020)
 
 /* Serial interfaces */
 
@@ -341,50 +341,55 @@ typedef enum {
 /* GPU */
 
 typedef enum {
-	GPU_STAT_PAGE_X_BITMASK      = 15 <<  0, // GP0_CMD_TPAGE
-	GPU_STAT_PAGE_Y0             =  1 <<  4, // GP0_CMD_TPAGE
-	GPU_STAT_BLEND_BITMASK       =  3 <<  5, // GP0_CMD_TPAGE
-	GPU_STAT_BLEND_SEMITRANS     =  0 <<  5, // GP0_CMD_TPAGE
-	GPU_STAT_BLEND_ADD           =  1 <<  5, // GP0_CMD_TPAGE
-	GPU_STAT_BLEND_SUBTRACT      =  2 <<  5, // GP0_CMD_TPAGE
-	GPU_STAT_BLEND_DIV4_ADD      =  3 <<  5, // GP0_CMD_TPAGE
-	GPU_STAT_COLOR_BITMASK       =  3 <<  7, // GP0_CMD_TPAGE
-	GPU_STAT_COLOR_4BPP          =  0 <<  7, // GP0_CMD_TPAGE
-	GPU_STAT_COLOR_8BPP          =  1 <<  7, // GP0_CMD_TPAGE
-	GPU_STAT_COLOR_16BPP         =  2 <<  7, // GP0_CMD_TPAGE
-	GPU_STAT_DITHER              =  1 <<  9, // GP0_CMD_TPAGE
-	GPU_STAT_UNLOCK_FB           =  1 << 10, // GP0_CMD_TPAGE
-	GPU_STAT_SET_MASK            =  1 << 11, // GP0_CMD_FB_MASK
-	GPU_STAT_USE_MASK            =  1 << 12, // GP0_CMD_FB_MASK
-	GPU_STAT_DISP_FIELD_BITMASK  =  1 << 13,
-	GPU_STAT_DISP_FIELD_EVEN     =  0 << 13,
-	GPU_STAT_DISP_FIELD_ODD      =  1 << 13,
-	GPU_STAT_PAGE_Y1             =  1 << 15, // GP0_CMD_TPAGE
-	GPU_STAT_FB_HRES_BITMASK     =  7 << 16, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_VRES_BITMASK     =  1 << 19, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_VRES_256         =  0 << 19, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_VRES_512         =  1 << 19, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_MODE_BITMASK     =  1 << 20, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_MODE_NTSC        =  0 << 20, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_MODE_PAL         =  1 << 20, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_COLOR_BITMASK    =  1 << 21, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_COLOR_16BPP      =  0 << 21, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_COLOR_24BPP      =  1 << 21, // GP1_CMD_FB_MODE
-	GPU_STAT_FB_INTERLACE        =  1 << 22, // GP1_CMD_FB_MODE
-	GPU_STAT_DISP_BLANK          =  1 << 23, // GP1_CMD_DISP_BLANK
-	GPU_STAT_IRQ                 =  1 << 24,
-	GPU_STAT_DREQ                =  1 << 25,
-	GPU_STAT_CMD_READY           =  1 << 26,
-	GPU_STAT_READ_READY          =  1 << 27,
-	GPU_STAT_WRITE_READY         =  1 << 28,
-	GPU_STAT_DREQ_MODE_BITMASK   =  3 << 29, // GP1_CMD_DREQ_MODE
-	GPU_STAT_DREQ_MODE_NONE      =  0 << 29, // GP1_CMD_DREQ_MODE
-	GPU_STAT_DREQ_MODE_FIFO      =  1 << 29, // GP1_CMD_DREQ_MODE
-	GPU_STAT_DREQ_MODE_GP0_WRITE =  2 << 29, // GP1_CMD_DREQ_MODE
-	GPU_STAT_DREQ_MODE_GP0_READ  =  3 << 29, // GP1_CMD_DREQ_MODE
-	GPU_STAT_DRAW_FIELD_BITMASK  =  1 << 31,
-	GPU_STAT_DRAW_FIELD_EVEN     =  0 << 31,
-	GPU_STAT_DRAW_FIELD_ODD      =  1 << 31
+	GPU_STAT_TBX_BITMASK   = 15 <<  0, // GP0_CMD_TPAGE
+	GPU_STAT_TBY           =  1 <<  4, // GP0_CMD_TPAGE
+	GPU_STAT_ABR_BITMASK   =  3 <<  5, // GP0_CMD_TPAGE
+	GPU_STAT_ABR_SEMITRANS =  0 <<  5, // GP0_CMD_TPAGE
+	GPU_STAT_ABR_ADD       =  1 <<  5, // GP0_CMD_TPAGE
+	GPU_STAT_ABR_SUBTRACT  =  2 <<  5, // GP0_CMD_TPAGE
+	GPU_STAT_ABR_DIV4_ADD  =  3 <<  5, // GP0_CMD_TPAGE
+	GPU_STAT_TPF_BITMASK   =  3 <<  7, // GP0_CMD_TPAGE
+	GPU_STAT_TPF_4BPP      =  0 <<  7, // GP0_CMD_TPAGE
+	GPU_STAT_TPF_8BPP      =  1 <<  7, // GP0_CMD_TPAGE
+	GPU_STAT_TPF_16BPP     =  2 <<  7, // GP0_CMD_TPAGE
+	GPU_STAT_DTD           =  1 <<  9, // GP0_CMD_TPAGE
+	GPU_STAT_DFE           =  1 << 10, // GP0_CMD_TPAGE
+	GPU_STAT_PBW           =  1 << 11, // GP0_CMD_FB_MASK
+	GPU_STAT_PBC           =  1 << 12, // GP0_CMD_FB_MASK
+	GPU_STAT_ODE2_BITMASK  =  1 << 13,
+	GPU_STAT_ODE2_EVEN     =  0 << 13,
+	GPU_STAT_ODE2_ODD      =  1 << 13,
+	GPU_STAT_TBY2          =  1 << 15, // GP0_CMD_TPAGE
+	GPU_STAT_HDS2          =  1 << 16, // GP1_CMD_FB_MODE
+	GPU_STAT_HDS_BITMASK   =  3 << 17, // GP1_CMD_FB_MODE
+	GPU_STAT_HDS_256       =  0 << 17, // GP1_CMD_FB_MODE
+	GPU_STAT_HDS_320       =  1 << 17, // GP1_CMD_FB_MODE
+	GPU_STAT_HDS_512       =  2 << 17, // GP1_CMD_FB_MODE
+	GPU_STAT_HDS_640       =  3 << 17, // GP1_CMD_FB_MODE
+	GPU_STAT_VDS_BITMASK   =  1 << 19, // GP1_CMD_FB_MODE
+	GPU_STAT_VDS_256       =  0 << 19, // GP1_CMD_FB_MODE
+	GPU_STAT_VDS_512       =  1 << 19, // GP1_CMD_FB_MODE
+	GPU_STAT_NPB_BITMASK   =  1 << 20, // GP1_CMD_FB_MODE
+	GPU_STAT_NPB_NTSC      =  0 << 20, // GP1_CMD_FB_MODE
+	GPU_STAT_NPB_PAL       =  1 << 20, // GP1_CMD_FB_MODE
+	GPU_STAT_LBS_BITMASK   =  1 << 21, // GP1_CMD_FB_MODE
+	GPU_STAT_LBS_16BPP     =  0 << 21, // GP1_CMD_FB_MODE
+	GPU_STAT_LBS_24BPP     =  1 << 21, // GP1_CMD_FB_MODE
+	GPU_STAT_IRS           =  1 << 22, // GP1_CMD_FB_MODE
+	GPU_STAT_DMSK          =  1 << 23, // GP1_CMD_DISP_BLANK
+	GPU_STAT_IRQ           =  1 << 24,
+	GPU_STAT_DREQ          =  1 << 25,
+	GPU_STAT_IDLE          =  1 << 26,
+	GPU_STAT_RFFL          =  1 << 27,
+	GPU_STAT_WFEP          =  1 << 28,
+	GPU_STAT_DMD_BITMASK   =  3 << 29, // GP1_CMD_DREQ_MODE
+	GPU_STAT_DMD_NONE      =  0 << 29, // GP1_CMD_DREQ_MODE
+	GPU_STAT_DMD_WFNF      =  1 << 29, // GP1_CMD_DREQ_MODE
+	GPU_STAT_DMD_WFEP      =  2 << 29, // GP1_CMD_DREQ_MODE
+	GPU_STAT_DMD_RFFL      =  3 << 29, // GP1_CMD_DREQ_MODE
+	GPU_STAT_ODE_BITMASK   =  1 << 31,
+	GPU_STAT_ODE_EVEN      =  0 << 31,
+	GPU_STAT_ODE_ODD       =  1 << 31
 } GPUStatusFlag;
 
 #define GPU_GP0  _MMIO32(IO_BASE | 0x810)

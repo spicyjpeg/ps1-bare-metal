@@ -121,14 +121,14 @@ static CDROMIRQType waitForCDROMIRQ(uint8_t *response, size_t maxRespLength) {
 static void initCDROM(void) {
 	// The CD-ROM sits on the same 16-bit bus as the SPU but is only an 8-bit
 	// device, so it too needs its own bus configuration.
-	BIU_DEV5_CTRL = 0
-		| BIU_CTRL_WRITE_DELAY(3)
-		| BIU_CTRL_READ_DELAY(4)
-		| BIU_CTRL_RECOVERY
-		| BIU_CTRL_PRESTROBE
-		| BIU_CTRL_WIDTH_8
-		| BIU_CTRL_ADDR_BITS(2);
-	BIU_COM_DELAY = 0
+	BIU_DEV5_DELAY = 0
+		| BIU_DEV_DELAY_WRITE_CYCLES(3)
+		| BIU_DEV_DELAY_READ_CYCLES(4)
+		| BIU_DEV_DELAY_RECOVERY
+		| BIU_DEV_DELAY_PRESTROBE
+		| BIU_DEV_DELAY_WIDTH_8
+		| BIU_DEV_DELAY_ADDR_BITS(2);
+	BIU_COM_DELAY  = 0
 		| BIU_COM_DELAY_RECOVERY(5)
 		| BIU_COM_DELAY_HOLD(2)
 		| BIU_COM_DELAY_FLOAT(3)
@@ -147,7 +147,7 @@ static void initCDROM(void) {
 
 	// Initialize the mechacon and wait for its two responses: an "acknowledge"
 	// interrupt first, followed by a "complete" interrupt once the drive is
-	// ready (see ps1/cdrom.h for details on which commands send which IRQs).
+	// ready (see ps1/cdromdef.h for details on which commands send which IRQs).
 	// NOTE: in order to avoid corrupting the mailboxes we must always wait for
 	// an acknowledge IRQ before sending another command. It is however safe to
 	// send certain commands between the acknowledge and complete IRQs.

@@ -88,7 +88,7 @@ static void waitForGP0Ready(void) {
 	// status register, accessible by reading from the same address as GP1. Once
 	// the FIFO is empty, up to 16 command words can be written in a row to GP0
 	// before having to wait for the GPU to drain it again.
-	while (!(GPU_STAT & GPU_STAT_WRITE_READY))
+	while (!(GPU_STAT & GPU_STAT_WFEP))
 		__asm__ volatile("");
 }
 
@@ -110,8 +110,7 @@ int main(int argc, const char **argv) {
 	// Read the GPU's status register before resetting it to check if it was
 	// left in PAL or NTSC mode by the BIOS or loader, in order to keep using
 	// the same mode.
-	bool isPAL =
-		((GPU_STAT & GPU_STAT_FB_MODE_BITMASK) == GPU_STAT_FB_MODE_PAL);
+	bool isPAL = ((GPU_STAT & GPU_STAT_NPB_BITMASK) == GPU_STAT_NPB_PAL);
 
 	setupGPU(
 		isPAL ? GP1_MODE_PAL : GP1_MODE_NTSC,

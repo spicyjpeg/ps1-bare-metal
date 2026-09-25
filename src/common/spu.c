@@ -31,16 +31,16 @@ static const uint8_t dummyBlock[] = {
 };
 
 void initSPU(void) {
-	BIU_DEV4_CTRL = 0
-		| BIU_CTRL_WRITE_DELAY(1)
-		| BIU_CTRL_READ_DELAY(14)
-		| BIU_CTRL_RECOVERY
-		| BIU_CTRL_WIDTH_16
-		| BIU_CTRL_AUTO_INCR
-		| BIU_CTRL_ADDR_BITS(9)
-		| BIU_CTRL_DMA_DELAY(0)
-		| BIU_CTRL_DMA_DELAY_ENABLE;
-	BIU_COM_DELAY = 0
+	BIU_DEV4_DELAY = 0
+		| BIU_DEV_DELAY_WRITE_CYCLES(1)
+		| BIU_DEV_DELAY_READ_CYCLES(14)
+		| BIU_DEV_DELAY_RECOVERY
+		| BIU_DEV_DELAY_WIDTH_16
+		| BIU_DEV_DELAY_AUTO_INCR
+		| BIU_DEV_DELAY_ADDR_BITS(9)
+		| BIU_DEV_DELAY_DMA_CYCLES(0)
+		| BIU_DEV_DELAY_DMA_CYCLES_ENABLE;
+	BIU_COM_DELAY  = 0
 		| BIU_COM_DELAY_RECOVERY(5)
 		| BIU_COM_DELAY_HOLD(2)
 		| BIU_COM_DELAY_FLOAT(3)
@@ -111,8 +111,8 @@ void sendSPURAMData(const void *data, unsigned int offset, size_t length) {
 
 	// SPU RAM writes can be performed with the default bus configuration, while
 	// reads require slightly increasing DMA waitstates.
-	uint32_t ctrl = BIU_DEV4_CTRL & ~BIU_CTRL_DMA_DELAY_BITMASK;
-	BIU_DEV4_CTRL = ctrl          |  BIU_CTRL_DMA_DELAY(0);
+	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
+	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(0);
 
 	DMA_MADR(DMA_SPU) = (uintptr_t) data;
 	DMA_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
@@ -153,8 +153,8 @@ void receiveSPURAMData(void *data, unsigned int offset, size_t length) {
 	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_DMA_READ)
 		__asm__ volatile("");
 
-	uint32_t ctrl = BIU_DEV4_CTRL & ~BIU_CTRL_DMA_DELAY_BITMASK;
-	BIU_DEV4_CTRL = ctrl          |  BIU_CTRL_DMA_DELAY(2);
+	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
+	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(2);
 
 	DMA_MADR(DMA_SPU) = (uintptr_t) data;
 	DMA_BCR (DMA_SPU) = chunkSize | (numChunks << 16);

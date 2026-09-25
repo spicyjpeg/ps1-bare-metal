@@ -29,7 +29,7 @@
  * intervention is needed to stop or restart playback of a properly encoded
  * sample after it ends.
  *
- * The only minor complication comes from the fact the SPU only supports onez
+ * The only minor complication comes from the fact the SPU only supports one
  * data format - a variant of the proprietary "bit rate reduction" (BRR) ADPCM
  * codec introduced with the S-DSP and subsequently used on later PlayStations.
  * The build script for this example uses psxavenc to perform the encoding and
@@ -178,16 +178,16 @@ static void initSPU(void) {
 	// configured to use the proper signals and timings for the device. The BIOS
 	// kernel already performs this initialization on startup, but it's useful
 	// to do it again explicitly as a safeguard.
-	BIU_DEV4_CTRL = 0
-		| BIU_CTRL_WRITE_DELAY(1)
-		| BIU_CTRL_READ_DELAY(14)
-		| BIU_CTRL_RECOVERY
-		| BIU_CTRL_WIDTH_16
-		| BIU_CTRL_AUTO_INCR
-		| BIU_CTRL_ADDR_BITS(9)
-		| BIU_CTRL_DMA_DELAY(0)
-		| BIU_CTRL_DMA_DELAY_ENABLE;
-	BIU_COM_DELAY = 0
+	BIU_DEV4_DELAY = 0
+		| BIU_DEV_DELAY_WRITE_CYCLES(1)
+		| BIU_DEV_DELAY_READ_CYCLES(14)
+		| BIU_DEV_DELAY_RECOVERY
+		| BIU_DEV_DELAY_WIDTH_16
+		| BIU_DEV_DELAY_AUTO_INCR
+		| BIU_DEV_DELAY_ADDR_BITS(9)
+		| BIU_DEV_DELAY_DMA_CYCLES(0)
+		| BIU_DEV_DELAY_DMA_CYCLES_ENABLE;
+	BIU_COM_DELAY  = 0
 		| BIU_COM_DELAY_RECOVERY(5)
 		| BIU_COM_DELAY_HOLD(2)
 		| BIU_COM_DELAY_FLOAT(3)

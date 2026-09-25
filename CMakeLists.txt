@@ -40,8 +40,8 @@ if("${PSXAVENC_PATH}" STREQUAL "PSXAVENC_PATH-NOTFOUND")
 audio encoding will be skipped.")
 endif()
 
-# Build a support library containing code common to all examples (mostly
-# standard C library functions) and link it by default into every executable.
+# Build a support library containing code common to all examples (standard C
+# library functions) and link it by default into every executable.
 add_library(
 	c OBJECT
 	src/libc/clz.s
@@ -52,7 +52,6 @@ add_library(
 	src/libc/setjmp.s
 	src/libc/string.c
 	src/libc/string.s
-	src/ps1/cache.s
 	src/vendor/printf.c
 )
 target_include_directories(
@@ -110,5 +109,5 @@ if(NOT skipAudioExamples)
 endif()
 
 addPS1Executable(example13_cdromInit src/common/font.c src/common/gpu.c src/13_cdromInit/main.c)
-addBinaryFile(example13_cdromInit fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example13_cdromInit fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addBinaryFile   (example13_cdromInit fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile   (example13_cdromInit fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")

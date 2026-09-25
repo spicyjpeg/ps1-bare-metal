@@ -84,7 +84,7 @@ static void waitForGPUDMADone_(void) {
 	// for the GPU itself to flush the last chunk.
 	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
-	while (!(GPU_STAT & GPU_STAT_WRITE_READY))
+	while (!(GPU_STAT & GPU_STAT_WFEP))
 		__asm__ volatile("");
 }
 
