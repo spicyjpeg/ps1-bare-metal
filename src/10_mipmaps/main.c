@@ -84,7 +84,7 @@ static inline const MipmapInfo *getBestMipmap(int area) {
 	//     log2(sqrt(16 * 16)) == log2(16 * 16) / 2 == 4
 	//     log2(sqrt(32 * 32)) == log2(32 * 32) / 2 == 5
 	//     log2(sqrt(64 * 64)) == log2(64 * 64) / 2 == 6
-	int index = ceilLog2_(area) / 2 - FIRST_MIPMAP_EXP;
+	int index = (ceilLog2_(area) + 1) / 2 - FIRST_MIPMAP_EXP;
 
 	// Clamp the resulting index to the bounds of our table, in order to handle
 	// faces that are too small or large.

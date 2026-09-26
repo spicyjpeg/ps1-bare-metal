@@ -286,7 +286,11 @@ static int playSample(
 
 static void printChannelInfo(char *output) {
 	char *ptr = output;
-	ptr      += sprintf(ptr, "Active SPU channels:\n");
+	ptr      += sprintf(
+		ptr,
+		"Active SPU channels:\n"
+		"  Index\tADSR vol.\tStart\tLoop\n"
+	);
 
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
 		int16_t  envx = (int16_t) SPU_CH_ENVX(i);
@@ -300,7 +304,7 @@ static void printChannelInfo(char *output) {
 
 		ptr += sprintf(
 			ptr,
-			"  #%d\tADSR: %d%%, start: %05X, loop: %05X\n",
+			"  %d\t%d%%\t%05X\t%05X\n",
 			i,
 			(envx * 100) >> 15,
 			ssa            * SPU_RAM_ADDR_UNIT,
@@ -395,7 +399,7 @@ int main(int argc, const char **argv) {
 		ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 		// Display all currently active channels.
-		char info[256];
+		char info[1024];
 
 		printChannelInfo(info);
 		printString(chain, &font, 16, 32, info);

@@ -21,9 +21,11 @@
 
 #define DEF(type) static inline type __attribute__((always_inline))
 
-#define GTE_UNIT  (1 << 12)
-#define GTE_SQRT2 (GTE_UNIT * 141421 / 100000)
-#define GTE_SQRT3 (GTE_UNIT * 173205 / 100000)
+#define GTE_UNIT   (1 << 12)
+#define GTE_SQRT2  (GTE_UNIT * 141421 / 100000)
+#define GTE_RSQRT2 (GTE_UNIT *  70711 / 100000)
+#define GTE_SQRT3  (GTE_UNIT * 173205 / 100000)
+#define GTE_RSQRT3 (GTE_UNIT *  57735 / 100000)
 
 #ifdef __cplusplus
 extern "C" {

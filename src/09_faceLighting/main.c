@@ -126,9 +126,9 @@ int main(int argc, const char **argv) {
 	// emission color of the respective light source. We'll use two sources, a
 	// bright white one and a dimmer one.
 	gte_setLightColorMatrix(
-		GTE_UNIT * 3, GTE_UNIT / 3, 0,
-		GTE_UNIT * 3, GTE_UNIT / 3, 0,
-		GTE_UNIT * 3, GTE_UNIT / 3, 0
+		GTE_UNIT * 2, GTE_UNIT / 2, 0,
+		GTE_UNIT * 2, GTE_UNIT / 2, 0,
+		GTE_UNIT * 2, GTE_UNIT / 2, 0
 	);
 
 	// Set the ambient light color. Note that this color is added to all faces,
@@ -170,9 +170,9 @@ int main(int argc, const char **argv) {
 		// emit from the top, while the second will light the cube from the
 		// front-bottom-right corner.
 		gte_setLightMatrix(
-			        0, -GTE_UNIT,          0,
-			GTE_SQRT3, GTE_SQRT3, -GTE_SQRT3,
-			        0,         0,          0
+			         0,  -GTE_UNIT,           0,
+			GTE_RSQRT3, GTE_RSQRT3, -GTE_RSQRT3,
+			         0,          0,           0
 		);
 		transformLightMatrix_();
 

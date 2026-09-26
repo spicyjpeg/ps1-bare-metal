@@ -77,40 +77,54 @@ static void issueCDROMCommand(
 	CDROM_COMMAND = command;
 }
 
-#define IRQ_TIMEOUT 5000000
-
-static CDROMIRQType waitForCDROMIRQ(uint8_t *response, size_t maxRespLength) {
-	// Check for incoming interrupts by polling the interrupt status register in
-	// bank 1, with a timeout to avoid stalling shall the drive become
-	// unresponsive. Note that this is a separate register from the CPU's
+static CDROMIRQType checkCDROMIRQ(uint8_t *response, size_t maxRespLength) {
+	// Check for incoming interrupts by polling the host interrupt status
+	// register in bank 1. Note that this is a separate register from the CPU's
 	// IRQ_STAT: the decoder has its own interrupt controller to keep track of
 	// what exactly caused any IRQ sent to the main one.
 	CDROM_ADDRESS = 1;
 
-	for (int timeout = IRQ_TIMEOUT; timeout > 0; timeout -= 10) {
-		// Bits 0-2 of HINTSTS were meant to represent three independent
-		// notification flags from the mechacon, but in practice the firmware
-		// uses them as a single 3-bit "interrupt type" code instead. These
-		// flags are not guaranteed to update at exactly the same time
-		// (especially on earlier console models that run the mechacon and
-		// decoder on different clocks), so we must ensure they are stable
-		// before continuing.
-		int irq1 = CDROM_HINTSTS & CDROM_HINT_INT_BITMASK;
-		int irq2 = CDROM_HINTSTS & CDROM_HINT_INT_BITMASK;
+	// Bits 0-2 of HINTSTS were meant to represent three separate notification
+	// flags from the mechacon, but in practice the firmware uses them as a
+	// single 3-bit "interrupt type" code instead. The flags are not guaranteed
+	// to update at exactly the same time (they do not on earlier console models
+	// that run the mechacon and decoder on different clocks), so we must wait
+	// for them to stabilize.
+	int irq1, irq2;
 
-		if (irq1 && (irq1 == irq2)) {
-			// Once the flags settle, we can safely reset them and read out any
-			// bytes received in the response mailbox.
-			for (; maxRespLength > 0; maxRespLength--) {
-				if (!(CDROM_HSTS & CDROM_HSTS_RSLRRDY))
-					break;
+	do {
+		irq1 = CDROM_HINTSTS & CDROM_HINT_INT_BITMASK;
+		irq2 = CDROM_HINTSTS & CDROM_HINT_INT_BITMASK;
+	} while (irq1 != irq2);
 
-				*(response++) = CDROM_RESULT;
-			}
+	if (irq1) {
+		// If an interrupt occurred, we can read out the mechacon's response
+		// from the result mailbox and reset the IRQ flags.
+		for (; maxRespLength > 0; maxRespLength--) {
+			if (!(CDROM_HSTS & CDROM_HSTS_RSLRRDY))
+				break;
 
-			CDROM_HCLRCTL = CDROM_HCLRCTL_CLRINT_BITMASK;
-			return irq1;
+			*(response++) = CDROM_RESULT;
 		}
+
+		CDROM_HCLRCTL = CDROM_HCLRCTL_CLRINT_BITMASK;
+	}
+
+	return irq1;
+}
+
+#define IRQ_TIMEOUT 5000000
+
+// We'll define a function to block until a CD-ROM interrupt is received for
+// convenience's sake. This should be avoided in timing-sensitive code (such as
+// a game's main loop) since the mechacon is slow at processing commands, but
+// it will keep this example simple and easy to follow.
+static CDROMIRQType waitForCDROMIRQ(uint8_t *response, size_t maxRespLength) {
+	for (int timeout = IRQ_TIMEOUT; timeout > 0; timeout -= 10) {
+		CDROMIRQType irq = checkCDROMIRQ(response, maxRespLength);
+
+		if (irq)
+			return irq;
 
 		delayMicroseconds(10);
 	}
@@ -153,10 +167,12 @@ static void initCDROM(void) {
 	// send certain commands between the acknowledge and complete IRQs.
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
-	while (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
-		__asm__ volatile("");
-	while (waitForCDROMIRQ(0, 0) != CDROM_IRQ_COMPLETE)
-		__asm__ volatile("");
+	CDROMIRQType irq;
+
+	irq = waitForCDROMIRQ(0, 0);
+	assert(irq == CDROM_IRQ_ACKNOWLEDGE);
+	irq = waitForCDROMIRQ(0, 0);
+	assert(irq == CDROM_IRQ_COMPLETE);
 }
 
 static void printCDROMInfo(char *output) {
@@ -188,7 +204,7 @@ static void printCDROMInfo(char *output) {
 	else
 		ptr += sprintf(ptr, "  Firmware version:\tunknown (got IRQ %d)\n", irq);
 
-	if (response[3] != 0xc0) {
+	if (!((irq == CDROM_IRQ_ACKNOWLEDGE) && (response[3] == 0xc0))) {
 		// Fetch the drive's region using another test command. The returned
 		// string ("for U/C", "for Japan", "for Europe" and so on) is not
 		// null-terminated, so we must prefill the response buffer in order to
@@ -223,6 +239,13 @@ static void printCDROMStatus(char *output) {
 	// commands there is no complete IRQ to wait for.
 	issueCDROMCommand(CDROM_CMD_NOP, 0, 0);
 	CDROMIRQType irq = waitForCDROMIRQ(&status, sizeof(status));
+
+	// The mechacon sends an unsolicited error IRQ when the lid is opened. If
+	// that happens before it processes our nop command, we may end up reading
+	// the error packet from the mailbox rather than the actual response to the
+	// command, which we'll have to wait again for.
+	if ((irq == CDROM_IRQ_ERROR) && (status & CDROM_CMDSTAT_LID_OPEN))
+		irq = waitForCDROMIRQ(&status, sizeof(status));
 
 	if (irq == CDROM_IRQ_ACKNOWLEDGE)
 		ptr += sprintf(
@@ -280,14 +303,17 @@ int main(int argc, const char **argv) {
 		FONT_COLOR_DEPTH
 	);
 
-	// Probe the drive's firmware information once, before entering the main
-	// loop.
-	char info[256];
+	// Probe the drive's firmware information and initial status once, before
+	// entering the main loop.
+	char info[256], status[256];
 
 	printCDROMInfo(info);
+	printCDROMStatus(status);
 
 	GPUDMAChain dmaChains[2];
 	bool        usingSecondFrame = false;
+	int         frameCounter     = 0;
+	int         nextPoll         = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
@@ -295,6 +321,7 @@ int main(int argc, const char **argv) {
 
 		GPUDMAChain *chain = &dmaChains[usingSecondFrame];
 		usingSecondFrame   = !usingSecondFrame;
+		frameCounter++;
 
 		uint32_t *ptr;
 
@@ -316,10 +343,16 @@ int main(int argc, const char **argv) {
 		ptr[1] = gp0_xy(bufferX, bufferY);
 		ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-		// Probe and display the drive's status once per frame.
-		char status[256];
+		// Check for status updates every 15 frames (250 or 300 ms depending on
+		// video mode). Given the slowness of the mechacon it's generally a good
+		// idea to rate limit commands, especially when blocking on a response:
+		// even a simple nop command may take up to ~5 ms, which is 30% of the
+		// available 16.6 ms frame budget at 60 fps.
+		if (frameCounter > nextPoll) {
+			printCDROMStatus(status);
+			nextPoll = frameCounter + 15;
+		}
 
-		printCDROMStatus(status);
 		printString(chain, &font, 16, 32, info);
 		printString(chain, &font, 16, 96, status);
 

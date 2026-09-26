@@ -75,8 +75,8 @@ static void clearOrderingTable_(uint32_t *table, size_t numEntries) {
 		__asm__ volatile("");
 }
 
-// As we're using an ordering table, allocateGP0Packet() now takes the packet's
-// Z index (i.e. the index of the "bucket" to link it to) as an argument. The
+// We need a new variant of allocateGP0Packet() that takes the packet's Z index
+// (i.e. the index of the "bucket" to link it to) as an additional argument. The
 // table is reversed, so packets with higher Z values will be drawn first and
 // between two packets with the same Z index the most recently added one will
 // take precedence.
