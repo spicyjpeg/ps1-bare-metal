@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define DEF(type) static inline type __attribute__((always_inline))
@@ -125,6 +126,19 @@ typedef enum {
 	CDROM_MODE_SPEED_2X      = 1 << 7
 } CDROMModeFlag;
 
+DEF(size_t) cdrom_sectorLength(uint8_t mode) {
+	switch (mode & CDROM_MODE_SIZE_BITMASK) {
+		case CDROM_MODE_SIZE_2048:
+			return 2048;
+		case CDROM_MODE_SIZE_2328:
+			return 2328;
+		case CDROM_MODE_SIZE_2340:
+			return 2340;
+		default:
+			return 0;
+	}
+}
+
 /* CD-XA sector header definitions */
 
 typedef enum {
@@ -139,7 +153,9 @@ typedef enum {
 } XASubmodeFlag;
 
 typedef enum {
-	XA_CI_STEREO              = 1 << 0,
+	XA_CI_CHANNELS_BITMASK    = 3 << 0,
+	XA_CI_CHANNELS_MONO       = 0 << 0,
+	XA_CI_CHANNELS_STEREO     = 1 << 0,
 	XA_CI_SAMPLE_RATE_BITMASK = 3 << 2,
 	XA_CI_SAMPLE_RATE_37800   = 0 << 2,
 	XA_CI_SAMPLE_RATE_18900   = 1 << 2,
@@ -163,8 +179,9 @@ DEF(uint8_t) cdrom_decodeBCD(uint8_t value) {
 }
 
 DEF(void) cdrom_lbaToMSF(uint8_t *msf, unsigned int lba) {
-	lba += 150; // Skip lead-in area (LBA 0 is always at 00:02:00)
-
+	// The 2-second lead-in area at 00:00:00 can't hold any audio or data and
+	// must be skipped.
+	lba   += 150;
 	msf[0] = cdrom_encodeBCD(lba  / 4500);
 	msf[1] = cdrom_encodeBCD((lba /   75) % 60);
 	msf[2] = cdrom_encodeBCD((lba /    1) % 75);

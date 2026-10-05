@@ -171,6 +171,8 @@ void receiveVRAMData(
 }
 
 void clearOrderingTable(uint32_t *table, size_t numEntries) {
+	assert(!((uintptr_t) table % 4));
+
 	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
 	DMA_BCR (DMA_OTC) = numEntries;
 	DMA_CHCR(DMA_OTC) = 0

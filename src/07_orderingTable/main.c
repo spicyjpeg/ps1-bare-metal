@@ -54,13 +54,15 @@ typedef struct {
 } GPUOrderedDMAChain_;
 
 static void clearOrderingTable_(uint32_t *table, size_t numEntries) {
+	assert(!((uintptr_t) table % 4));
+
 	// Set up the OTC DMA channel to write a new empty ordering table to RAM.
 	// The table is always reversed and generated "backwards" (the last item in
 	// the table is the first one that will be written), so we must give DMA a
 	// pointer to the end of the table rather than its beginning. Since OTC is
 	// not connected to an external peripheral, it must run in "burst" mode
-	// (transferring all data at once with no chunking nor synchronization)
-	// rather than the slice mode we used for GPU DMA.
+	// (transferring all data at once with no chunking nor synchronization) with
+	// a manual trigger rather than the slice mode we used for GPU DMA.
 	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
 	DMA_BCR (DMA_OTC) = numEntries;
 	DMA_CHCR(DMA_OTC) = 0

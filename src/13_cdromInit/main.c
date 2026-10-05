@@ -26,12 +26,11 @@
  * controller or "mechacon") operating concurrently. The CPU only has direct
  * access to the sector decoder, whose main job is to handle data sectors during
  * a read. To actually start reading data or perform other tasks such as CD
- * audio playback, we must send commands to the mechacon through a mailbox built
- * into the decoder, then wait for it to respond by raising one or more
- * interrupts. In this example we'll simply use basic commands to initialize the
- * drive and fetch information such as its firmware version, region and current
- * status, laying down the foundations for the next examples that will actually
- * read data from a disc.
+ * audio playback, we must send commands to the mechacon through a mailbox in
+ * the decoder, then wait for it to respond by raising one or more interrupts.
+ * In this example we'll take a preliminary look at this flow, using basic
+ * commands to initialize the drive and fetch information such as its firmware
+ * version, region and current status. No disc is required to run the example.
  *
  * NOTE: this example uses mechacon command and interrupt definitions from the
  * ps1/cdromdef.h header, as listing them directly here would only add
@@ -115,18 +114,19 @@ static CDROMIRQType checkCDROMIRQ(uint8_t *response, size_t maxRespLength) {
 
 #define IRQ_TIMEOUT 5000000
 
-// We'll define a function to block until a CD-ROM interrupt is received for
-// convenience's sake. This should be avoided in timing-sensitive code (such as
-// a game's main loop) since the mechacon is slow at processing commands, but
+// For convenience's sake we'll define a function to block until a CD-ROM
+// interrupt is received, with a safety timeout to prevent hanging if the drive
+// becomes unresponsive. This should be avoided in timing-sensitive code (such
+// as a game's main loop) since the mechacon is slow at processing commands, but
 // it will keep this example simple and easy to follow.
 static CDROMIRQType waitForCDROMIRQ(uint8_t *response, size_t maxRespLength) {
-	for (int timeout = IRQ_TIMEOUT; timeout > 0; timeout -= 10) {
+	for (int timeout = IRQ_TIMEOUT; timeout > 0; timeout -= 5) {
 		CDROMIRQType irq = checkCDROMIRQ(response, maxRespLength);
 
 		if (irq)
 			return irq;
 
-		delayMicroseconds(10);
+		delayMicroseconds(5);
 	}
 
 	return CDROM_IRQ_NONE;
@@ -230,7 +230,7 @@ static void printCDROMStatus(char *output) {
 	char *ptr = output;
 	ptr      += sprintf(ptr, "Current CD-ROM status:\n");
 
-	uint8_t status;
+	uint8_t status = 0;
 
 	// Use the "nop" command to obtain the mechacon's current status flags.
 	// Almost all non-test commands return them in the first byte of their
