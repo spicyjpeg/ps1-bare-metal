@@ -19,11 +19,12 @@
  * commands to and obtain data from connected controllers.
  *
  * The PS1 has its controllers and memory cards interfaced over a serial bus.
- * Both communicate using a simple packet-based protocol, listening for request
- * packets sent by the console and replying with appropriate responses. Each
- * packet consists of a device address, a command and a series of parameters,
- * while responses will typically contain information about the controller and
- * the current state of its buttons in addition to any command-specific payload.
+ * Both communicate using a simple packet-based protocol known as "PSCTP",
+ * listening for request packets sent by the console and replying accordingly.
+ * Each packet consists of a device address, a command and a series of
+ * parameters, while responses will typically contain information about the
+ * controller and the current state of its buttons in addition to any
+ * command-specific payload.
  *
  * Packets are sent and received through the SIO0 serial interface, similar to
  * the SIO1 interface we saw when setting up logging. All four controller and
@@ -34,6 +35,10 @@
  * them packets. This may sound strange but is in fact a typical way to set up
  * communications between electronics: the PS1's controller bus is in fact a
  * variant of the common SPI protocol.
+ *
+ * NOTE: this example uses device address, command and button definitions from
+ * the ps1/ctpdef.h header, as listing them directly here would only add
+ * unnecessary clutter.
  */
 
 #include <stdbool.h>
@@ -42,8 +47,13 @@
 #include <stdio.h>
 #include "common/font.h"
 #include "common/gpu.h"
+#include "ps1/ctpdef.h"
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
+
+#define BAUD_RATE   250000
+#define DTR_DELAY       30
+#define DSR_TIMEOUT    100
 
 static void delayMicroseconds(int time) {
 	// Calculate the approximate number of CPU cycles that need to be burned in
@@ -69,7 +79,7 @@ static void delayMicroseconds(int time) {
 	);
 }
 
-static void initControllerIO(void) {
+static void initSIO0(void) {
 	// Reset SIO0, initialize it with the standard settings used for controller
 	// and memory card communication (250000bps, 8 data bits) and configure it
 	// to send a signal to the interrupt controller whenever the DSR input is
@@ -79,7 +89,7 @@ static void initControllerIO(void) {
 	SIO_MR(0) = 0
 		| SIO_MR_BR_DIV1
 		| SIO_MR_CHLEN_8;
-	SIO_BR(0) = F_CPU / 250000;
+	SIO_BR(0) = F_CPU / BAUD_RATE;
 	SIO_CR(0) = 0
 		| SIO_CR_TXEN
 		| SIO_CR_RXEN
@@ -90,7 +100,7 @@ static void initControllerIO(void) {
 	IRQ_MASK &= ~(1 << IRQ_SIO0);
 }
 
-static inline void selectControllerPort(int port) {
+static inline void selectSIO0Port(int port) {
 	// Set or clear the bit that controls which set of controller and memory
 	// card ports is going to have its DTR (chip select) signal asserted.
 	// Devices will ignore any commands received while the chip select is not
@@ -115,9 +125,6 @@ static uint8_t exchangeByte(uint8_t value) {
 
 	return SIO_DR(0);
 }
-
-#define DTR_DELAY    30
-#define DSR_TIMEOUT 100
 
 static bool waitForAcknowledge(void) {
 	// Devices will acknowledge received bytes and request more data by briefly
@@ -147,21 +154,12 @@ static bool waitForAcknowledge(void) {
 	return false;
 }
 
-// Each controller port shares its chip select with the respective memory card
-// slot, so a secondary addressing mechanism is used to specify whether a packet
-// is targeted at the controller or memory card. The first byte we need to send
-// is thus the "address" of the device that shall handle it.
-typedef enum {
-	SIO0_ADDR_CONTROLLER  = 0x01,
-	SIO0_ADDR_MEMORY_CARD = 0x81
-} SIO0DeviceAddress;
-
-static size_t exchangeSIO0Packet(
-	SIO0DeviceAddress address,
-	const uint8_t     *request,
-	uint8_t           *response,
-	size_t            reqLength,
-	size_t            maxRespLength
+static size_t exchangeCTPPacket(
+	CTPDeviceAddress address,
+	const uint8_t    *request,
+	uint8_t          *response,
+	size_t           reqLength,
+	size_t           maxRespLength
 ) {
 	// Drain any leftover bytes from SIO0's receive queue.
 	while (SIO_SR(0) & SIO_SR_RXRDY)
@@ -174,9 +172,12 @@ static size_t exchangeSIO0Packet(
 	SIO_CR(0) |= SIO_CR_DTR | SIO_CR_ERRRST;
 	delayMicroseconds(DTR_DELAY);
 
-	// Send the address byte (and ignore any data received with it; devices
-	// won't respond until they have received and validated the full address)
-	// before the request payload.
+	// Each controller port shares its chip select with the respective memory
+	// card slot, so the CTP protocol employs a secondary addressing mechanism
+	// to specify whether a packet is targeted at the controller or memory card.
+	// The first byte we need to send is thus the "address" of the device that
+	// shall handle it. We'll ignore any data received here (devices cannot
+	// respond properly until they have received and the full address).
 	exchangeByte(address);
 
 	size_t respLength = 0;
@@ -206,89 +207,66 @@ static size_t exchangeSIO0Packet(
 	return respLength;
 }
 
-// After the address, the first byte of the request payload holds the command
-// code. The only command supported by all controller types is SIO0_PAD_POLL.
-// More advanced controllers also have a "configuration mode" which grants
-// access to rumble and other functionality, but we'll only use the basic poll
-// command in this example.
-typedef enum {
-	// Controller commands
-	SIO0_PAD_POLL        = 'B', // Read controller state
-	SIO0_PAD_CONFIG_MODE = 'C', // Enter or exit configuration mode
-
-	// Configuration mode commands
-	SIO0_CFG_INIT_PRESSURE  = '@', // Initialize DualShock 2 pressure sensors
-	SIO0_CFG_SET_ANALOG     = 'D', // Set analog mode/LED state
-	SIO0_CFG_GET_ANALOG     = 'E', // Get analog mode/LED state
-	SIO0_CFG_GET_ACT_INFO   = 'F', // Get information about a feedback actuator
-	SIO0_CFG_GET_ACT_LIST   = 'G', // Get list of all feedback actuators
-	SIO0_CFG_GET_ACT_STATE  = 'H', // Get current state of feedback actuators
-	SIO0_CFG_GET_MODE       = 'L', // Get list of all supported modes
-	SIO0_CFG_REQUEST_SETUP  = 'M', // Configure poll request format
-	SIO0_CFG_RESPONSE_SETUP = 'O', // Configure poll response format
-
-	// Memory card commands
-	SIO0_CARD_READ     = 'R', // Read 128-byte sector
-	SIO0_CARD_GET_SIZE = 'S', // Retrieve size information
-	SIO0_CARD_WRITE    = 'W'  // Write 128-byte sector
-} SIO0DeviceCommand;
-
 static const char *const controllerTypes[] = {
-	"unknown",            // ID 0x0
-	"mouse",              // ID 0x1
-	"neGcon",             // ID 0x2
-	"Konami Justifier",   // ID 0x3
-	"digital controller", // ID 0x4
-	"analog stick",       // ID 0x5
-	"Guncon",             // ID 0x6
-	"analog controller",  // ID 0x7
-	"multitap",           // ID 0x8
-	"keyboard",           // ID 0x9
-	"unknown",            // ID 0xa
-	"unknown",            // ID 0xb
-	"unknown",            // ID 0xc
-	"unknown",            // ID 0xd
-	"Jogcon",             // ID 0xe
-	"configuration mode"  // ID 0xf
+	"unknown",
+	"mouse",              // CTP_TYPE_MOUSE
+	"neGcon",             // CTP_TYPE_NEGCON
+	"Konami Justifier",   // CTP_TYPE_JUSTIFIER
+	"digital controller", // CTP_TYPE_DIGITAL
+	"analog stick",       // CTP_TYPE_ANALOG_STICK
+	"Guncon",             // CTP_TYPE_GUNCON
+	"analog controller",  // CTP_TYPE_ANALOG
+	"multitap",           // CTP_TYPE_MULTITAP
+	"keyboard",           // CTP_TYPE_KEYBOARD
+	"unknown",
+	"unknown",
+	"unknown",
+	"unknown",
+	"Jogcon",             // CTP_TYPE_JOGCON
+	"configuration mode"  // CTP_TYPE_CONFIG_MODE
 };
 
 static const char *const buttonNames[] = {
-	"Select",   // Bit  0
-	"L3",       // Bit  1
-	"R3",       // Bit  2
-	"Start",    // Bit  3
-	"Up",       // Bit  4
-	"Right",    // Bit  5
-	"Down",     // Bit  6
-	"Left",     // Bit  7
-	"L2",       // Bit  8
-	"R2",       // Bit  9
-	"L1",       // Bit 10
-	"R1",       // Bit 11
-	"Triangle", // Bit 12
-	"Circle",   // Bit 13
-	"X",        // Bit 14
-	"Square"    // Bit 15
+	"select",   // BTN_PAD_SELECT
+	"L3",       // BTN_PAD_L3
+	"R3",       // BTN_PAD_R3
+	"start",    // BTN_PAD_START
+	"up",       // BTN_PAD_UP
+	"right",    // BTN_PAD_RIGHT
+	"down",     // BTN_PAD_DOWN
+	"left",     // BTN_PAD_LEFT
+	"L2",       // BTN_PAD_L2
+	"R2",       // BTN_PAD_R2
+	"L1",       // BTN_PAD_L1
+	"R1",       // BTN_PAD_R1
+	"triangle", // BTN_PAD_TRIANGLE
+	"circle",   // BTN_PAD_CIRCLE
+	"cross",    // BTN_PAD_CROSS
+	"square"    // BTN_PAD_SQUARE
 };
 
 static void printControllerInfo(int port, char *output) {
 	char *ptr = output;
 	ptr      += sprintf(ptr, "Port %d:\n", port + 1);
 
-	// Build the request data for the poll command.
+	// Prepare the CTP request. The first byte of the payload after the address
+	// is the command code, followed by any required parameters. All controllers
+	// support the READ_DATA command; more advanced ones such as the DualShock
+	// also have a "configuration mode" we won't cover in this example, which
+	// grants access to rumble and other functionality.
 	uint8_t request[4], response[8];
 
-	request[0] = SIO0_PAD_POLL; // Command
-	request[1] = 0;             // Multitap port number (0 for no multitap)
-	request[2] = 0;             // Rumble/actuator 1 control
-	request[3] = 0;             // Rumble/actuator 2 control
+	request[0] = CTP_PAD_READ_DATA; // Command
+	request[1] = CTP_TAP_NONE;      // Multitap port
+	request[2] = 0;                 // Rumble/actuator 1 control
+	request[3] = 0;                 // Rumble/actuator 2 control
 
-	// Send the packet to the specified controller port. Note that this is a
+	// Send the request to the specified controller port. Note that this is a
 	// relatively slow process and should be done only once per frame, unless
 	// higher polling rates are desired.
-	selectControllerPort(port);
-	size_t respLength = exchangeSIO0Packet(
-		SIO0_ADDR_CONTROLLER,
+	selectSIO0Port(port);
+	size_t respLength = exchangeCTPPacket(
+		CTP_ADDR_CONTROLLER,
 		request,
 		response,
 		sizeof(request),
@@ -311,9 +289,9 @@ static void printControllerInfo(int port, char *output) {
 		controllerTypes[response[0] >> 4]
 	);
 
-	// Bytes 2 and 3 hold a bitfield representing the state all buttons. The
-	// bits are active-low (zero means the button is pressed), so we'll invert
-	// the entire field prior to checking which bits are set.
+	// Bytes 2 and 3 hold a little-endian bitfield representing the state of all
+	// buttons. The bits are active-low (zero means the button is pressed), so
+	// we'll invert the entire field prior to checking which bits are set.
 	uint16_t buttons = (response[2] | (response[3] << 8)) ^ 0xffff;
 
 	for (int i = 0; i < 16; i++) {
@@ -353,7 +331,7 @@ int main(int argc, const char **argv) {
 		SCREEN_WIDTH,
 		SCREEN_HEIGHT
 	);
-	initControllerIO();
+	initSIO0();
 
 	TextureInfo font;
 

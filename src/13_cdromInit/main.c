@@ -32,9 +32,8 @@
  * commands to initialize the drive and fetch information such as its firmware
  * version, region and current status. No disc is required to run the example.
  *
- * NOTE: this example uses mechacon command and interrupt definitions from the
- * ps1/cdromdef.h header, as listing them directly here would only add
- * unnecessary clutter.
+ * NOTE: the mechacon command and interrupt definitions used throughout this
+ * example are provided by the ps1/cdromdef.h header.
  */
 
 #include <assert.h>
