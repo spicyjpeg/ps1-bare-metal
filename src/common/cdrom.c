@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "common/cdrom.h"
@@ -47,6 +48,9 @@ void initCDROM(void) {
 		| CDROM_HCLRCTL_CLRBFEMPT
 		| CDROM_HCLRCTL_CLRBFWRDY;
 
+	DMA_DPCR           |= DMA_DPCR_CH_ENABLE(DMA_CDROM);
+	DMA_CHCR(DMA_CDROM) = 0;
+
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
 	CDROMIRQType irq;
@@ -57,9 +61,44 @@ void initCDROM(void) {
 	assert(irq == CDROM_IRQ_COMPLETE);
 }
 
+void setupCDROMAudio(bool mono) {
+	CDROM_ADDRESS = 2;
+	CDROM_ATV0    = mono ? 64 : 128; // L -> L
+	CDROM_ATV1    = mono ? 64 :   0; // L -> R
+	CDROM_ADDRESS = 3;
+	CDROM_ATV2    = mono ? 64 : 128; // R -> R
+	CDROM_ATV3    = mono ? 64 :   0; // R -> L
+	CDROM_ADPCTL  = CDROM_ADPCTL_CHNGATV;
+
+	SPU_ATTR |= SPU_ATTR_I2SA_ENABLE;
+	SPU_AVOLL = 0x7fff;
+	SPU_AVOLR = 0x7fff;
+}
+
 void waitForCDROMDMADone(void) {
 	while (DMA_CHCR(DMA_CDROM) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
+}
+
+void receiveCDROMSector(void *data, size_t length) {
+	waitForCDROMDMADone();
+	assert(!((uintptr_t) data % 4));
+
+	length = (length + 3) / 4;
+
+	CDROM_ADDRESS = 0;
+	CDROM_HCHPCTL = CDROM_HCHPCTL_BFRD;
+
+	while (!(CDROM_HSTS & CDROM_HSTS_DRQSTS))
+		__asm__ volatile("");
+
+	DMA_MADR(DMA_CDROM) = (uintptr_t) data;
+	DMA_BCR (DMA_CDROM) = length;
+	DMA_CHCR(DMA_CDROM) = 0
+		| DMA_CHCR_READ
+		| DMA_CHCR_MODE_BURST
+		| DMA_CHCR_ENABLE
+		| DMA_CHCR_TRIGGER;
 }
 
 void issueCDROMCommand(
@@ -116,4 +155,87 @@ CDROMIRQType waitForCDROMIRQ(uint8_t *response, size_t maxRespLength) {
 	}
 
 	return CDROM_IRQ_NONE;
+}
+
+bool playCDDA(unsigned int track, uint8_t mode) {
+	checkCDROMIRQ(0, 0);
+
+	mode |= CDROM_MODE_CDDA;
+
+	issueCDROMCommand(CDROM_CMD_SETMODE, &mode, sizeof(mode));
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+
+	uint8_t bcdTrack = cdrom_encodeBCD(track);
+
+	if (track > 0)
+		issueCDROMCommand(CDROM_CMD_PLAY, &bcdTrack, sizeof(bcdTrack));
+	else
+		issueCDROMCommand(CDROM_CMD_PLAY, 0, 0);
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+
+	return true;
+}
+
+bool startCDROMRead(unsigned int lba, uint8_t mode, bool retry) {
+	checkCDROMIRQ(0, 0);
+
+	uint8_t msf[3];
+
+	cdrom_lbaToMSF(msf, lba);
+
+	issueCDROMCommand(CDROM_CMD_SETLOC, msf, sizeof(msf));
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+
+	issueCDROMCommand(CDROM_CMD_SETMODE, &mode, sizeof(mode));
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+
+	issueCDROMCommand(retry ? CDROM_CMD_READN : CDROM_CMD_READS, 0, 0);
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+
+	return true;
+}
+
+bool pauseCDROMRead(void) {
+	checkCDROMIRQ(0, 0);
+
+	issueCDROMCommand(CDROM_CMD_PAUSE, 0, 0);
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_ACKNOWLEDGE)
+		return false;
+	if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_COMPLETE)
+		return false;
+
+	return true;
+}
+
+size_t readCDROMSectorsBlocking(
+	void         *data,
+	unsigned int lba,
+	size_t       numSectors,
+	uint8_t      mode
+) {
+	if (!startCDROMRead(lba, mode, true))
+		return 0;
+
+	uint8_t *ptr         = (uint8_t *) data;
+	size_t  sectorLength = cdrom_sectorLength(mode);
+	size_t  sectorsRead  = 0;
+
+	for (; sectorsRead < numSectors; sectorsRead++) {
+		if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_DATA_READY)
+			break;
+
+		receiveCDROMSector(ptr, sectorLength);
+		waitForCDROMDMADone();
+
+		ptr += sectorLength;
+	}
+
+	pauseCDROMRead();
+
+	return sectorsRead;
 }

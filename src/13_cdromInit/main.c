@@ -229,22 +229,20 @@ static void printCDROMStatus(char *output) {
 	char *ptr = output;
 	ptr      += sprintf(ptr, "Current CD-ROM status:\n");
 
+	// If the lid was opened, the mechacon may have sent us an unsolicited error
+	// IRQ since the last command. We'll preemptively clear any pending IRQ to
+	// avoid mistaking that as the response to our command.
+	checkCDROMIRQ(0, 0);
+
 	uint8_t status = 0;
 
-	// Use the "nop" command to obtain the mechacon's current status flags.
-	// Almost all non-test commands return them in the first byte of their
+	// Use the "nop" command to obtain the mechacon's current "status" bitfield.
+	// Almost all non-test commands return it in the first byte of their
 	// acknowledge responses, though some flags such as the lid status remain
 	// set until a nop command specifically is sent to clear them. As with test
 	// commands there is no complete IRQ to wait for.
 	issueCDROMCommand(CDROM_CMD_NOP, 0, 0);
 	CDROMIRQType irq = waitForCDROMIRQ(&status, sizeof(status));
-
-	// The mechacon sends an unsolicited error IRQ when the lid is opened. If
-	// that happens before it processes our nop command, we may end up reading
-	// the error packet from the mailbox rather than the actual response to the
-	// command, which we'll have to wait again for.
-	if ((irq == CDROM_IRQ_ERROR) && (status & CDROM_CMDSTAT_LID_OPEN))
-		irq = waitForCDROMIRQ(&status, sizeof(status));
 
 	if (irq == CDROM_IRQ_ACKNOWLEDGE)
 		ptr += sprintf(
@@ -302,17 +300,17 @@ int main(int argc, const char **argv) {
 		FONT_COLOR_DEPTH
 	);
 
+	char info[256], status[256];
+	int  nextPoll = 0;
+
 	// Probe the drive's firmware information and initial status once, before
 	// entering the main loop.
-	char info[256], status[256];
-
 	printCDROMInfo(info);
 	printCDROMStatus(status);
 
 	GPUDMAChain dmaChains[2];
 	bool        usingSecondFrame = false;
 	int         frameCounter     = 0;
-	int         nextPoll         = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
@@ -352,6 +350,7 @@ int main(int argc, const char **argv) {
 			nextPoll = frameCounter + 15;
 		}
 
+		// Display the firmware information and last polled status.
 		printString(chain, &font, 16, 32, info);
 		printString(chain, &font, 16, 96, status);
 

@@ -25,6 +25,8 @@ The following examples are currently available:
 |  11 | <img alt="Example 11" src="src/11_controllers/screenshot.png"   width="100" /> | [Getting input from connected controllers](src/11_controllers/main.c)             |
 |  12 | <img alt="Example 12" src="src/12_basicAudio/screenshot.png"    width="100" /> | [Setting up the SPU and playing audio samples](src/12_basicAudio/main.c)          |
 |  13 | <img alt="Example 13" src="src/13_cdromInit/screenshot.png"     width="100" /> | [Initializing the CD-ROM drive and sending commands](src/13_cdromInit/main.c)     |
+|  14 | <img alt="Example 14" src="src/14_cdAudio/screenshot.png"       width="100" /> | [Playing CD audio tracks from the disc](src/14_cdAudio/main.c)                    |
+|  15 | <img alt="Example 15" src="src/15_cdromData/screenshot.png"     width="100" /> | [Reading data sectors from the disc](src/15_cdromData/main.c)                     |
 
 New examples demonstrating more hardware features will be added over time.
 *Since I strive for this repository to be a high-quality learning resource with*
@@ -218,15 +220,14 @@ development.
 If you want to write your own examples or projects, here's a quick overview of
 the non-example subfolders in the `src` directory:
 
-- `src/libc` contains a barebones implementation of the C standard library,
-  which should be enough for most purposes. A few functions have been replaced
-  with optimized assembly implementations;
-- `src/ps1` contains a set of low-level helper headers: hardware register
-  definitions, GPU command builders, coprocessor accessors that wrap inline
-  assembly and so on;
+- `src/libc` contains a barebones implementation of the C standard library. A
+  few functions have been replaced with optimized assembly implementations;
+- `src/ps1` contains a set of headers to help with low-level hardware access:
+  register definitions, GPU command builders, coprocessor accessors that wrap
+  inline assembly and so on;
 - `src/common` can be considered a higher-level support library, consisting of
-  common functions that would otherwise be duplicated across most examples.
-  This is essentially the "SDK" the examples sit on top of;
+  frequently used functions that would otherwise be duplicated across most of
+  the examples. This is essentially the "SDK" the examples sit on top of;
 - `src/vendor` is for third-party libraries (currently only the printf library).
 
 If you create a new folder and want its contents to be built, remember to add it

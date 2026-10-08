@@ -365,10 +365,11 @@ int main(int argc, const char **argv) {
 	sendSPURAMData(sampleData, SPU_SAMPLE_OFFSET, sampleLength);
 	waitForSPUDMADone();
 
+	int nextTrigger = 0;
+
 	GPUDMAChain dmaChains[2];
 	bool        usingSecondFrame = false;
 	int         frameCounter     = 0;
-	int         nextTrigger      = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;

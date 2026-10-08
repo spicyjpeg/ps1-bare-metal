@@ -32,7 +32,7 @@
  * NOTE: in order to keep things simple this tutorial uses the ps1/gpucmd.h
  * header, which contains definitions and inline functions to quickly construct
  * GPU commands. The commands are documented in detail here:
- *     https://psx-spx.consoledev.net/ps1/gpu
+ *     https://psx-spx.consoledev.net/graphicsprocessingunitgpu
  */
 
 #include <stdio.h>

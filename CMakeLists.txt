@@ -111,3 +111,26 @@ endif()
 addPS1Executable(example13_cdromInit src/common/font.c src/common/gpu.c src/13_cdromInit/main.c)
 addBinaryFile   (example13_cdromInit fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
 addBinaryFile   (example13_cdromInit fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+
+addPS1Executable(
+	example14_cdAudio
+	src/common/cdrom.c
+	src/common/font.c
+	src/common/gpu.c
+	src/common/sio0.c
+	src/common/spu.c
+	src/14_cdAudio/main.c
+)
+addBinaryFile(example14_cdAudio fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example14_cdAudio fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+
+addPS1Executable(
+	example15_cdromData
+	src/common/cdrom.c
+	src/common/font.c
+	src/common/gpu.c
+	src/common/sio0.c
+	src/15_cdromData/main.c
+)
+addBinaryFile(example15_cdromData fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example15_cdromData fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
