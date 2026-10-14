@@ -88,16 +88,23 @@ typedef enum {
 	COP0_CAUSE_BD          =  1 << 30  // Exception occurred in delay slot
 } COP0CauseFlag;
 
-// Note that reg must be a constant value known at compile time, as the
-// mtc0/mfc0 instructions only support addressing coprocessor registers directly
-// through immediates.
+// The mtc0/mfc0 instructions only support addressing coprocessor registers
+// directly through immediates, so the register index must be a constant value
+// known at compile time.
 DEF(void) cop0_setReg(const COP0Register reg, uint32_t value) {
-	__asm__ volatile("mtc0 %0, $%1\n" :: "r"(value), "i"(reg));
+	// The "r" constraint allows for any CPU register except for $0. If the
+	// value is constant zero this will result in a register being needlessly
+	// clobbered to pass zero to mtc0, unless we use an explicit compile-time
+	// check to specify $0 directly as needed.
+	if (__builtin_constant_p(value) && !value)
+		__asm__ volatile("mtc0 $0, $%0\n" :: "n"(reg));
+	else
+		__asm__ volatile("mtc0 %0, $%1\n" :: "r"(value), "n"(reg));
 }
 DEF(uint32_t) cop0_getReg(const COP0Register reg) {
 	uint32_t value;
 
-	__asm__ volatile("mfc0 %0, $%1\n" : "=r"(value) : "i"(reg));
+	__asm__ volatile("mfc0 %0, $%1\n" : "=r"(value) : "n"(reg));
 	return value;
 }
 

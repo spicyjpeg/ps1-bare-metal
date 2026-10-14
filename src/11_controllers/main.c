@@ -51,9 +51,10 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define BAUD_RATE   250000
-#define DTR_DELAY       30
-#define DSR_TIMEOUT    100
+#define BAUD_RATE     250000
+#define DTR_DELAY         30
+#define DSR_TIMEOUT      100
+#define NUM_DSR_POLLS     20
 
 static void delayMicroseconds(int time) {
 	// Calculate the approximate number of CPU cycles that need to be burned in
@@ -136,9 +137,13 @@ static bool waitForAcknowledge(void) {
 		if (IRQ_STAT & (1 << IRQ_SIO0)) {
 			// Wait for the pulse to end if it hasn't yet, in order to prevent
 			// SIO0 from triggering another IRQ for the same pulse after we
-			// clear the current one.
-			while (SIO_SR(0) & SIO_SR_DSR)
-				__asm__ volatile("");
+			// clear the current one. The pulse is generally only 1-2 us long
+			// but there are controllers known to violate this rule, so we'll
+			// impose another safety timeout here.
+			for (int poll = NUM_DSR_POLLS; poll > 0; poll--) {
+				if (!(SIO_SR(0) & SIO_SR_DSR))
+					break;
+			}
 
 			// Reset the interrupt flag at both sides (IRQ controller and SIO0)
 			// so it can be triggered again.
@@ -254,18 +259,20 @@ static void printControllerInfo(int port, char *output) {
 	// support the READ_DATA command; more advanced ones such as the DualShock
 	// also have a "configuration mode" we won't cover in this example, which
 	// grants access to rumble and other functionality.
-	uint8_t request[4], response[8];
-
-	request[0] = CTP_PAD_READ_DATA; // Command
-	request[1] = CTP_TAP_NONE;      // Multitap port
-	request[2] = 0;                 // Rumble/actuator 1 control
-	request[3] = 0;                 // Rumble/actuator 2 control
+	uint8_t request[] = {
+		CTP_PAD_READ_DATA, // Command
+		CTP_TAP_NONE,      // Multitap port
+		0,                 // Rumble/actuator 1 control
+		0                  // Rumble/actuator 2 control
+	};
 
 	// Send the request to the specified controller port. Note that this is a
 	// relatively slow process and should be done only once per frame, unless
 	// higher polling rates are desired.
 	selectSIO0Port(port);
-	size_t respLength = exchangeCTPPacket(
+
+	uint8_t response[8];
+	size_t  respLength = exchangeCTPPacket(
 		CTP_ADDR_CONTROLLER,
 		request,
 		response,

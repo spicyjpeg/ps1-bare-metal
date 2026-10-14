@@ -22,9 +22,10 @@
 #include "ps1/delay.h"
 #include "ps1/registers.h"
 
-#define BAUD_RATE   250000
-#define DTR_DELAY       30
-#define DSR_TIMEOUT    100
+#define BAUD_RATE     250000
+#define DTR_DELAY         30
+#define DSR_TIMEOUT      100
+#define NUM_DSR_POLLS     20
 
 void initSIO0(void) {
 	SIO_CR(0) = SIO_CR_INTRST;
@@ -56,8 +57,10 @@ static uint8_t exchangeByte(uint8_t value) {
 static bool waitForAcknowledge(void) {
 	for (int timeout = DSR_TIMEOUT; timeout > 0; timeout -= 5) {
 		if (IRQ_STAT & (1 << IRQ_SIO0)) {
-			while (SIO_SR(0) & SIO_SR_DSR)
-				__asm__ volatile("");
+			for (int poll = NUM_DSR_POLLS; poll > 0; poll--) {
+				if (!(SIO_SR(0) & SIO_SR_DSR))
+					break;
+			}
 
 			IRQ_STAT   = ~(1 << IRQ_SIO0);
 			SIO_CR(0) |= SIO_CR_ERRRST;
@@ -107,15 +110,17 @@ size_t exchangeCTPPacket(
 }
 
 uint16_t pollController(int port) {
-	uint8_t request[4], response[8];
-
-	request[0] = CTP_PAD_READ_DATA; // Command
-	request[1] = CTP_TAP_NONE;      // Multitap port
-	request[2] = 0;                 // Rumble/actuator 1 control
-	request[3] = 0;                 // Rumble/actuator 2 control
+	uint8_t request[] = {
+		CTP_PAD_READ_DATA, // Command
+		CTP_TAP_NONE,      // Multitap port
+		0,                 // Rumble/actuator 1 control
+		0                  // Rumble/actuator 2 control
+	};
 
 	selectSIO0Port(port);
-	size_t respLength = exchangeCTPPacket(
+
+	uint8_t response[8];
+	size_t  respLength = exchangeCTPPacket(
 		CTP_ADDR_CONTROLLER,
 		request,
 		response,

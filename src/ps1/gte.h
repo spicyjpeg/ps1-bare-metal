@@ -22,23 +22,38 @@
 
 /* GTE data types */
 
-// The GTE stores 16-bit vectors and matrices in 32-bit registers, packing two
-// values into each register. Since lwc2/swc2 can only perform aligned memory
-// accesses (see gte_loadDataReg() and gte_storeDataReg()), the structures below
-// must always be aligned to 32 bits.
-typedef struct __attribute__((aligned(4))) {
-	int16_t x, y;
-	int16_t z, _padding;
+// The GTE holds 16-bit vectors and matrices in 32-bit registers, packing up to
+// two values into each register. The following structures can be used to
+// convert between the raw and packed representations.
+// NOTE: using unions for type punning is technically undefined behavior in C++,
+// but GCC explicitly allows it. In practice it seems to be the only reliable
+// way to prevent GCC from making intermediate copies of the packed values when
+// using lwc2/swc2 (see below).
+typedef union {
+	struct {
+		int16_t values[3][3];
+		int16_t _pad;
+	};
+
+	uint32_t packed[5];
+} GTEMatrix;
+
+typedef union {
+	struct {
+		int16_t x, y;
+		int16_t z, _pad;
+	};
+
+	uint32_t packed[2];
 } GTEVector16;
 
-typedef struct __attribute__((aligned(4))) {
-	int32_t x, y, z;
-} GTEVector32;
+typedef union {
+	struct {
+		int32_t x, y, z;
+	};
 
-typedef struct __attribute__((aligned(4))) {
-	int16_t values[3][3];
-	int16_t _padding;
-} GTEMatrix;
+	uint32_t packed[3];
+} GTEVector32;
 
 /* Command definitions */
 
@@ -98,7 +113,7 @@ DEF(void) gte_command(const uint32_t opcode) {
 	__asm__ volatile(
 		"nop\n"
 		"cop2 %0\n"
-		:: "i"(opcode)
+		:: "n"(opcode)
 	);
 }
 
@@ -162,16 +177,23 @@ typedef enum {
 	GTE_FLAG_ERROR           = 1 << 31
 } GTEStatusFlag;
 
-// Note that reg must be a constant value known at compile time, as the
-// cfc2/ctc2 instructions only support addressing coprocessor registers directly
-// through immediates.
+// The ctc2/cfc2 and mtc2/mfc2 instructions only support addressing coprocessor
+// registers directly through immediates, so the register index must be a
+// constant value known at compile time.
 DEF(void) gte_setControlReg(const GTEControlRegister reg, uint32_t value) {
-	__asm__ volatile("ctc2 %0, $%1\n" :: "r"(value), "i"(reg));
+	// The "r" constraint allows for any CPU register except for $0. If the
+	// value is constant zero this will result in a register being needlessly
+	// clobbered to pass zero to ctc2, unless we use an explicit compile-time
+	// check to specify $0 directly as needed.
+	if (__builtin_constant_p(value) && !value)
+		__asm__ volatile("ctc2 $0, $%0\n" :: "n"(reg));
+	else
+		__asm__ volatile("ctc2 %0, $%1\n" :: "r"(value), "n"(reg));
 }
 DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 	uint32_t value;
 
-	__asm__ volatile("cfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
+	__asm__ volatile("cfc2 %0, $%1\n" : "=r"(value) : "n"(reg));
 	return value;
 }
 
@@ -188,28 +210,18 @@ DEF(uint32_t) gte_getControlReg(const GTEControlRegister reg) {
 		gte_setControlReg(reg4, v33); \
 	} \
 	DEF(void) gte_load##name(const GTEMatrix *input) { \
-		gte_setControlReg(reg0, ((uint16_t) input->values[0][0]) | ((uint16_t) input->values[0][1] << 16)); \
-		gte_setControlReg(reg1, ((uint16_t) input->values[0][2]) | ((uint16_t) input->values[1][0] << 16)); \
-		gte_setControlReg(reg2, ((uint16_t) input->values[1][1]) | ((uint16_t) input->values[1][2] << 16)); \
-		gte_setControlReg(reg3, ((uint16_t) input->values[2][0]) | ((uint16_t) input->values[2][1] << 16)); \
-		gte_setControlReg(reg4, ((uint16_t) input->values[2][2])); \
+		gte_setControlReg(reg0, input->packed[0]); \
+		gte_setControlReg(reg1, input->packed[1]); \
+		gte_setControlReg(reg2, input->packed[2]); \
+		gte_setControlReg(reg3, input->packed[3]); \
+		gte_setControlReg(reg4, input->packed[4]); \
 	} \
 	DEF(void) gte_store##name(GTEMatrix *output) { \
-		uint32_t value0 = gte_getControlReg(reg0); \
-		uint32_t value1 = gte_getControlReg(reg1); \
-		uint32_t value2 = gte_getControlReg(reg2); \
-		uint32_t value3 = gte_getControlReg(reg3); \
-		uint32_t value4 = gte_getControlReg(reg4); \
-		\
-		output->values[0][0] = (int16_t) (value0 >>  0); \
-		output->values[0][1] = (int16_t) (value0 >> 16); \
-		output->values[0][2] = (int16_t) (value1 >>  0); \
-		output->values[1][0] = (int16_t) (value1 >> 16); \
-		output->values[1][1] = (int16_t) (value2 >>  0); \
-		output->values[1][2] = (int16_t) (value2 >> 16); \
-		output->values[2][0] = (int16_t) (value3 >>  0); \
-		output->values[2][1] = (int16_t) (value3 >> 16); \
-		output->values[2][2] = (int16_t) (value4 >>  0); \
+		output->packed[0] = gte_getControlReg(reg0); \
+		output->packed[1] = gte_getControlReg(reg1); \
+		output->packed[2] = gte_getControlReg(reg2); \
+		output->packed[3] = gte_getControlReg(reg3); \
+		output->packed[4] = gte_getControlReg(reg4); \
 	}
 
 MATRIX_FUNCTIONS(GTE_RT11RT12, GTE_RT13RT21, GTE_RT22RT23, GTE_RT31RT32, GTE_RT33, RotationMatrix)
@@ -255,52 +267,64 @@ typedef enum {
 } GTEDataRegister;
 
 DEF(void) gte_setDataReg(const GTEDataRegister reg, uint32_t value) {
-	__asm__ volatile("mtc2 %0, $%1\n" :: "r"(value), "i"(reg));
+	if (__builtin_constant_p(value) && !value)
+		__asm__ volatile("mtc2 $0, $%0\n" :: "n"(reg));
+	else
+		__asm__ volatile("mtc2 %0, $%1\n" :: "r"(value), "n"(reg));
 }
 DEF(uint32_t) gte_getDataReg(const GTEDataRegister reg) {
 	uint32_t value;
 
-	__asm__ volatile("mfc2 %0, $%1\n" : "=r"(value) : "i"(reg));
+	__asm__ volatile("mfc2 %0, $%1\n" : "=r"(value) : "n"(reg));
 	return value;
 }
 
 // Unlike COP0 registers and GTE control registers, whose contents can only be
-// moved to/from a CPU register, data registers can additionally be loaded from
-// and stored to memory directly using the lwc2 and swc2 instructions.
-DEF(void) gte_loadDataReg(
-	const GTEDataRegister reg,
-	const int16_t         offset,
-	const void            *ptr
-) {
-	__asm__ volatile("lwc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr));
+// moved to/from a CPU register, data registers can additionally be read from
+// and written to memory directly using the lwc2 and swc2 instructions.
+DEF(void) gte_loadDataReg(const GTEDataRegister reg, const uint32_t *ptr) {
+	__asm__ volatile("lwc2 $%1, %0\n" :: "R"(*ptr), "n"(reg));
 }
-DEF(void) gte_storeDataReg(
-	const GTEDataRegister reg,
-	const int16_t         offset,
-	void                  *ptr
-) {
-	__asm__ volatile("swc2 $%0, %1(%2)\n" :: "i"(reg), "i"(offset), "r"(ptr) : "memory");
+DEF(void) gte_storeDataReg(const GTEDataRegister reg, uint32_t *ptr) {
+	__asm__ volatile("swc2 $%1, %0\n" : "=R"(*ptr) : "n"(reg));
 }
 
-#define VECTOR_FUNCTIONS(reg0, reg1, name) \
+#define VECTOR16_FUNCTIONS(reg0, reg1, name) \
 	DEF(void) gte_set##name(int16_t x, int16_t y, int16_t z) { \
 		gte_setDataReg(reg0, ((uint16_t) x) | ((uint16_t) y << 16)); \
 		gte_setDataReg(reg1, z); \
 	} \
 	DEF(void) gte_load##name(const GTEVector16 *input) { \
-		gte_loadDataReg(reg0, 0, input); \
-		gte_loadDataReg(reg1, 4, input); \
+		gte_loadDataReg(reg0, &input->packed[0]); \
+		gte_loadDataReg(reg1, &input->packed[1]); \
 	} \
 	DEF(void) gte_store##name(GTEVector16 *output) { \
-		gte_storeDataReg(reg0, 0, output); \
-		gte_storeDataReg(reg1, 4, output); \
+		gte_storeDataReg(reg0, &output->packed[0]); \
+		gte_storeDataReg(reg1, &output->packed[1]); \
 	}
 
-VECTOR_FUNCTIONS(GTE_VXY0, GTE_VZ0, V0)
-VECTOR_FUNCTIONS(GTE_VXY1, GTE_VZ1, V1)
-VECTOR_FUNCTIONS(GTE_VXY2, GTE_VZ2, V2)
+VECTOR16_FUNCTIONS(GTE_VXY0, GTE_VZ0, V0)
+VECTOR16_FUNCTIONS(GTE_VXY1, GTE_VZ1, V1)
+VECTOR16_FUNCTIONS(GTE_VXY2, GTE_VZ2, V2)
 
-#undef VECTOR_FUNCTIONS
+#undef VECTOR16_FUNCTIONS
+
+#define VECTOR32_FUNCTIONS(reg0, reg1, reg2, name) \
+	DEF(void) gte_load##name(const GTEVector32 *input) { \
+		gte_loadDataReg(reg0, &input->packed[0]); \
+		gte_loadDataReg(reg1, &input->packed[1]); \
+		gte_loadDataReg(reg2, &input->packed[2]); \
+	} \
+	DEF(void) gte_store##name(GTEVector32 *output) { \
+		gte_storeDataReg(reg0, &output->packed[0]); \
+		gte_storeDataReg(reg1, &output->packed[1]); \
+		gte_storeDataReg(reg2, &output->packed[2]); \
+	}
+
+VECTOR32_FUNCTIONS(GTE_IR1,  GTE_IR2,  GTE_IR3,  IR)
+VECTOR32_FUNCTIONS(GTE_MAC1, GTE_MAC2, GTE_MAC3, MAC)
+
+#undef VECTOR32_FUNCTIONS
 
 DEF(void) gte_setRowVectors(
 	int16_t v11, int16_t v12, int16_t v13,

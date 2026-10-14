@@ -216,11 +216,11 @@ int main(int argc, const char **argv) {
 			// The modified command is pushed to the tail of a 3-entry queue.
 			// Copy the most recent entry over to the packet.
 			ptr    = allocateOrderedGP0Packet(chain, zIndex, 5);
-			gte_storeDataReg(GTE_RGB2, 0 * 4, ptr);
+			gte_storeDataReg(GTE_RGB2, &ptr[0]);
 			ptr[1] = xy0;
-			gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-			gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-			gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+			gte_storeDataReg(GTE_SXY0, &ptr[2]);
+			gte_storeDataReg(GTE_SXY1, &ptr[3]);
+			gte_storeDataReg(GTE_SXY2, &ptr[4]);
 		}
 
 		ptr    = allocateOrderedGP0Packet(chain, GPU_ORDERING_TABLE_SIZE - 1, 3);

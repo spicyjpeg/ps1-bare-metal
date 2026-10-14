@@ -294,9 +294,9 @@ int main(int argc, const char **argv) {
 			ptr    = allocateOrderedGP0Packet(chain, zIndex, 5);
 			ptr[0] = face->color | gp0_shadedQuad(false, false, false);
 			ptr[1] = xy0;
-			gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-			gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-			gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+			gte_storeDataReg(GTE_SXY0, &ptr[2]);
+			gte_storeDataReg(GTE_SXY1, &ptr[3]);
+			gte_storeDataReg(GTE_SXY2, &ptr[4]);
 		}
 
 		ptr    = allocateOrderedGP0Packet(chain, GPU_ORDERING_TABLE_SIZE - 1, 3);

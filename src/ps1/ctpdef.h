@@ -32,8 +32,8 @@ typedef enum {
 	CTP_PAD_ENTER_CONFIG_MODE = 0x43,
 
 	// Controller commands in configuration mode
-	CTP_CFG_VREF_PARAM        = 0x40, // CTP 2.0 (DualShock 2) only
-	CTP_CFG_QUERY_BUTTON_MASK = 0x41, // CTP 2.0 (DualShock 2) only
+	CTP_CFG_VREF_PARAM        = 0x40, // DualShock 2 only
+	CTP_CFG_QUERY_BUTTON_MASK = 0x41, // DualShock 2 only
 	CTP_CFG_SET_MAIN_MODE     = 0x44,
 	CTP_CFG_QUERY_MODEL       = 0x45,
 	CTP_CFG_QUERY_ACT         = 0x46,
@@ -42,7 +42,7 @@ typedef enum {
 	CTP_CFG_QUERY_COMB2       = 0x4b,
 	CTP_CFG_QUERY_MODE        = 0x4c,
 	CTP_CFG_SET_ACT_ALIGN     = 0x4d,
-	CTP_CFG_SET_BUTTON_INFO   = 0x4f, // CTP 2.0 (DualShock 2) only
+	CTP_CFG_SET_BUTTON_INFO   = 0x4f, // DualShock 2 only
 
 	// DVD remote receiver commands
 	CTP_RM_POLL = 0x04,

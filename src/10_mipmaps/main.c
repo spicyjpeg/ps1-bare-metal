@@ -266,11 +266,11 @@ int main(int argc, const char **argv) {
 			ptr[0] = gp0_quad(true, false);
 			ptr[1] = xy0;
 			ptr[2] = gp0_uv(u0, v0, texture.clut);
-			gte_storeDataReg(GTE_SXY0, 3 * 4, ptr);
+			gte_storeDataReg(GTE_SXY0, &ptr[3]);
 			ptr[4] = gp0_uv(u1, v0, texture.page);
-			gte_storeDataReg(GTE_SXY1, 5 * 4, ptr);
+			gte_storeDataReg(GTE_SXY1, &ptr[5]);
 			ptr[6] = gp0_uv(u0, v1, 0);
-			gte_storeDataReg(GTE_SXY2, 7 * 4, ptr);
+			gte_storeDataReg(GTE_SXY2, &ptr[7]);
 			ptr[8] = gp0_uv(u1, v1, 0);
 		}
 
