@@ -175,8 +175,7 @@ static void initCDROM(void) {
 }
 
 static void printCDROMInfo(char *output) {
-	char *ptr = output;
-	ptr      += sprintf(ptr, "CD-ROM drive information:\n");
+	output += sprintf(output, "CD-ROM drive information:\n");
 
 	uint8_t      subcommand, response[16];
 	CDROMIRQType irq;
@@ -191,8 +190,8 @@ static void printCDROMInfo(char *output) {
 	irq = waitForCDROMIRQ(response, sizeof(response));
 
 	if (irq == CDROM_IRQ_ACKNOWLEDGE)
-		ptr += sprintf(
-			ptr,
+		output += sprintf(
+			output,
 			"  Firmware version:\t%02X\n"
 			"  Build date:\t\t%04d-%02X-%02X\n",
 			response[3],
@@ -201,7 +200,8 @@ static void printCDROMInfo(char *output) {
 			response[2]
 		);
 	else
-		ptr += sprintf(ptr, "  Firmware version:\tunknown (got IRQ %d)\n", irq);
+		output +=
+			sprintf(output, "  Firmware version:\tunknown (got IRQ %d)\n", irq);
 
 	if (!((irq == CDROM_IRQ_ACKNOWLEDGE) && (response[3] == 0xc0))) {
 		// Fetch the drive's region using another test command. The returned
@@ -215,19 +215,19 @@ static void printCDROMInfo(char *output) {
 		irq = waitForCDROMIRQ(response, sizeof(response));
 
 		if (irq == CDROM_IRQ_ACKNOWLEDGE)
-			ptr += sprintf(ptr, "  Drive region:\t%s\n", response);
+			output += sprintf(output, "  Drive region:\t%s\n", response);
 		else
-			ptr += sprintf(ptr, "  Drive region:\tunknown (got IRQ %d)\n", irq);
+			output +=
+				sprintf(output, "  Drive region:\tunknown (got IRQ %d)\n", irq);
 	} else {
 		// Firmware version C0 does not support querying the region, but was
 		// only ever used on early Japanese units.
-		ptr += sprintf(ptr, "  Drive region:\tfor Japan (inferred)\n");
+		output += sprintf(output, "  Drive region:\tfor Japan (inferred)\n");
 	}
 }
 
 static void printCDROMStatus(char *output) {
-	char *ptr = output;
-	ptr      += sprintf(ptr, "Current CD-ROM status:\n");
+	output += sprintf(output, "Current CD-ROM status:\n");
 
 	// If the lid was opened, the mechacon may have sent us an unsolicited error
 	// IRQ since the last command. We'll preemptively clear any pending IRQ to
@@ -245,8 +245,8 @@ static void printCDROMStatus(char *output) {
 	CDROMIRQType irq = waitForCDROMIRQ(&status, sizeof(status));
 
 	if (irq == CDROM_IRQ_ACKNOWLEDGE)
-		ptr += sprintf(
-			ptr,
+		output += sprintf(
+			output,
 			"  Status byte:\t%02X\n"
 			"  Spindle motor:\t%s\n"
 			"  Lid status:\t\t%s\n"
@@ -257,7 +257,7 @@ static void printCDROMStatus(char *output) {
 			(status & CDROM_CMDSTAT_SEEKING)    ? "yes"  : "no"
 		);
 	else
-		ptr += sprintf(ptr, "  Unknown (got IRQ %d)\n", irq);
+		output += sprintf(output, "  Unknown (got IRQ %d)\n", irq);
 }
 
 #define SCREEN_HRES   GP1_HRES_320

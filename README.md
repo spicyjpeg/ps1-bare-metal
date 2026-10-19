@@ -9,24 +9,25 @@ the build system and some Python scripts.
 
 The following examples are currently available:
 
-| #   | Screenshot                                                                     | Description                                                                       |
-| --: | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
-|   0 |                                                                                | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)           |
-|   1 | <img alt="Example 1"  src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
-|   2 | <img alt="Example 2"  src="src/02_doubleBuffer/screenshot.png"  width="100" /> | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
-|   3 | <img alt="Example 3"  src="src/03_dmaChain/screenshot.png"      width="100" /> | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
-|   4 | <img alt="Example 4"  src="src/04_textures/screenshot.png"      width="100" /> | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
-|   5 | <img alt="Example 5"  src="src/05_palettes/screenshot.png"      width="100" /> | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
-|   6 | <img alt="Example 6"  src="src/06_fonts/screenshot.png"         width="100" /> | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
-|   7 | <img alt="Example 7"  src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
-|   8 | <img alt="Example 8"  src="src/08_spinningCube/screenshot.png"  width="100" /> | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
-|   9 | <img alt="Example 9"  src="src/09_faceLighting/screenshot.png"  width="100" /> | [Adding light sources and real-time face lighting](src/09_faceLighting/main.c)    |
-|  10 | <img alt="Example 10" src="src/10_mipmaps/screenshot.png"       width="100" /> | [Implementing mipmapping for far away textures](src/10_mipmaps/main.c)            |
-|  11 | <img alt="Example 11" src="src/11_controllers/screenshot.png"   width="100" /> | [Getting input from connected controllers](src/11_controllers/main.c)             |
-|  12 | <img alt="Example 12" src="src/12_basicAudio/screenshot.png"    width="100" /> | [Setting up the SPU and playing audio samples](src/12_basicAudio/main.c)          |
-|  13 | <img alt="Example 13" src="src/13_cdromInit/screenshot.png"     width="100" /> | [Initializing the CD-ROM drive and sending commands](src/13_cdromInit/main.c)     |
-|  14 | <img alt="Example 14" src="src/14_cdAudio/screenshot.png"       width="100" /> | [Playing CD audio tracks from the disc](src/14_cdAudio/main.c)                    |
-|  15 | <img alt="Example 15" src="src/15_cdromData/screenshot.png"     width="100" /> | [Reading data sectors from the disc](src/15_cdromData/main.c)                     |
+| #  | Screenshot                                                                     | Description                                                                       |
+| -: | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+|  0 |                                                                                | [Printing "hello world" over the serial port](src/00_helloWorld/main.c)           |
+|  1 | <img alt="Example 1"  src="src/01_basicGraphics/screenshot.png" width="100" /> | [Initializing the GPU and drawing basic graphics](src/01_basicGraphics/main.c)    |
+|  2 | <img alt="Example 2"  src="src/02_doubleBuffer/screenshot.png"  width="100" /> | [Adding double buffering and animated graphics](src/02_doubleBuffer/main.c)       |
+|  3 | <img alt="Example 3"  src="src/03_dmaChain/screenshot.png"      width="100" /> | [Improving GPU drawing efficiency using DMA chains](src/03_dmaChain/main.c)       |
+|  4 | <img alt="Example 4"  src="src/04_textures/screenshot.png"      width="100" /> | [Uploading a texture to VRAM and using it](src/04_textures/main.c)                |
+|  5 | <img alt="Example 5"  src="src/05_palettes/screenshot.png"      width="100" /> | [Using indexed color textures and color palettes](src/05_palettes/main.c)         |
+|  6 | <img alt="Example 6"  src="src/06_fonts/screenshot.png"         width="100" /> | [Implementing spritesheets and simple font rendering](src/06_fonts/main.c)        |
+|  7 | <img alt="Example 7"  src="src/07_orderingTable/screenshot.png" width="100" /> | [Using ordering tables to control GPU drawing order](src/07_orderingTable/main.c) |
+|  8 | <img alt="Example 8"  src="src/08_spinningCube/screenshot.png"  width="100" /> | [Drawing a 3D spinning cube using the GTE](src/08_spinningCube/main.c)            |
+|  9 | <img alt="Example 9"  src="src/09_faceLighting/screenshot.png"  width="100" /> | [Adding light sources and real-time face lighting](src/09_faceLighting/main.c)    |
+| 10 | <img alt="Example 10" src="src/10_mipmaps/screenshot.png"       width="100" /> | [Implementing mipmapping for far away textures](src/10_mipmaps/main.c)            |
+| 11 | <img alt="Example 11" src="src/11_controllers/screenshot.png"   width="100" /> | [Getting input from connected controllers](src/11_controllers/main.c)             |
+| 12 | <img alt="Example 12" src="src/12_basicAudio/screenshot.png"    width="100" /> | [Setting up the SPU and playing audio samples](src/12_basicAudio/main.c)          |
+| 13 | <img alt="Example 13" src="src/13_cdromInit/screenshot.png"     width="100" /> | [Initializing the CD-ROM drive and sending commands](src/13_cdromInit/main.c)     |
+| 14 | <img alt="Example 14" src="src/14_cdAudio/screenshot.png"       width="100" /> | [Playing CD audio tracks from the disc](src/14_cdAudio/main.c)                    |
+| 15 | <img alt="Example 15" src="src/15_cdromData/screenshot.png"     width="100" /> | [Reading data sectors from the disc](src/15_cdromData/main.c)                     |
+| 16 | <img alt="Example 16" src="src/16_iso9660/screenshot.png"       width="100" /> | [Parsing the disc's filesystem and enumerating files](src/16_iso9660/main.c)      |
 
 New examples demonstrating more hardware features will be added over time.
 *Since I strive for this repository to be a high-quality learning resource with*

@@ -169,9 +169,9 @@ static size_t readCDROMSectorsBlocking_(
 
 	// CD-ROM sectors are actually larger than 2048 bytes under the hood: each
 	// one contains additional metadata and error correction information used
-	// internally. The PS1's drive supports returning this extra data by setting
-	// mode flags, so we must determine which sector size was requested and
-	// adjust our pointer arithmetic accordingly.
+	// internally. The drive supports returning this extra data by setting mode
+	// flags, so we must determine which sector size was requested and adjust
+	// our pointer arithmetic accordingly.
 	uint8_t *ptr         = (uint8_t *) data;
 	size_t  sectorLength = cdrom_sectorLength(mode);
 	size_t  sectorsRead  = 0;
@@ -202,16 +202,13 @@ static size_t readCDROMSectorsBlocking_(
 #define ISO9660_PVD_LBA   16
 
 static void printDiscInfo(char *output) {
-	char *ptr = output;
-	ptr      +=
-		sprintf(ptr, "Disc information (from primary volume descriptor):\n");
+	output +=
+		sprintf(output, "Disc information (from primary volume descriptor):\n");
 
 	// To demonstrate data reading in a somewhat disc-agnostic way, we'll load
-	// the ISO9660 "primary volume descriptor" structure present at LBA 16 on
+	// the ISO 9660 "primary volume descriptor" structure present at LBA 16 on
 	// all PS1 games and most other data CDs. This structure spans one sector
-	// and holds basic information about the contents of the disc. We are not
-	// parsing the actual filesystem yet; this is just an example of something
-	// to read.
+	// and holds basic metadata about the contents of the disc.
 	uint8_t pvd[SECTOR_LENGTH];
 
 	// We only need the 2048-byte data area of the sector. We are no longer
@@ -222,16 +219,18 @@ static void printDiscInfo(char *output) {
 		| CDROM_MODE_SPEED_2X;
 
 	if (readCDROMSectorsBlocking_(pvd, ISO9660_PVD_LBA, 1, mode) == 1) {
-		// Parse and display a few fields from the descriptor. All of them
-		// except for the capacity are plain fixed-length ASCII strings.
+		// Display a few fields from the descriptor, all fixed-length ASCII
+		// strings except for the capacity. The details of parsing ISO 9660 are
+		// out of this example's scope, so we'll blindly assume the descriptor
+		// is valid and not perform any validation.
 		uint32_t capacity = 0
 			| (pvd[0x050] <<  0)
 			| (pvd[0x051] <<  8)
 			| (pvd[0x052] << 16)
 			| (pvd[0x053] << 24);
 
-		ptr += sprintf(
-			ptr,
+		output += sprintf(
+			output,
 			"  Name:\t%.32s\n"
 			"  System:\t%.32s\n"
 			"  Date:\t%.4s-%.2s-%.2s %.2s:%.2s:%.2s\n"
@@ -248,7 +247,7 @@ static void printDiscInfo(char *output) {
 			capacity / (0x100000 / SECTOR_LENGTH)
 		);
 	} else {
-		ptr += sprintf(ptr, "  Unknown (data read failed)\n");
+		output += sprintf(output, "  Unknown (data read failed)\n");
 	}
 }
 

@@ -171,8 +171,7 @@ static void updateMenu(MenuState *state, uint16_t buttons) {
 }
 
 static void printCDROMStatus(char *output) {
-	char *ptr = output;
-	ptr      += sprintf(ptr, "Current CD-ROM status:\n");
+	output += sprintf(output, "Current CD-ROM status:\n");
 
 	checkCDROMIRQ(0, 0);
 
@@ -182,8 +181,8 @@ static void printCDROMStatus(char *output) {
 	CDROMIRQType irq = waitForCDROMIRQ(&status, sizeof(status));
 
 	if (irq == CDROM_IRQ_ACKNOWLEDGE)
-		ptr += sprintf(
-			ptr,
+		output += sprintf(
+			output,
 			"  Status byte:\t%02X\n"
 			"  Spindle motor:\t%s\n"
 			"  Lid status:\t\t%s\n"
@@ -196,7 +195,7 @@ static void printCDROMStatus(char *output) {
 			(status & CDROM_CMDSTAT_PLAYING)    ? "yes"  : "no"
 		);
 	else
-		ptr += sprintf(ptr, "  Unknown (got IRQ %d)\n", irq);
+		output += sprintf(output, "  Unknown (got IRQ %d)\n", irq);
 }
 
 #define SCREEN_HRES   GP1_HRES_320

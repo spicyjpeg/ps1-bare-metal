@@ -285,9 +285,8 @@ static int playSample(
 }
 
 static void printChannelInfo(char *output) {
-	char *ptr = output;
-	ptr      += sprintf(
-		ptr,
+	output += sprintf(
+		output,
 		"Active SPU channels:\n"
 		"  Index\tADSR vol.\tStart\tLoop\n"
 	);
@@ -302,8 +301,8 @@ static void printChannelInfo(char *output) {
 		if (!envx || (ssa == (DUMMY_BLOCK_OFFSET / 8)))
 			continue;
 
-		ptr += sprintf(
-			ptr,
+		output += sprintf(
+			output,
 			"  %d\t%d%%\t%05X\t%05X\n",
 			i,
 			(envx * 100) >> 15,

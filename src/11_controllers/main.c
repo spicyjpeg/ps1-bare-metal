@@ -251,8 +251,7 @@ static const char *const buttonNames[] = {
 };
 
 static void printControllerInfo(int port, char *output) {
-	char *ptr = output;
-	ptr      += sprintf(ptr, "Port %d:\n", port + 1);
+	output += sprintf(output, "Port %d:\n", port + 1);
 
 	// Prepare the CTP request. The first byte of the payload after the address
 	// is the command code, followed by any required parameters. All controllers
@@ -282,15 +281,15 @@ static void printControllerInfo(int port, char *output) {
 
 	if (respLength < 4) {
 		// All controllers reply to the poll command with at least 4 bytes.
-		ptr += sprintf(ptr, "  No controller connected");
+		output += sprintf(output, "  No controller connected");
 		return;
 	}
 
 	// Byte 0 of the response contains a 4-bit controller type ID in the upper
 	// nibble, plus the response payload's length in 2-byte units in the lower
 	// nibble (ignored here).
-	ptr += sprintf(
-		ptr,
+	output += sprintf(
+		output,
 		"  Controller type:\t%s\n"
 		"  Buttons pressed:\t",
 		controllerTypes[response[0] >> 4]
@@ -303,16 +302,16 @@ static void printControllerInfo(int port, char *output) {
 
 	for (int i = 0; i < 16; i++) {
 		if ((buttons >> i) & 1)
-			ptr += sprintf(ptr, "%s ", buttonNames[i]);
+			output += sprintf(output, "%s ", buttonNames[i]);
 	}
 
 	// Controllers with analog inputs such as the DualShock or PS1 mouse return
 	// an extra byte for each axis. We'll display the raw response payload to
 	// demonstrate that.
-	ptr += sprintf(ptr, "\n  Response data:\t");
+	output += sprintf(output, "\n  Response data:\t");
 
 	for (size_t i = 0; i < respLength; i++)
-		ptr += sprintf(ptr, "%02X ", response[i]);
+		output += sprintf(output, "%02X ", response[i]);
 }
 
 #define SCREEN_HRES   GP1_HRES_320
