@@ -190,6 +190,10 @@ static void printString(
 				offsetY += FONT_LINE_HEIGHT;
 				continue;
 
+			case '\r':
+				offsetX = 0;
+				continue;
+
 			case ' ':
 				offsetX += FONT_SPACE_WIDTH;
 				continue;

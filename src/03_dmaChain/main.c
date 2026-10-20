@@ -113,7 +113,7 @@ static void sendGPULinkedList_(const void *data) {
 // to use a fixed-size buffer and keep a pointer to the beginning of its free
 // area, incrementing it whenever we allocate a new packet.
 #define DMA_MAX_CHUNK_SIZE       16
-#define GPU_CHAIN_BUFFER_SIZE_ 2048
+#define GPU_CHAIN_BUFFER_SIZE_ 4096
 
 typedef struct {
 	uint32_t data[GPU_CHAIN_BUFFER_SIZE_];

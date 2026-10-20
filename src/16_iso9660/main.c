@@ -50,29 +50,86 @@
 #define SECTOR_LENGTH   2048
 #define ISO9660_PVD_LBA   16
 
-// To avoid redundant reads, we are going to gather information about the
-// filesystem once on startup and cache it in this structure for later use. If
-// parsing fails, we'll instead return an error code specific to the cause of
-// the failure.
+typedef enum {
+	ISO_NO_ERROR      = 0,
+	ISO_READ_ERROR    = 1,
+	ISO_ALLOC_FAILED  = 2,
+	ISO_NO_FILESYSTEM = 3,
+	ISO_NOT_FOUND     = 4,
+	ISO_NOT_A_FILE    = 5,
+	ISO_NOT_A_FOLDER  = 6
+} ISOError;
+
+// As directory descriptors and file contents can span multiple sectors and be
+// arbitrarily large, it makes sense to allocate buffers for them dynamically on
+// the heap rather than trying to fit them in a fixed-size array. To make it
+// easier to manage these buffers, we'll wrap their pointers in a "data handle"
+// structure and define helper functions to allocate, populate and destroy them.
 typedef struct {
-	uint8_t  *root;
-	size_t   rootLength;
+	void   *ptr;
+	size_t length;
+} ISOData;
+
+static ISOError readISOData(ISOData *handle, unsigned int lba, size_t length) {
+	// Determine how many CD-ROM sectors the requested data spans and attempt to
+	// allocate a buffer of the appropriate size.
+	// NOTE: even if the size is not an exact multiple of 2048, we must still
+	// round it up to the nearest one before allocation. Allocating the exact
+	// length requested would result in readCDROMSectorsBlocking() overflowing
+	// the buffer and corrupting memory when reading the last sector.
+	size_t numSectors = (length + SECTOR_LENGTH - 1) / SECTOR_LENGTH;
+	void   *ptr       = malloc(numSectors * SECTOR_LENGTH);
+
+	if (!ptr)
+		return ISO_ALLOC_FAILED;
+
+	// Populate the buffer, or undo the allocation and return an error in case
+	// of failure.
+	uint8_t mode = 0
+		| CDROM_MODE_SIZE_2048
+		| CDROM_MODE_SPEED_2X;
+
+	if (readCDROMSectorsBlocking(ptr, lba, numSectors, mode) != numSectors) {
+		free(ptr);
+		return ISO_READ_ERROR;
+	}
+
+	// If the handle was already used before, destroy its existing buffer before
+	// saving the pointer to the new one. This prevents memory leaks when not
+	// calling destroyISOData() before readISOData(), but will only work
+	// properly if all handles are manually zeroed prior to first use.
+	if (handle->ptr)
+		free(handle->ptr);
+
+	handle->ptr    = ptr;
+	handle->length = length;
+
+	return ISO_NO_ERROR;
+}
+
+static inline void destroyISOData(ISOData *handle) {
+	// Deallocate the buffer and clear the pointer to prevent a double free if
+	// this function is called again.
+	if (handle->ptr) {
+		free(handle->ptr);
+
+		handle->ptr    = 0;
+		handle->length = 0;
+	}
+}
+
+// We are going to gather information about the filesystem once on startup and
+// cache it in this structure for later use, avoiding redundant CD-ROM reads.
+typedef struct {
+	ISOData  root;
 	uint32_t capacity;
 	char     volumeName[32];
 } ISOFilesystem;
 
-typedef enum {
-	ISO_NO_ERROR      = 0,
-	ISO_READ_ERROR    = 1,
-	ISO_ALLOC_ERROR   = 2,
-	ISO_NO_FILESYSTEM = 3,
-	ISO_NOT_FOUND     = 4
-} ISOError;
-
 // ISO 9660 stores some values in unaligned, unsigned 16- or 32-bit both-endian
 // format (little-endian followed by a big-endian copy). We can define some
 // helpers to parse them.
-static inline uint32_t parseUint16(const uint8_t *data) {
+static inline uint16_t parseUint16(const uint8_t *data) {
 	return data[0] | (data[1] << 8);
 }
 static inline uint32_t parseUint32(const uint8_t *data) {
@@ -104,53 +161,24 @@ static ISOError initISOFilesystem(ISOFilesystem *fs) {
 	if (sectorLength != SECTOR_LENGTH)
 		return ISO_NO_FILESYSTEM;
 
-	// Load the root directory descriptor. Its size can vary depending on the
-	// number of entries, so we are going to allocate it on the heap.
-	// NOTE: the size may not be an exact multiple of 2048, but we must still
-	// round it up to the nearest one before allocation. Allocating the exact
-	// length would result in readCDROMSectorsBlocking() overflowing the buffer
-	// and corrupting memory when reading the last sector.
-	size_t  numSectors = (rootLength + SECTOR_LENGTH - 1) / SECTOR_LENGTH;
-	uint8_t *root      = malloc(numSectors * SECTOR_LENGTH);
+	// Allocate a buffer for and load the root directory descriptor, then fill
+	// in the other fields of the filesystem object.
+	ISOError error = readISOData(&fs->root, rootLBA, rootLength);
 
-	if (!root)
-		return ISO_ALLOC_ERROR;
-	if (readCDROMSectorsBlocking(
-		root,
-		rootLBA,
-		numSectors,
-		mode
-	) != numSectors) {
-		free(root);
-		return ISO_READ_ERROR;
-	}
+	if (error)
+		return error;
 
-	// If the filesystem was already initialized before, deallocate the old
-	// buffer before saving the pointer to the new one. This prevents memory
-	// leaks but will only work properly if the ISOFilesystem structure is
-	// manually zeroed prior to first use.
-	if (fs->root)
-		free(fs->root);
-
-	fs->root       = root;
-	fs->rootLength = rootLength;
-	fs->capacity   = capacity;
+	fs->capacity = capacity;
 	__builtin_memcpy(fs->volumeName, volumeID, sizeof(fs->volumeName));
 
 	return ISO_NO_ERROR;
 }
 
 static void destroyISOFileystem(ISOFilesystem *fs) {
-	// Deallocate the root directory buffer and clear the pointer to prevent a
-	// double free.
-	if (fs->root) {
-		free(fs->root);
+	destroyISOData(&fs->root);
 
-		fs->root          = 0;
-		fs->rootLength    = 0;
-		fs->capacity      = 0;
-		fs->volumeName[0] = 0;
-	}
+	fs->capacity      = 0;
+	fs->volumeName[0] = 0;
 }
 
 typedef enum {
@@ -162,31 +190,27 @@ typedef enum {
 	ISO_RECORD_MULTI_EXTENT = 1 << 7
 } ISORecordFlag;
 
-static void printDirectory(
-	const uint8_t *dir,
-	size_t        dirLength,
-	char          *output,
-	size_t        maxLines
-) {
+static void printDirectory(const ISOData *dir, char *output, size_t maxLines) {
 	// Directory descriptors are made up of a series of variable-length records,
 	// each describing a file or subfolder and containing its name, starting
 	// LBA, size, flags and so on. We'll iterate over all records in the
 	// directory, stopping earlier if we run out of lines on screen.
-	const uint8_t *dirEnd = &dir[dirLength];
+	const uint8_t *ptr = dir->ptr;
+	const uint8_t *end = &ptr[dir->length];
 
-	while ((dir < dirEnd) && (maxLines > 0)) {
+	while ((ptr < end) && (maxLines > 0)) {
 		// Skip any empty padding (inserted between records by authoring tools
 		// for alignment purposes) and parse some fields from the next record.
-		if (!dir[0x00]) {
-			dir++;
+		if (!ptr[0x00]) {
+			ptr++;
 			continue;
 		}
 
-		uint8_t    recordLength = dir[0x00];
-		uint32_t   length       = parseUint32(&dir[0x0a]);
-		uint8_t    flags        = dir[0x19];
-		uint8_t    nameLength   = dir[0x20];
-		const char *recordName  = (const char *) &dir[0x21];
+		uint8_t    recordLength = ptr[0x00];
+		uint32_t   length       = parseUint32(&ptr[0x0a]);
+		uint8_t    flags        = ptr[0x19];
+		uint8_t    nameLength   = ptr[0x20];
+		const char *recordName  = (const char *) &ptr[0x21];
 
 		// Show information about the record. Ignore "." (current folder) and
 		// ".." (parent folder) entries, to which ISO 9660 assigns the non-ASCII
@@ -221,10 +245,10 @@ static void printDirectory(
 		}
 
 		// Move past the record we parsed.
-		dir += recordLength;
+		ptr += recordLength;
 	}
 
-	if (dir < dirEnd)
+	if (ptr < end)
 		output += sprintf(output, "  (more entries not shown...)\n");
 }
 
@@ -235,15 +259,15 @@ static void printDiscRoot(char *output, size_t maxLines) {
 	// after fetching the root directory. A real world application would instead
 	// hold onto it and reuse it indefinitely (or until the drive lid is opened,
 	// if you want to allow the user to swap discs).
-	ISOFilesystem fs    = { .root = 0 };
+	ISOFilesystem fs    = {};
 	ISOError      error = initISOFilesystem(&fs);
 
 	if (!error) {
-		printDirectory(fs.root, fs.rootLength, output, maxLines);
+		printDirectory(&fs.root, output, maxLines);
 		destroyISOFileystem(&fs);
 	} else {
 		output +=
-			sprintf(output, "  Initialization failed (error code %d)", error);
+			sprintf(output, "  Initialization failed (error code %d)\n", error);
 	}
 }
 
@@ -288,7 +312,6 @@ int main(int argc, const char **argv) {
 		FONT_COLOR_DEPTH
 	);
 
-	// Perform an initial read of the currently inserted CD.
 	char root[1024];
 
 	printDiscRoot(root, 13);
@@ -325,8 +348,6 @@ int main(int argc, const char **argv) {
 		ptr[1] = gp0_xy(bufferX, bufferY);
 		ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-		// Reinitialize the filesystem and update the root listing when any
-		// button is pressed.
 		uint16_t buttons = pollController(0) | pollController(1);
 		uint16_t pressed = ~lastButtons & buttons;
 		lastButtons      = buttons;
@@ -334,7 +355,6 @@ int main(int argc, const char **argv) {
 		if (pressed)
 			printDiscRoot(root, 13);
 
-		// Show information from the last read.
 		printString(chain, &font, 16, 32, root);
 		printString(
 			chain,

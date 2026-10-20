@@ -145,3 +145,15 @@ addPS1Executable(
 )
 addBinaryFile(example16_iso9660 fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
 addBinaryFile(example16_iso9660 fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+
+addPS1Executable(
+	example17_fileLoading
+	src/common/cdrom.c
+	src/common/font.c
+	src/common/gpu.c
+	src/common/iso9660.c
+	src/common/sio0.c
+	src/17_fileLoading/main.c
+)
+addBinaryFile(example17_fileLoading fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+addBinaryFile(example17_fileLoading fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")

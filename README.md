@@ -28,6 +28,7 @@ The following examples are currently available:
 | 14 | <img alt="Example 14" src="src/14_cdAudio/screenshot.png"       width="100" /> | [Playing CD audio tracks from the disc](src/14_cdAudio/main.c)                    |
 | 15 | <img alt="Example 15" src="src/15_cdromData/screenshot.png"     width="100" /> | [Reading data sectors from the disc](src/15_cdromData/main.c)                     |
 | 16 | <img alt="Example 16" src="src/16_iso9660/screenshot.png"       width="100" /> | [Parsing the disc's filesystem and enumerating files](src/16_iso9660/main.c)      |
+| 17 | <img alt="Example 17" src="src/17_fileLoading/screenshot.png"   width="100" /> | [Resolving filesystem paths and loading files](src/17_fileLoading/main.c)         |
 
 New examples demonstrating more hardware features will be added over time.
 *Since I strive for this repository to be a high-quality learning resource with*

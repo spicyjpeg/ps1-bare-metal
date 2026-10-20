@@ -25,7 +25,7 @@
 // be set to either a relatively high value (1024 or more) or a multiple of 12
 // (i.e. both 3 and 4). Higher values will take up more memory but are required
 // to render more complex scenes with wide depth ranges correctly.
-#define GPU_CHAIN_BUFFER_SIZE   2048
+#define GPU_CHAIN_BUFFER_SIZE   4096
 #define GPU_ORDERING_TABLE_SIZE  240
 
 typedef struct {
