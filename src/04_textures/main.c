@@ -90,12 +90,12 @@ static void sendVRAMData_(
 	// This will concatenate our data to the command header.
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
-	DMA_MADR(DMA_GPU) = (uintptr_t) data;
-	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_GPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 // Once our texture has been uploaded to VRAM, we are going to save the metadata

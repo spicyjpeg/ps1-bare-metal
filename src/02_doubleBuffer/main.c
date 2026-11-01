@@ -80,17 +80,17 @@ static void setupGPU_(
 	// tell if it happened (especially if said code resets the IRQ flag before
 	// we ever see it). To prevent that we can "mask" the signal: the IRQ
 	// controller will still track it, but it will no longer invoke the handler.
-	IRQ_MASK &= ~(1 << IRQ_VSYNC);
+	INTC_MASK &= ~(1 << IRQ_VSYNC);
 }
 
 static void waitForVSync_(void) {
 	// With the vsync IRQ masked, we can safely poll its respective flag and
 	// wait until it gets set, then reset (acknowledge) it so that it can be set
 	// again by the GPU.
-	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
+	while (!(INTC_REG & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
 
-	IRQ_STAT = ~(1 << IRQ_VSYNC);
+	INTC_REG = ~(1 << IRQ_VSYNC);
 }
 
 #define SCREEN_HRES   GP1_HRES_320

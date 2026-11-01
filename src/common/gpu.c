@@ -49,13 +49,13 @@ void setupGPU(
 	);
 	GPU_GP1 = gp1_dispBlank(false);
 
-	IRQ_MASK &= ~(1 << IRQ_VSYNC);
+	INTC_MASK &= ~(1 << IRQ_VSYNC);
 
-	DMA_DPCR         |= 0
-		| DMA_DPCR_CH_ENABLE(DMA_GPU)
-		| DMA_DPCR_CH_ENABLE(DMA_OTC);
-	DMA_CHCR(DMA_GPU) = 0;
-	DMA_CHCR(DMA_OTC) = 0;
+	DMAC_PCR          |= 0
+		| DMAC_PCR_CH_ENABLE(DMA_GPU)
+		| DMAC_PCR_CH_ENABLE(DMA_OTC);
+	DMAC_CHCR(DMA_GPU) = 0;
+	DMAC_CHCR(DMA_OTC) = 0;
 }
 
 void waitForGP0Ready(void) {
@@ -64,17 +64,17 @@ void waitForGP0Ready(void) {
 }
 
 void waitForGPUDMADone(void) {
-	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_GPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 	while (!(GPU_STAT & GPU_STAT_WFEP))
 		__asm__ volatile("");
 }
 
 void waitForVSync(void) {
-	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
+	while (!(INTC_REG & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
 
-	IRQ_STAT = ~(1 << IRQ_VSYNC);
+	INTC_REG = ~(1 << IRQ_VSYNC);
 }
 
 void sendGPULinkedList(const void *data) {
@@ -83,11 +83,11 @@ void sendGPULinkedList(const void *data) {
 
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
-	DMA_MADR(DMA_GPU) = (uintptr_t) data;
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_LIST
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
+	DMAC_CHCR(DMA_GPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_LIST
+		| DMAC_CHCR_ENABLE;
 }
 
 void sendVRAMData(
@@ -122,12 +122,12 @@ void sendVRAMData(
 
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
 
-	DMA_MADR(DMA_GPU) = (uintptr_t) data;
-	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_GPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 void receiveVRAMData(
@@ -162,27 +162,27 @@ void receiveVRAMData(
 
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_READ);
 
-	DMA_MADR(DMA_GPU) = (uintptr_t) data;
-	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_READ
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_GPU) = 0
+		| DMAC_CHCR_DIR_READ
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 void clearOrderingTable(uint32_t *table, size_t numEntries) {
 	assert(!((uintptr_t) table % 4));
 
-	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
-	DMA_BCR (DMA_OTC) = numEntries;
-	DMA_CHCR(DMA_OTC) = 0
-		| DMA_CHCR_READ
-		| DMA_CHCR_REVERSE
-		| DMA_CHCR_MODE_BURST
-		| DMA_CHCR_ENABLE
-		| DMA_CHCR_TRIGGER;
+	DMAC_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
+	DMAC_BCR (DMA_OTC) = numEntries;
+	DMAC_CHCR(DMA_OTC) = 0
+		| DMAC_CHCR_DIR_READ
+		| DMAC_CHCR_REVERSE
+		| DMAC_CHCR_MODE_BURST
+		| DMAC_CHCR_ENABLE
+		| DMAC_CHCR_TRIGGER;
 
-	while (DMA_CHCR(DMA_OTC) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_OTC) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 }
 

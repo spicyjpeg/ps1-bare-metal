@@ -39,7 +39,7 @@ void initSIO0(void) {
 		| SIO_CR_RXEN
 		| SIO_CR_DSRIEN;
 
-	IRQ_MASK &= ~(1 << IRQ_SIO0);
+	INTC_MASK &= ~(1 << IRQ_SIO0);
 }
 
 static uint8_t exchangeByte(uint8_t value) {
@@ -56,13 +56,13 @@ static uint8_t exchangeByte(uint8_t value) {
 
 static bool waitForAcknowledge(void) {
 	for (int timeout = DSR_TIMEOUT; timeout > 0; timeout -= 5) {
-		if (IRQ_STAT & (1 << IRQ_SIO0)) {
+		if (INTC_REG & (1 << IRQ_SIO0)) {
 			for (int poll = NUM_DSR_POLLS; poll > 0; poll--) {
 				if (!(SIO_SR(0) & SIO_SR_DSR))
 					break;
 			}
 
-			IRQ_STAT   = ~(1 << IRQ_SIO0);
+			INTC_REG   = ~(1 << IRQ_SIO0);
 			SIO_CR(0) |= SIO_CR_ERRRST;
 
 			return true;
@@ -84,7 +84,7 @@ size_t exchangeCTPPacket(
 	while (SIO_SR(0) & SIO_SR_RXRDY)
 		SIO_DR(0);
 
-	IRQ_STAT   = ~(1 << IRQ_SIO0);
+	INTC_REG   = ~(1 << IRQ_SIO0);
 	SIO_CR(0) |= SIO_CR_DTR | SIO_CR_ERRRST;
 	delayMicroseconds(DTR_DELAY);
 

@@ -101,11 +101,11 @@ function(addBinaryFile target name path)
 		OUTPUT  "${asmFile}"
 		CONTENT [[
 .section .rodata.${name}, "a"
-.balign 8
+.balign  8
 
 .global ${name}
-.type ${name}, @object
-.size ${name}, (${name}_end - ${name})
+.type   ${name}, @object
+.size   ${name}, (${name}_end - ${name})
 
 ${name}:
 	.incbin "${fullPath}"
@@ -130,22 +130,22 @@ function(addBinaryFileWithSize target name sizeName path)
 		OUTPUT  "${asmFile}"
 		CONTENT [[
 .section .rodata.${name}, "a"
-.balign 8
+.balign  8
 
 .global ${name}
-.type ${name}, @object
-.size ${name}, (${name}_end - ${name})
+.type   ${name}, @object
+.size   ${name}, (${name}_end - ${name})
 
 ${name}:
 	.incbin "${fullPath}"
 ${name}_end:
 
 .section .rodata.${sizeName}, "a"
-.balign 4
+.balign  4
 
 .global ${sizeName}
-.type ${sizeName}, @object
-.size ${sizeName}, 4
+.type   ${sizeName}, @object
+.size   ${sizeName}, 4
 
 ${sizeName}:
 	.int (${name}_end - ${name})

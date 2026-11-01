@@ -108,16 +108,20 @@ DEF(uint32_t) cop0_getReg(const COP0Register reg) {
 	return value;
 }
 
-DEF(void) cop0_enableInterrupts(void) {
-	uint32_t status = cop0_getReg(COP0_STATUS);
+/* Critical section macro */
 
-	cop0_setReg(COP0_STATUS, status | COP0_STATUS_IEc | COP0_STATUS_Im2);
+DEF(void) _cop0_restoreStatus(const uint32_t *value) {
+	cop0_setReg(COP0_STATUS, *value);
 }
-DEF(uint32_t) cop0_disableInterrupts(void) {
-	uint32_t status = cop0_getReg(COP0_STATUS);
 
-	cop0_setReg(COP0_STATUS, status & ~COP0_STATUS_IEc);
-	return status & COP0_STATUS_IEc;
-}
+// GCC supports adding custom destructors to variables using the cleanup
+// attribute. We can use this to implement a critical section macro that backs
+// up the status register, manipulates it to disable interrupts then restores it
+// once the function returns.
+#define COP0_CRITICAL_SECTION \
+	uint32_t _savedStatus __attribute__((cleanup(_cop0_restoreStatus))) = \
+		cop0_getReg(COP0_STATUS); \
+	\
+	cop0_setReg(COP0_STATUS, _savedStatus & ~COP0_STATUS_IEc);
 
 #undef DEF

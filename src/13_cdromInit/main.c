@@ -78,7 +78,7 @@ static void issueCDROMCommand(
 static CDROMIRQType checkCDROMIRQ(uint8_t *response, size_t maxRespLength) {
 	// Check for incoming interrupts by polling the host interrupt status
 	// register in bank 1. Note that this is a separate register from the CPU's
-	// IRQ_STAT: the decoder has its own interrupt controller to keep track of
+	// INTC_REG: the decoder has its own interrupt controller to keep track of
 	// what exactly caused any IRQ sent to the main one.
 	CDROM_ADDRESS = 1;
 
@@ -148,7 +148,7 @@ static void initCDROM(void) {
 		| BIU_COM_DELAY_PRESTROBE(1);
 
 	// Initialize the sector decoder, clear any pending interrupts and mask all
-	// IRQ signals so that they won't be needlessly forwarded to IRQ_STAT.
+	// IRQ signals so that they won't be needlessly forwarded to INTC_REG.
 	CDROM_ADDRESS   = 0;
 	CDROM_HCHPCTL   = 0;
 	CDROM_ADDRESS   = 1;

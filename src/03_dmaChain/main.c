@@ -67,22 +67,22 @@ static void setupGPU_(
 	);
 	GPU_GP1 = gp1_dispBlank(false);
 
-	IRQ_MASK &= ~(1 << IRQ_VSYNC);
+	INTC_MASK &= ~(1 << IRQ_VSYNC);
 
 	// Make sure GPU-related DMA channels are enabled and reset them. The OTC
 	// channel is not used here, but will be introduced in later examples
 	// showing how to use ordering tables.
-	DMA_DPCR         |= 0
-		| DMA_DPCR_CH_ENABLE(DMA_GPU)
-		| DMA_DPCR_CH_ENABLE(DMA_OTC);
-	DMA_CHCR(DMA_GPU) = 0;
-	DMA_CHCR(DMA_OTC) = 0;
+	DMAC_PCR          |= 0
+		| DMAC_PCR_CH_ENABLE(DMA_GPU)
+		| DMAC_PCR_CH_ENABLE(DMA_OTC);
+	DMAC_CHCR(DMA_GPU) = 0;
+	DMAC_CHCR(DMA_OTC) = 0;
 }
 
 static void waitForGPUDMADone_(void) {
 	// Wait for the GPU's DMA channel to finish any pending transfer, then wait
 	// for the GPU itself to flush the last chunk.
-	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_GPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 	while (!(GPU_STAT & GPU_STAT_WFEP))
 		__asm__ volatile("");
@@ -102,11 +102,11 @@ static void sendGPULinkedList_(const void *data) {
 	// "linked list" mode. The DMA unit will start running in the background and
 	// parsing a chain of "packets", each consisting of a 32-bit header followed
 	// by zero or more 32-bit GP0 command words.
-	DMA_MADR(DMA_GPU) = (uintptr_t) data;
-	DMA_CHCR(DMA_GPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_LIST
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
+	DMAC_CHCR(DMA_GPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_LIST
+		| DMAC_CHCR_ENABLE;
 }
 
 // Define a structure we'll allocate our linked list packets into. We are going

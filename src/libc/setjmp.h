@@ -18,13 +18,7 @@
 
 #include <stdint.h>
 
-typedef struct {
-	uint32_t ra, sp, fp;
-	uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
-	uint32_t gp;
-} JumpBuffer;
-
-typedef JumpBuffer jmp_buf[1];
+typedef uintptr_t jmp_buf[12];
 
 #ifdef __cplusplus
 extern "C" {

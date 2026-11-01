@@ -44,8 +44,8 @@
 .set storeJumpPtr, $t9
 
 .section .text.memset, "ax", @progbits
-.global memset
-.type memset, @function
+.global  memset
+.type    memset, @function
 
 memset:
 	# If more than 32 bytes have to be written then take the "large" path,
@@ -148,8 +148,8 @@ memset:
 	swl   value, -1(dest)
 
 .section .text.memcpy, "ax", @progbits
-.global memcpy
-.type memcpy, @function
+.global  memcpy
+.type    memcpy, @function
 
 memcpy:
 	# If more than 32 bytes have to be written then take the "large" path,

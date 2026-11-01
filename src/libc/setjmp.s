@@ -19,8 +19,8 @@
 # implementation and good enough for most use cases.
 
 .section .text.setjmp, "ax", @progbits
-.global setjmp
-.type setjmp, @function
+.global  setjmp
+.type    setjmp, @function
 
 setjmp:
 	sw    $ra, 0x00($a0)
@@ -41,8 +41,8 @@ setjmp:
 	li    $v0, 0
 
 .section .text.longjmp, "ax", @progbits
-.global longjmp
-.type longjmp, @function
+.global  longjmp
+.type    longjmp, @function
 
 longjmp:
 	lw    $ra, 0x00($a0)

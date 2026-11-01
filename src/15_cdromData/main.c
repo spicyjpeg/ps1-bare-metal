@@ -72,8 +72,8 @@ static void initCDROM_(void) {
 		| CDROM_HCLRCTL_CLRBFWRDY;
 
 	// Enable and reset the DMA channel allocated to the CD-ROM decoder.
-	DMA_DPCR           |= DMA_DPCR_CH_ENABLE(DMA_CDROM);
-	DMA_CHCR(DMA_CDROM) = 0;
+	DMAC_PCR            |= DMAC_PCR_CH_ENABLE(DMA_CDROM);
+	DMAC_CHCR(DMA_CDROM) = 0;
 
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
@@ -86,7 +86,7 @@ static void initCDROM_(void) {
 }
 
 static void waitForCDROMDMADone_(void) {
-	while (DMA_CHCR(DMA_CDROM) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_CDROM) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 }
 
@@ -110,13 +110,13 @@ static void receiveCDROMSector_(void *data, size_t length) {
 	while (!(CDROM_HSTS & CDROM_HSTS_DRQSTS))
 		__asm__ volatile("");
 
-	DMA_MADR(DMA_CDROM) = (uintptr_t) data;
-	DMA_BCR (DMA_CDROM) = length;
-	DMA_CHCR(DMA_CDROM) = 0
-		| DMA_CHCR_READ
-		| DMA_CHCR_MODE_BURST
-		| DMA_CHCR_ENABLE
-		| DMA_CHCR_TRIGGER;
+	DMAC_MADR(DMA_CDROM) = (uintptr_t) data;
+	DMAC_BCR (DMA_CDROM) = length;
+	DMAC_CHCR(DMA_CDROM) = 0
+		| DMAC_CHCR_DIR_READ
+		| DMAC_CHCR_MODE_BURST
+		| DMAC_CHCR_ENABLE
+		| DMAC_CHCR_TRIGGER;
 }
 
 static bool startCDROMRead_(unsigned int lba, uint8_t mode, bool retry) {

@@ -63,17 +63,17 @@ static void clearOrderingTable_(uint32_t *table, size_t numEntries) {
 	// not connected to an external peripheral, it must run in "burst" mode
 	// (transferring all data at once with no chunking nor synchronization) with
 	// a manual trigger rather than the slice mode we used for GPU DMA.
-	DMA_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
-	DMA_BCR (DMA_OTC) = numEntries;
-	DMA_CHCR(DMA_OTC) = 0
-		| DMA_CHCR_READ
-		| DMA_CHCR_REVERSE
-		| DMA_CHCR_MODE_BURST
-		| DMA_CHCR_ENABLE
-		| DMA_CHCR_TRIGGER;
+	DMAC_MADR(DMA_OTC) = (uintptr_t) &table[numEntries - 1];
+	DMAC_BCR (DMA_OTC) = numEntries;
+	DMAC_CHCR(DMA_OTC) = 0
+		| DMAC_CHCR_DIR_READ
+		| DMAC_CHCR_REVERSE
+		| DMAC_CHCR_MODE_BURST
+		| DMAC_CHCR_ENABLE
+		| DMAC_CHCR_TRIGGER;
 
 	// Wait for DMA to finish generating the table.
-	while (DMA_CHCR(DMA_OTC) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_OTC) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 }
 

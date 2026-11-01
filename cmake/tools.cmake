@@ -118,3 +118,26 @@ pass -DPSXAVENC_PATH=... to CMake to specify its location manually.")
 		VERBATIM
 	)
 endfunction()
+
+function(convertAudioStream input sampleRate channels interleave output)
+	if("${PSXAVENC_PATH}" STREQUAL "PSXAVENC_PATH-NOTFOUND")
+		message(FATAL_ERROR "Unable to find psxavenc. Ensure your PATH \
+environment variable includes the full path to the directory containing it, or \
+pass -DPSXAVENC_PATH=... to CMake to specify its location manually.")
+	endif()
+
+	add_custom_command(
+		OUTPUT  "${output}"
+		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
+		COMMAND
+			"${PSXAVENC_PATH}"
+			-t spui
+			-f ${sampleRate}
+			-c ${channels}
+			-i ${interleave}
+			-L
+			"${PROJECT_SOURCE_DIR}/${input}"
+			"${output}"
+		VERBATIM
+	)
+endfunction()

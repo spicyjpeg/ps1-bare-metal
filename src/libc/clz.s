@@ -23,8 +23,8 @@
 .set GTE_LZCR, $31 # Leading zero count output
 
 .section .text.__clzsi2, "ax", @progbits
-.global __clzsi2
-.type __clzsi2, @function
+.global  __clzsi2
+.type    __clzsi2, @function
 
 __clzsi2:
 	# if (value & (1 << 31))
@@ -42,8 +42,8 @@ __clzsi2:
 	nop
 
 .section .text.__clzdi2, "ax", @progbits
-.global __clzdi2
-.type __clzdi2, @function
+.global  __clzdi2
+.type    __clzdi2, @function
 
 __clzdi2:
 	# if (msb & (1 << 31))

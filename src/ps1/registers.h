@@ -190,7 +190,7 @@ typedef enum {
 
 #define DRAM_CTRL _MMIO32(IO_BASE | 0x060)
 
-/* IRQ controller */
+/* Interrupt controller */
 
 typedef enum {
 	IRQ_VSYNC  =  0,
@@ -207,10 +207,10 @@ typedef enum {
 	IRQ_PIO    = 10
 } IRQChannel;
 
-#define IRQ_STAT _MMIO16(IO_BASE | 0x070)
-#define IRQ_MASK _MMIO16(IO_BASE | 0x074)
+#define INTC_REG  _MMIO16(IO_BASE | 0x070)
+#define INTC_MASK _MMIO16(IO_BASE | 0x074)
 
-/* DMA */
+/* DMA controller */
 
 typedef enum {
 	DMA_MDEC_IN  = 0,
@@ -223,44 +223,45 @@ typedef enum {
 } DMAChannel;
 
 typedef enum {
-	DMA_CHCR_READ             = 0 <<  0,
-	DMA_CHCR_WRITE            = 1 <<  0,
-	DMA_CHCR_REVERSE          = 1 <<  1,
-	DMA_CHCR_CHOPPING         = 1 <<  8,
-	DMA_CHCR_MODE_BITMASK     = 3 <<  9,
-	DMA_CHCR_MODE_BURST       = 0 <<  9,
-	DMA_CHCR_MODE_SLICE       = 1 <<  9,
-	DMA_CHCR_MODE_LIST        = 2 <<  9,
-	DMA_CHCR_DMA_TIME_BITMASK = 7 << 16,
-	DMA_CHCR_CPU_TIME_BITMASK = 7 << 20,
-	DMA_CHCR_ENABLE           = 1 << 24,
-	DMA_CHCR_TRIGGER          = 1 << 28,
-	DMA_CHCR_PAUSE            = 1 << 29  // Burst mode only
+	DMAC_CHCR_DIR_BITMASK      = 1 <<  0,
+	DMAC_CHCR_DIR_READ         = 0 <<  0,
+	DMAC_CHCR_DIR_WRITE        = 1 <<  0,
+	DMAC_CHCR_REVERSE          = 1 <<  1,
+	DMAC_CHCR_CHOPPING         = 1 <<  8,
+	DMAC_CHCR_MODE_BITMASK     = 3 <<  9,
+	DMAC_CHCR_MODE_BURST       = 0 <<  9,
+	DMAC_CHCR_MODE_SLICE       = 1 <<  9,
+	DMAC_CHCR_MODE_LIST        = 2 <<  9,
+	DMAC_CHCR_DMA_TIME_BITMASK = 7 << 16,
+	DMAC_CHCR_CPU_TIME_BITMASK = 7 << 20,
+	DMAC_CHCR_ENABLE           = 1 << 24,
+	DMAC_CHCR_TRIGGER          = 1 << 28,
+	DMAC_CHCR_PAUSE            = 1 << 29  // Burst mode only
 } DMACHCRFlag;
 
-#define DMA_DPCR_CH_PRIORITY_BITMASK(ch) ((7 << 0)      << (4 * (ch)))
-#define DMA_DPCR_CH_PRIORITY(ch, value)  (((value) & 7) << (4 * (ch)))
-#define DMA_DPCR_CH_ENABLE(ch)           ((1 << 3)      << (4 * (ch)))
+#define DMAC_PCR_CH_PRIORITY_BITMASK(ch) ((7 << 0)      << (4 * (ch)))
+#define DMAC_PCR_CH_PRIORITY(ch, value)  (((value) & 7) << (4 * (ch)))
+#define DMAC_PCR_CH_ENABLE(ch)           ((1 << 3)      << (4 * (ch)))
 
 typedef enum {
-	DMA_DICR_CH_MODE_BITMASK   = 0x7f <<  0,
-	DMA_DICR_BUS_ERROR         =    1 << 15,
-	DMA_DICR_CH_ENABLE_BITMASK = 0x7f << 16,
-	DMA_DICR_IRQ_ENABLE        =    1 << 23,
-	DMA_DICR_CH_STAT_BITMASK   = 0x7f << 24,
-	DMA_DICR_IRQ               =    1 << 31
+	DMAC_ICR_CH_MODE_BITMASK   = 0x7f <<  0,
+	DMAC_ICR_BUS_ERROR         =    1 << 15,
+	DMAC_ICR_CH_ENABLE_BITMASK = 0x7f << 16,
+	DMAC_ICR_IRQ_ENABLE        =    1 << 23,
+	DMAC_ICR_CH_STAT_BITMASK   = 0x7f << 24,
+	DMAC_ICR_IRQ               =    1 << 31
 } DMADICRFlag;
 
-#define DMA_DICR_CH_MODE(ch)   (1 << ((ch) +  0))
-#define DMA_DICR_CH_ENABLE(ch) (1 << ((ch) + 16))
-#define DMA_DICR_CH_STAT(ch)   (1 << ((ch) + 24))
+#define DMAC_ICR_CH_MODE(ch)   (1 << ((ch) +  0))
+#define DMAC_ICR_CH_ENABLE(ch) (1 << ((ch) + 16))
+#define DMAC_ICR_CH_STAT(ch)   (1 << ((ch) + 24))
 
-#define DMA_MADR(N) _MMIO32((IO_BASE | 0x080) + (16 * (N)))
-#define DMA_BCR(N)  _MMIO32((IO_BASE | 0x084) + (16 * (N)))
-#define DMA_CHCR(N) _MMIO32((IO_BASE | 0x088) + (16 * (N)))
+#define DMAC_MADR(N) _MMIO32((IO_BASE | 0x080) + (16 * (N)))
+#define DMAC_BCR(N)  _MMIO32((IO_BASE | 0x084) + (16 * (N)))
+#define DMAC_CHCR(N) _MMIO32((IO_BASE | 0x088) + (16 * (N)))
 
-#define DMA_DPCR _MMIO32(IO_BASE | 0x0f0)
-#define DMA_DICR _MMIO32(IO_BASE | 0x0f4)
+#define DMAC_PCR _MMIO32(IO_BASE | 0x0f0)
+#define DMAC_ICR _MMIO32(IO_BASE | 0x0f4)
 
 /* Timers */
 
@@ -459,9 +460,9 @@ typedef enum {
 	MDEC_STAT_DATA_EMPTY     =      1 << 31
 } MDECStatusFlag;
 
-#define MDEC_DATA _MMIO32(IO_BASE | 0x820)
+#define MDEC0     _MMIO32(IO_BASE | 0x820)
 #define MDEC_STAT _MMIO32(IO_BASE | 0x824) // Read
-#define MDEC_CTRL _MMIO32(IO_BASE | 0x824) // Write
+#define MDEC1     _MMIO32(IO_BASE | 0x824) // Write
 
 /* SPU */
 
@@ -556,14 +557,14 @@ typedef enum {
 	SPU_RAM_CTRL_SIZE_2MB      = 2 << 2
 } SPURAMControlFlag;
 
-#define SPU_CH_VOLL(N)  _MMIO16((IO_BASE | 0xc00) + (16 * (N)))
-#define SPU_CH_VOLR(N)  _MMIO16((IO_BASE | 0xc02) + (16 * (N)))
-#define SPU_CH_PITCH(N) _MMIO16((IO_BASE | 0xc04) + (16 * (N)))
-#define SPU_CH_SSA(N)   _MMIO16((IO_BASE | 0xc06) + (16 * (N)))
-#define SPU_CH_ADSR1(N) _MMIO16((IO_BASE | 0xc08) + (16 * (N)))
-#define SPU_CH_ADSR2(N) _MMIO16((IO_BASE | 0xc0a) + (16 * (N)))
-#define SPU_CH_ENVX(N)  _MMIO16((IO_BASE | 0xc0c) + (16 * (N)))
-#define SPU_CH_LSAX(N)  _MMIO16((IO_BASE | 0xc0e) + (16 * (N)))
+#define SPU_VOLL(N)  _MMIO16((IO_BASE | 0xc00) + (16 * (N)))
+#define SPU_VOLR(N)  _MMIO16((IO_BASE | 0xc02) + (16 * (N)))
+#define SPU_PITCH(N) _MMIO16((IO_BASE | 0xc04) + (16 * (N)))
+#define SPU_SSA(N)   _MMIO16((IO_BASE | 0xc06) + (16 * (N)))
+#define SPU_ADSR1(N) _MMIO16((IO_BASE | 0xc08) + (16 * (N)))
+#define SPU_ADSR2(N) _MMIO16((IO_BASE | 0xc0a) + (16 * (N)))
+#define SPU_ENVX(N)  _MMIO16((IO_BASE | 0xc0c) + (16 * (N)))
+#define SPU_LSAX(N)  _MMIO16((IO_BASE | 0xc0e) + (16 * (N)))
 
 #define SPU_MVOLL _MMIO16(IO_BASE | 0xd80)
 #define SPU_MVOLR _MMIO16(IO_BASE | 0xd82)
@@ -630,8 +631,11 @@ typedef enum {
 #define SPU_REVERB_vLIN    _MMIO16(IO_BASE | 0xdfc)
 #define SPU_REVERB_vRIN    _MMIO16(IO_BASE | 0xdfe)
 
-#define SPU_CH_VOLXL(N) _MMIO16((IO_BASE | 0xe00) + (4 * (N)))
-#define SPU_CH_VOLXR(N) _MMIO16((IO_BASE | 0xe02) + (4 * (N)))
+#define SPU_VOLXL(N) _MMIO16((IO_BASE | 0xe00) + (4 * (N)))
+#define SPU_VOLXR(N) _MMIO16((IO_BASE | 0xe02) + (4 * (N)))
+
+#define SPU_CHANNEL_BASE _ADDR16(IO_BASE | 0xc00)
+#define SPU_REVERB_BASE  _ADDR16(IO_BASE | 0xdc0)
 
 /* CW33300 CPU configuration */
 

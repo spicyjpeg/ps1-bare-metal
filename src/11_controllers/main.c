@@ -98,7 +98,7 @@ static void initSIO0(void) {
 
 	// As with vsync, prevent DSR pulses from triggering any interrupt handling
 	// code in the BIOS kernel or otherwise outside of our control.
-	IRQ_MASK &= ~(1 << IRQ_SIO0);
+	INTC_MASK &= ~(1 << IRQ_SIO0);
 }
 
 static inline void selectSIO0Port(int port) {
@@ -134,7 +134,7 @@ static bool waitForAcknowledge(void) {
 	// it). This will obviously not happen if there is no device or no more data
 	// to exchange, so we'll impose a ~100 us timeout on receiving the pulse.
 	for (int timeout = DSR_TIMEOUT; timeout > 0; timeout -= 5) {
-		if (IRQ_STAT & (1 << IRQ_SIO0)) {
+		if (INTC_REG & (1 << IRQ_SIO0)) {
 			// Wait for the pulse to end if it hasn't yet, in order to prevent
 			// SIO0 from triggering another IRQ for the same pulse after we
 			// clear the current one. The pulse is generally only 1-2 us long
@@ -147,7 +147,7 @@ static bool waitForAcknowledge(void) {
 
 			// Reset the interrupt flag at both sides (IRQ controller and SIO0)
 			// so it can be triggered again.
-			IRQ_STAT   = ~(1 << IRQ_SIO0);
+			INTC_REG   = ~(1 << IRQ_SIO0);
 			SIO_CR(0) |= SIO_CR_ERRRST;
 
 			return true;
@@ -173,7 +173,7 @@ static size_t exchangeCTPPacket(
 	// Clear any leftover interrupt flags and set DTR to mark the start of a new
 	// packet. Devices may take some time to prepare for incoming commands, so a
 	// small delay is needed afterwards.
-	IRQ_STAT   = ~(1 << IRQ_SIO0);
+	INTC_REG   = ~(1 << IRQ_SIO0);
 	SIO_CR(0) |= SIO_CR_DTR | SIO_CR_ERRRST;
 	delayMicroseconds(DTR_DELAY);
 

@@ -58,7 +58,7 @@
 
 static void waitForSPUDMADone(void) {
 	// Wait for the SPU's DMA channel to finish any pending transfer first.
-	while (DMA_CHCR(DMA_SPU) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_SPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 
 	// As with the GPU, the SPU has an internal 64-byte (16-word) queue it
@@ -113,12 +113,12 @@ static void sendSPURAMData(
 		__asm__ volatile("");
 
 	// Kick off the transfer at the DMA side.
-	DMA_MADR(DMA_SPU) = (uintptr_t) data;
-	DMA_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_SPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_SPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 // SPU RAM is shared between samples, audio capture buffers (in the first 4 KB)
@@ -138,8 +138,8 @@ static void sendSPURAMData(
 static const uint8_t dummyBlock[] = {
 	// The BRR ADPCM format uses 16-byte blocks, each consisting of a 2-byte
 	// header followed by 28 packed sample nibbles. The second byte holds end
-	// and loop flags; a value of 5 instructs the channel to mute itself then
-	// jump back to the beginning of the block.
+	// and loop flags; setting bits 0 and 2 instructs the channel to mute itself
+	// then jump back to the beginning of the block.
 	0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
@@ -152,10 +152,10 @@ static void resetAllSPUChannels(void) {
 	// immediately, SSA only sets the address the channel will jump to once
 	// "keyed on" (restarted).
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
-		SPU_CH_VOLL (i) = 0;
-		SPU_CH_VOLR (i) = 0;
-		SPU_CH_PITCH(i) = SPU_PITCH_UNIT;
-		SPU_CH_SSA  (i) = DUMMY_BLOCK_OFFSET / SPU_RAM_ADDR_UNIT;
+		SPU_VOLL (i) = 0;
+		SPU_VOLR (i) = 0;
+		SPU_PITCH(i) = SPU_PITCH_UNIT;
+		SPU_SSA  (i) = DUMMY_BLOCK_OFFSET / SPU_RAM_ADDR_UNIT;
 	}
 
 	// Ensure pitch modulation, noise mode and reverb output is disabled for all
@@ -174,7 +174,7 @@ static void resetAllSPUChannels(void) {
 
 static void initSPU(void) {
 	// The SPU sits on a 16-bit bus shared with the CD-ROM drive, BIOS ROM and
-	// parallel port. For each of those, the CPU's bus interface must be
+	// parallel I/O port. For each of those, the CPU's bus interface must be
 	// configured to use the proper signals and timings for the device. The BIOS
 	// kernel already performs this initialization on startup, but it's useful
 	// to do it again explicitly as a safeguard.
@@ -214,8 +214,8 @@ static void initSPU(void) {
 	SPU_ESA   = REVERB_BUFFER_OFFSET / SPU_RAM_ADDR_UNIT;
 
 	// Enable and reset the SPU's DMA channel.
-	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_SPU);
-	DMA_CHCR(DMA_SPU) = 0;
+	DMAC_PCR          |= DMAC_PCR_CH_ENABLE(DMA_SPU);
+	DMAC_CHCR(DMA_SPU) = 0;
 
 	// Upload our dummy sample at the end of SPU RAM, then play it on all
 	// channels to reset them and unmute the audio output.
@@ -234,7 +234,7 @@ static int findFreeSPUChannel(void) {
 	// is zero, which implies either the "end of sample" flag was reached or the
 	// channel was previously keyed off and the envelope went idle.
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
-		if (!SPU_CH_ENVX(i))
+		if (!SPU_ENVX(i))
 			return i;
 	}
 
@@ -252,19 +252,19 @@ static int playSample(
 		// Set the channel's volume (with volume slide disabled), pitch (as a
 		// fraction of the SPU's output sample rate in 4.12 fixed-point format)
 		// and start address.
-		SPU_CH_VOLL (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
-		SPU_CH_VOLR (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
-		SPU_CH_PITCH(ch) = (sampleRate * SPU_PITCH_UNIT) / 44100;
-		SPU_CH_SSA  (ch) = offset / SPU_RAM_ADDR_UNIT;
+		SPU_VOLL (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
+		SPU_VOLR (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
+		SPU_PITCH(ch) = (sampleRate * SPU_PITCH_UNIT) / 44100;
+		SPU_SSA  (ch) = offset / SPU_RAM_ADDR_UNIT;
 
 		// Configure the channel's ADSR envelope. For basic sound playback we
 		// want an envelope consisting only of a full-volume sustain phase with
 		// no attack, decay or release.
-		SPU_CH_ADSR1(ch) = 0
+		SPU_ADSR1(ch) = 0
 			| SPU_ADSR1_SL(15)
 			| SPU_ADSR1_DR(15)
 			| SPU_ADSR1_AR(0);
-		SPU_CH_ADSR2(ch) = 0
+		SPU_ADSR2(ch) = 0
 			| SPU_ADSR2_RR(0)
 			| SPU_ADSR2_SR(0);
 
@@ -272,7 +272,7 @@ static int playSample(
 		// itself, but will prevent findFreeSPUChannel() from returning this
 		// channel again during the time it takes for the SPU to first update
 		// ENVX.
-		SPU_CH_ENVX(ch) = volume;
+		SPU_ENVX(ch) = volume;
 
 		// Key on the channel to apply the SSA change and restart the envelope.
 		if (ch < 16)
@@ -292,8 +292,8 @@ static void printChannelInfo(char *output) {
 	);
 
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
-		int16_t  envx = (int16_t) SPU_CH_ENVX(i);
-		uint16_t ssa  = SPU_CH_SSA(i);
+		int16_t  envx = (int16_t) SPU_ENVX(i);
+		uint16_t ssa  = SPU_SSA(i);
 
 		// Do not show channels that are either idle or playing the dummy block.
 		// Note that SSA is *not* automatically updated with the current address
@@ -306,8 +306,8 @@ static void printChannelInfo(char *output) {
 			"  %d\t%d%%\t%05X\t%05X\n",
 			i,
 			(envx * 100) >> 15,
-			ssa            * SPU_RAM_ADDR_UNIT,
-			SPU_CH_LSAX(i) * SPU_RAM_ADDR_UNIT
+			ssa         * SPU_RAM_ADDR_UNIT,
+			SPU_LSAX(i) * SPU_RAM_ADDR_UNIT
 		);
 	}
 }

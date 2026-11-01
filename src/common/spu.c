@@ -58,8 +58,8 @@ void initSPU(void) {
 	SPU_EVOLR    = 0;
 	SPU_ESA      = REVERB_BUFFER_OFFSET / SPU_RAM_ADDR_UNIT;
 
-	DMA_DPCR         |= DMA_DPCR_CH_ENABLE(DMA_SPU);
-	DMA_CHCR(DMA_SPU) = 0;
+	DMAC_PCR          |= DMAC_PCR_CH_ENABLE(DMA_SPU);
+	DMAC_CHCR(DMA_SPU) = 0;
 
 	sendSPURAMData(dummyBlock, DUMMY_BLOCK_OFFSET, sizeof(dummyBlock));
 	waitForSPUDMADone();
@@ -72,7 +72,7 @@ void initSPU(void) {
 }
 
 void waitForSPUDMADone(void) {
-	while (DMA_CHCR(DMA_SPU) & DMA_CHCR_ENABLE)
+	while (DMAC_CHCR(DMA_SPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 
 	delayMicroseconds(2 * DMA_MAX_CHUNK_SIZE);
@@ -114,12 +114,12 @@ void sendSPURAMData(const void *data, unsigned int offset, size_t length) {
 	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
 	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(0);
 
-	DMA_MADR(DMA_SPU) = (uintptr_t) data;
-	DMA_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_SPU) = 0
-		| DMA_CHCR_WRITE
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_SPU) = 0
+		| DMAC_CHCR_DIR_WRITE
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 void receiveSPURAMData(void *data, unsigned int offset, size_t length) {
@@ -156,20 +156,20 @@ void receiveSPURAMData(void *data, unsigned int offset, size_t length) {
 	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
 	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(2);
 
-	DMA_MADR(DMA_SPU) = (uintptr_t) data;
-	DMA_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
-	DMA_CHCR(DMA_SPU) = 0
-		| DMA_CHCR_READ
-		| DMA_CHCR_MODE_SLICE
-		| DMA_CHCR_ENABLE;
+	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
+	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
+	DMAC_CHCR(DMA_SPU) = 0
+		| DMAC_CHCR_DIR_READ
+		| DMAC_CHCR_MODE_SLICE
+		| DMAC_CHCR_ENABLE;
 }
 
 void resetAllSPUChannels(void) {
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
-		SPU_CH_VOLL (i) = 0;
-		SPU_CH_VOLR (i) = 0;
-		SPU_CH_PITCH(i) = SPU_PITCH_UNIT;
-		SPU_CH_SSA  (i) = DUMMY_BLOCK_OFFSET / SPU_RAM_ADDR_UNIT;
+		SPU_VOLL (i) = 0;
+		SPU_VOLR (i) = 0;
+		SPU_PITCH(i) = SPU_PITCH_UNIT;
+		SPU_SSA  (i) = DUMMY_BLOCK_OFFSET / SPU_RAM_ADDR_UNIT;
 	}
 
 	SPU_PMON0 = 0;
@@ -185,7 +185,7 @@ void resetAllSPUChannels(void) {
 
 int findFreeSPUChannel(void) {
 	for (int i = 0; i < SPU_NUM_CHANNELS; i++) {
-		if (!SPU_CH_ENVX(i))
+		if (!SPU_ENVX(i))
 			return i;
 	}
 
@@ -196,19 +196,19 @@ int playSample(unsigned int offset, unsigned int sampleRate, int16_t volume) {
 	int ch = findFreeSPUChannel();
 
 	if (ch >= 0) {
-		SPU_CH_VOLL (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
-		SPU_CH_VOLR (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
-		SPU_CH_PITCH(ch) = (sampleRate * SPU_PITCH_UNIT) / 44100;
-		SPU_CH_SSA  (ch) = offset / SPU_RAM_ADDR_UNIT;
+		SPU_VOLL (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
+		SPU_VOLR (ch) = (volume / 2) & ~SPU_VOL_SLIDE_ENABLE;
+		SPU_PITCH(ch) = (sampleRate * SPU_PITCH_UNIT) / 44100;
+		SPU_SSA  (ch) = offset / SPU_RAM_ADDR_UNIT;
 
-		SPU_CH_ADSR1(ch) = 0
+		SPU_ADSR1(ch) = 0
 			| SPU_ADSR1_SL(15)
 			| SPU_ADSR1_DR(15)
 			| SPU_ADSR1_AR(0);
-		SPU_CH_ADSR2(ch) = 0
+		SPU_ADSR2(ch) = 0
 			| SPU_ADSR2_RR(0)
 			| SPU_ADSR2_SR(0);
-		SPU_CH_ENVX (ch) = volume;
+		SPU_ENVX (ch) = volume;
 
 		if (ch < 16)
 			SPU_KON0 = 1 << ch;

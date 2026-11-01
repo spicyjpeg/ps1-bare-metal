@@ -37,8 +37,8 @@
 .set savedBCC,    $a3
 
 .section .text.flushCache, "ax", @progbits
-.global flushCache
-.type flushCache, @function
+.global  flushCache
+.type    flushCache, @function
 
 flushCache:
 	# Call _flushCacheInner() through the uncached KSEG1 mirror of main RAM,
@@ -53,7 +53,7 @@ flushCache:
 	lui   ptr, %hi(CPU_BCC)
 
 .section .text._flushCacheInner, "ax", @progbits
-.type _flushCacheInner, @function
+.type    _flushCacheInner, @function
 
 _flushCacheInner:
 	# Save the current state of the BCC and COP0 status registers so that they

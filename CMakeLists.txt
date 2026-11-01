@@ -72,7 +72,13 @@ if(NOT skipAudioExamples)
 	convertAudioSample(assets/test.wav 22050 assets/testSample.dat)
 endif()
 
-# Build the examples and embed the converted assets where appropriate.
+# Build the examples and embed the converted assets where appropriate. Multiple
+# examples use the font texture, so we'll define a helper to embed it.
+function(addFontTexture target)
+	addBinaryFile(${target} fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
+	addBinaryFile(${target} fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+endfunction()
+
 addPS1Executable(example00_helloWorld                     src/00_helloWorld/main.c)
 addPS1Executable(example01_basicGraphics                  src/01_basicGraphics/main.c)
 addPS1Executable(example02_doubleBuffer  src/common/gpu.c src/02_doubleBuffer/main.c)
@@ -86,8 +92,7 @@ addBinaryFile   (example05_palettes textureData "${PROJECT_BINARY_DIR}/assets/te
 addBinaryFile   (example05_palettes paletteData "${PROJECT_BINARY_DIR}/assets/test4bppPalette.dat")
 
 addPS1Executable(example06_fonts src/common/gpu.c src/06_fonts/main.c)
-addBinaryFile   (example06_fonts fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile   (example06_fonts fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture  (example06_fonts)
 
 addPS1Executable(example07_orderingTable src/common/gpu.c                                    src/07_orderingTable/main.c)
 addPS1Executable(example08_spinningCube  src/common/gpu.c src/common/trig.c                  src/08_spinningCube/main.c)
@@ -98,19 +103,16 @@ addBinaryFile   (example10_mipmaps textureData "${PROJECT_BINARY_DIR}/assets/mip
 addBinaryFile   (example10_mipmaps paletteData "${PROJECT_BINARY_DIR}/assets/mipmapPalette.dat")
 
 addPS1Executable(example11_controllers src/common/font.c src/common/gpu.c src/11_controllers/main.c)
-addBinaryFile   (example11_controllers fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile   (example11_controllers fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture  (example11_controllers)
 
 if(NOT skipAudioExamples)
 	addPS1Executable     (example12_basicAudio src/common/font.c src/common/gpu.c src/12_basicAudio/main.c)
-	addBinaryFile        (example12_basicAudio fontTexture             "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-	addBinaryFile        (example12_basicAudio fontPalette             "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+	addFontTexture       (example12_basicAudio)
 	addBinaryFileWithSize(example12_basicAudio sampleData sampleLength "${PROJECT_BINARY_DIR}/assets/testSample.dat")
 endif()
 
 addPS1Executable(example13_cdromInit src/common/font.c src/common/gpu.c src/13_cdromInit/main.c)
-addBinaryFile   (example13_cdromInit fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile   (example13_cdromInit fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture  (example13_cdromInit)
 
 addPS1Executable(
 	example14_cdAudio
@@ -121,8 +123,7 @@ addPS1Executable(
 	src/common/spu.c
 	src/14_cdAudio/main.c
 )
-addBinaryFile(example14_cdAudio fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example14_cdAudio fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture(example14_cdAudio)
 
 addPS1Executable(
 	example15_cdromData
@@ -132,8 +133,7 @@ addPS1Executable(
 	src/common/sio0.c
 	src/15_cdromData/main.c
 )
-addBinaryFile(example15_cdromData fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example15_cdromData fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture(example15_cdromData)
 
 addPS1Executable(
 	example16_iso9660
@@ -143,8 +143,7 @@ addPS1Executable(
 	src/common/sio0.c
 	src/16_iso9660/main.c
 )
-addBinaryFile(example16_iso9660 fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example16_iso9660 fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture(example16_iso9660)
 
 addPS1Executable(
 	example17_fileLoading
@@ -155,5 +154,4 @@ addPS1Executable(
 	src/common/sio0.c
 	src/17_fileLoading/main.c
 )
-addBinaryFile(example17_fileLoading fontTexture "${PROJECT_BINARY_DIR}/assets/fontTexture.dat")
-addBinaryFile(example17_fileLoading fontPalette "${PROJECT_BINARY_DIR}/assets/fontPalette.dat")
+addFontTexture(example17_fileLoading)
