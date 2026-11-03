@@ -35,8 +35,9 @@ KERNEL_FUNC 0x800000a0, 0x44, kernel_flushCache
 KERNEL_FUNC 0x800000b0, 0x17, kernel_returnFromException
 KERNEL_FUNC 0x800000b0, 0x18, kernel_resetEntryInt
 KERNEL_FUNC 0x800000b0, 0x19, kernel_hookEntryInt
-KERNEL_FUNC 0x800000b0, 0x34, kernel_fileRead
-KERNEL_FUNC 0x800000b0, 0x35, kernel_fileWrite
+KERNEL_FUNC 0x800000b0, 0x34, kernel_read
+KERNEL_FUNC 0x800000b0, 0x35, kernel_write
+KERNEL_FUNC 0x800000b0, 0x37, kernel_ioctl
 KERNEL_FUNC 0x800000b0, 0x51, kernel_krom2RawAdd
 KERNEL_FUNC 0x800000b0, 0x5b, kernel_changeClearPad
 

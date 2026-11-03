@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023-2025 spicyjpeg
+# ps1-bare-metal - (C) 2023-2026 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,12 +12,13 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-.set noreorder
+# GCC calls two functions to count the number of leading zeroes in an integer:
+# __clzsi2() (32-bit) and __clzdi2() (64-bit). Both are normally provided by
+# libgcc, but we can replace them with much smaller implementations that
+# leverage the GTE's LZCS/LZCR registers. Note that the GTE must be enabled in
+# order for these to work; our startup code takes care of that.
 
-# libgcc provides two functions used internally by GCC to count the number of
-# leading zeroes in a value, __clzsi2() (32-bit) and __clzdi2() (64-bit). We're
-# going to override them with smaller implementations that make use of the GTE's
-# LZCS/LZCR registers.
+.set noreorder
 
 .set GTE_LZCS, $30 # Leading zero count input
 .set GTE_LZCR, $31 # Leading zero count output

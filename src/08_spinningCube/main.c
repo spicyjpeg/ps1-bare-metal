@@ -58,9 +58,8 @@
 #define GTE_UNIT (1 << 12)
 
 static void setupGTE(unsigned int width, unsigned int height) {
-	// Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
-	// enabled through the status register in coprocessor 0, which is always
-	// accessible.
+	// Ensure the GTE (coprocessor 2) is enabled. MIPS coprocessors are enabled
+	// through the status register in coprocessor 0, which is always accessible.
 	cop0_setReg(COP0_STATUS, cop0_getReg(COP0_STATUS) | COP0_STATUS_CU2);
 
 	// Set the offset to be added to all calculated screen space coordinates (we
@@ -202,7 +201,8 @@ int main(int argc, const char **argv) {
 	(void) argc;
 	(void) argv;
 
-	initSerialIO(115200);
+	initSIO1TTY(115200);
+	initPCSXTTY();
 	setupGPU(
 		getCurrentVideoMode(),
 		SCREEN_HRES,

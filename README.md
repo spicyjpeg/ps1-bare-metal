@@ -91,11 +91,11 @@ as context-sensitive suggestions is highly recommended.
 
 If the toolchain is not listed in your `PATH` environment variable, you will
 have to set the `TOOLCHAIN_PATH` CMake variable to the full path to your
-toolchain's `bin` subdirectory (e.g. `/opt/mipsel-linux-gnu/bin`) using your
-IDE's CMake cache editor. See your IDE's documentation for information on
-accessing the cache editor; in VS Code with the CMake Tools extension, the
-editor can be opened by selecting "Edit CMake Cache (UI)" from the command
-palette (Ctrl+Shift+P).
+toolchain's `bin` subfolder (e.g. `/opt/mipsel-linux-gnu/bin`) using your IDE's
+CMake cache editor. See your IDE's documentation for information on accessing
+the cache editor; in VS Code with the CMake Tools extension, the editor can be
+opened by selecting "Edit CMake Cache (UI)" from the command palette
+(Ctrl+Shift+P).
 
 ### Building from the command line
 
@@ -108,10 +108,10 @@ cmake --build build
 ```
 
 If you are unfamiliar with CMake, the first command is what's known as the
-*configure command* and prepares the build directory for the second command,
-which actually runs the compiler and generates the executables. Once the build
-directory is prepared you'll no longer have to run the configure command unless
-you edit the CMake scripts to e.g. add new examples or source files.
+*configure command* and prepares the `build` subfolder for the second command,
+which actually runs the compiler and generates the executables. The build folder
+only needs to be set up again if you edit the CMake scripts, for instance to add
+new examples.
 
 You may replace `debug` with `release` to enable release mode, which will turn
 on additional compiler optimizations, remove assertions and produce smaller
@@ -119,7 +119,7 @@ binaries. Replacing it with `min-size-release` will further optimize the
 executables for size at the expense of performance.
 
 If the toolchain is not listed in your `PATH` environment variable, you will
-have to pass the path to its `bin` subdirectory to the configure command via the
+have to pass the path to its `bin` directory to the configure command via the
 `-DTOOLCHAIN_PATH` option, like this:
 
 ```bash
@@ -220,17 +220,18 @@ development.
 ## Modifying the code
 
 If you want to write your own examples or projects, here's a quick overview of
-the non-example subfolders in the `src` directory:
+the non-example subfolders under `src`:
 
 - `src/libc` contains a barebones implementation of the C standard library. A
   few functions have been replaced with optimized assembly implementations;
+- `src/vendor` currently holds modified copies of two third-party libraries that
+  complement the standard library;
 - `src/ps1` contains a set of headers to help with low-level hardware access:
   register definitions, GPU command builders, coprocessor accessors that wrap
   inline assembly and so on;
 - `src/common` can be considered a higher-level support library, consisting of
   frequently used functions that would otherwise be duplicated across most of
-  the examples. This is essentially the "SDK" the examples sit on top of;
-- `src/vendor` is for third-party libraries (currently only the printf library).
+  the examples. This is essentially the "SDK" the examples sit on top of.
 
 If you create a new folder and want its contents to be built, remember to add it
 to `CMakeLists.txt` (you may use the existing entries as a reference) and rerun
@@ -260,12 +261,23 @@ the 1990s when it comes to the PS1.
 
 ## License
 
-Everything in this repository, including the vendored copy of
-[Marco Paland's printf library](https://github.com/mpaland/printf), is licensed
-under the MIT license (or the functionally equivalent ISC license). The only
-"hard" requirements are attribution and preserving the license notice; you may
+All original code in this repository is released under the
+[MIT license](LICENSE) or the functionally equivalent ISC license. The only
+strict requirements are attribution and preserving the license notice; you may
 otherwise freely use any of the code for both non-commercial and commercial
-purposes (such as a paid homebrew game, a book or a course).
+purposes (for instance in a paid homebrew game, a book or a course).
+
+The third-party dependencies bundled under `src/vendor` additionally have their
+own licenses:
+
+- [Marco Paland's printf implementation](https://github.com/mpaland/printf) is
+  also MIT licensed and requires its own attribution;
+- [arith64](https://github.com/glitchub/arith64) (used to replace GCC's own
+  64-bit integer math functions with smaller implementations) is released in the
+  public domain.
+
+LLMs and AI agents are allowed to use and reference ps1-bare-metal as long as
+the license is respected, but discouraged from doing so.
 
 ## See also
 
@@ -278,6 +290,7 @@ purposes (such as a paid homebrew game, a book or a course).
 - [ps1-ram-tester](https://github.com/spicyjpeg/ps1-ram-tester) and
   [573in1](https://github.com/spicyjpeg/573in1) are two real world examples of
   moderately complex projects built on top of this repository.
-- If you need help or wish to discuss PS1 homebrew development more in general,
-  you may want to check out the
-  [PSX.Dev Discord server](https://discord.gg/QByKPpH).
+- I run the [Humanbrew Discord server](https://discord.gg/2rn8qD2gNH), a safe
+  space for AI-free console homebrew development (not just PS1) and discussion.
+  You may also consider joining [PSX.Dev](https://discord.gg/QByKPpH), but I am
+  no longer there for personal reasons.

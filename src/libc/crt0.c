@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,6 +16,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "ps1/cop0.h"
 
 typedef void (*Function)(void);
 
@@ -31,20 +32,19 @@ extern const Function _finiArrayStart[], _finiArrayEnd[];
 
 /* Heap API (used by malloc) */
 
-#define ALIGN(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
-
-static uintptr_t _heapEnd   = (uintptr_t) _bssEnd;
-static uintptr_t _heapLimit = 0x80200000; // TODO: add a way to change this
+static uintptr_t heapEnd   = (uintptr_t) _bssEnd;
+static uintptr_t heapLimit = 0x80200000; // TODO: add a way to change this
 
 void *sbrk(ptrdiff_t incr) {
-	uintptr_t currentEnd = _heapEnd;
-	uintptr_t newEnd     = ALIGN(currentEnd + incr, 8);
+	uintptr_t end    = heapEnd;
+	uintptr_t newEnd = heapEnd + incr + 7;
+	newEnd          -= newEnd % 8;
 
-	if (newEnd >= _heapLimit)
+	if (newEnd >= heapLimit)
 		return 0;
 
-	_heapEnd = newEnd;
-	return (void *) currentEnd;
+	heapEnd = newEnd;
+	return (void *) end;
 }
 
 /* Program entry point */
@@ -56,6 +56,10 @@ int _start(int argc, const char **argv) {
 	// variables placed in those sections can be quickly accessed. See the
 	// linker script for more details.
 	__asm__ volatile("la $gp, _gp\n");
+
+	// Ensure the GTE is accessible in order for the intrinsics defined in clz.s
+	// to work properly even if main() does not initialize it.
+	cop0_setReg(COP0_STATUS, cop0_getReg(COP0_STATUS) | COP0_STATUS_CU2);
 
 	// Set all uninitialized variables to zero by clearing the BSS section.
 	__builtin_memset(_bssStart, 0, _bssEnd - _bssStart);

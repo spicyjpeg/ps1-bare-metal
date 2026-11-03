@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023-2024 spicyjpeg
+# ps1-bare-metal - (C) 2023-2026 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0)
 
 # Create a user-editable variable to allow for a custom toolchain path to be
 # specified by passing -DTOOLCHAIN_PATH=... to CMake.

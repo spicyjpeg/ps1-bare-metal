@@ -12,7 +12,7 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0)
 
 # Set the path to the toolchain file, which will configure CMake to use the MIPS
 # toolchain rather than its default compiler and proceed in turn to execute
@@ -41,17 +41,19 @@ audio encoding will be skipped.")
 endif()
 
 # Build a support library containing code common to all examples (standard C
-# library functions) and link it by default into every executable.
+# library functions) and link it by default to every executable.
 add_library(
-	c OBJECT
+	c STATIC
 	src/libc/clz.s
 	src/libc/crt0.c
 	src/libc/cxxsupport.cpp
 	src/libc/malloc.c
-	src/libc/misc.c
 	src/libc/setjmp.s
+	src/libc/stdio.c
 	src/libc/string.c
 	src/libc/string.s
+	src/ps1/kernel.s
+	src/vendor/arith64.c
 	src/vendor/printf.c
 )
 target_include_directories(

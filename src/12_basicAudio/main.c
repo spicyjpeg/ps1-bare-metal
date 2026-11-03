@@ -335,7 +335,8 @@ int main(int argc, const char **argv) {
 	(void) argc;
 	(void) argv;
 
-	initSerialIO(115200);
+	initSIO1TTY(115200);
+	initPCSXTTY();
 	setupGPU(
 		getCurrentVideoMode(),
 		SCREEN_HRES,

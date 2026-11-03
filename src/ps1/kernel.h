@@ -34,6 +34,11 @@ typedef enum {
 } KernelFileDescriptor;
 
 typedef enum {
+	KERNEL_IOCTL_NBLOCK = ('f' << 8) | 1,
+	KERNEL_IOCTL_SCAN   = ('f' << 8) | 2
+} KernelIoctl;
+
+typedef enum {
 	KERNEL_RCNT_TIMER0 = 0,
 	KERNEL_RCNT_TIMER1 = 1,
 	KERNEL_RCNT_TIMER2 = 2,
@@ -57,8 +62,9 @@ void kernel_returnFromException(void);
 void kernel_resetEntryInt(void);
 void kernel_hookEntryInt (jmp_buf env);
 
-int kernel_fileRead (int fd, void       *data, int length);
-int kernel_fileWrite(int fd, const void *data, int length);
+int kernel_read (int fd, void        *data, int length);
+int kernel_write(int fd, const void  *data, int length);
+int kernel_ioctl(int fd, KernelIoctl ioctl, int param);
 
 const uint8_t *kernel_krom2RawAdd(uint16_t code);
 

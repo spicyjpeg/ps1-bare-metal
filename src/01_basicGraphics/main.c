@@ -101,11 +101,16 @@ int main(int argc, const char **argv) {
 	(void) argc;
 	(void) argv;
 
-	// Initialize the serial interface so that functions such as putchar(),
-	// puts(), printf() and so on can be used for logging. The initSerialIO()
-	// function is defined in libc/misc.c and does basically what did in the
-	// last example.
-	initSerialIO(115200);
+	// Initialize a TTY device to send the output of printf(), putchar() and
+	// puts() to, shall we need to use them for debugging purposes. The
+	// init*TTY() functions are defined in libc/stdio.c; we may call more than
+	// one to enable multiple devices at once. As with the first example, by
+	// default we'll output to the serial port and to emulator logs.
+	//initKernelTTY();
+	initSIO1TTY(115200);
+	initPCSXTTY();
+	//initATCONSTTY();
+	//initDeckardTTY();
 
 	// Read the GPU's status register before resetting it to check if it was
 	// left in PAL or NTSC mode by the BIOS or loader, in order to keep using

@@ -1,4 +1,4 @@
-# ps1-bare-metal - (C) 2023-2024 spicyjpeg
+# ps1-bare-metal - (C) 2023-2026 spicyjpeg
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.0)
 
 # Override the default file extensions for executables and libraries. This is
 # not strictly required, but it makes CMake's behavior more consistent.
@@ -20,17 +20,11 @@ set(CMAKE_EXECUTABLE_SUFFIX     .elf)
 set(CMAKE_STATIC_LIBRARY_PREFIX lib)
 set(CMAKE_STATIC_LIBRARY_SUFFIX .a)
 
-# Add libgcc.a (-lgcc) to the set of libraries linked to all executables by
-# default. This library ships with GCC and must be linked to anything compiled
-# with it.
-link_libraries(-lgcc)
-
-# Create a dummy "flags" library that is not made up of any files, but adds the
-# appropriate compiler and linker flags for PS1 executables to anything linked
-# to it. The library is then added to the default set of libraries.
-add_library   (flags INTERFACE)
-link_libraries(flags)
-
+# Create a dummy "flags" library that is not made up of any files, but
+# propagates the appropriate compiler and linker flags for PS1 executables to
+# anything linked to it. The library is then added to CMake's default set of
+# libraries.
+add_library(flags INTERFACE)
 target_compile_features(
 	flags INTERFACE
 	c_std_17
@@ -80,12 +74,19 @@ target_compile_options(
 )
 target_link_options(
 	flags INTERFACE
-		-static
-		-nostdlib
-		-Wl,-gc-sections
-		-G8
-		"-T${CMAKE_CURRENT_LIST_DIR}/executable.ld"
+	-static
+	-nostdlib
+	-Wl,-gc-sections
+	-G8
+	"-T${CMAKE_CURRENT_LIST_DIR}/executable.ld"
 )
+target_link_libraries(
+	flags INTERFACE
+	# libgcc.a ships with GCC and provides support functions compiled code may
+	# call, so it must be linked to all binaries.
+	-lgcc
+)
+link_libraries(flags)
 
 # Define a helper function to embed binary data into executables and libraries.
 function(addBinaryFile target name path)

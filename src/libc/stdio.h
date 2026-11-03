@@ -1,5 +1,5 @@
 /*
- * ps1-bare-metal - (C) 2023 spicyjpeg
+ * ps1-bare-metal - (C) 2023-2026 spicyjpeg
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,19 +18,19 @@
 
 #include "vendor/printf.h"
 
-#define putchar _putchar
-#define getchar _getchar
-#define puts    _puts
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void initSerialIO(int baud);
+void initKernelTTY(void);
+void initSIO1TTY(unsigned int baud);
+void initPCSXTTY(void);
+void initATCONSTTY(void);
+void initDeckardTTY(void);
 
-void _putchar(char ch);
-int _getchar(void);
-int _puts(const char *str);
+void putchar(char ch);
+int getchar(void);
+int puts(const char *str);
 
 #ifdef __cplusplus
 }

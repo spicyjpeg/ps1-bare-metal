@@ -218,7 +218,8 @@ int main(int argc, const char **argv) {
 	// it and setting the master volume would be enough. Initialization is
 	// however useful to get rid of the startup sound and its reverb tail when
 	// the executable is launched directly by the BIOS.
-	initSerialIO(115200);
+	initSIO1TTY(115200);
+	initPCSXTTY();
 	setupGPU(
 		getCurrentVideoMode(),
 		SCREEN_HRES,
