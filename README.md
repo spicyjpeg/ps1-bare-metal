@@ -262,10 +262,10 @@ the 1990s when it comes to the PS1.
 ## License
 
 All original code in this repository is released under the
-[MIT license](LICENSE) or the functionally equivalent ISC license. The only
-strict requirements are attribution and preserving the license notice; you may
-otherwise freely use any of the code for both non-commercial and commercial
-purposes (for instance in a paid homebrew game, a book or a course).
+[MIT license](LICENSE). The only strict requirements are attribution and
+preserving the license notice; you may otherwise freely use any of the code for
+both non-commercial and commercial purposes (for instance in a paid homebrew
+game, a book or a course).
 
 The third-party dependencies bundled under `src/vendor` additionally have their
 own licenses:
