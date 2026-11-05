@@ -1,4 +1,4 @@
-# ps1-bare-metal - Copyright (C) 2023-2025 spicyjpeg
+# ps1-bare-metal - Copyright (C) 2023-2026 spicyjpeg
 # SPDX-License-Identifier: MIT
 
 # This is a minimal implementation of a function to flush the CPU's instruction

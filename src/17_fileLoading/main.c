@@ -344,16 +344,16 @@ int main(int argc, const char **argv) {
 		else if (pressed & BTN_PAD_CIRCLE)
 			printTextFile("/README.TXT", text, 800);
 
+		printString(chain, &font, 16, 32, text);
 		printString(
 			chain,
 			&font,
 			16,
-			32,
+			176,
 			"Controls:\n"
 			"  Cross:\tload SYSTEM.CNF (if any)\n"
 			"  Circle:\tload README.TXT (if any)"
 		);
-		printString(chain, &font, 16, 96, text);
 
 		*(chain->nextPacket) = gp0_endTag(0);
 

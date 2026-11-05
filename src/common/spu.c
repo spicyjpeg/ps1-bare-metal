@@ -10,7 +10,7 @@
 #include "ps1/delay.h"
 #include "ps1/registers.h"
 
-#define DMA_MAX_CHUNK_SIZE 16
+#define DMA_CHUNK_SIZE 16
 
 #define DUMMY_BLOCK_OFFSET   (SPU_RAM_SIZE - 32)
 #define REVERB_BUFFER_OFFSET (SPU_RAM_SIZE - 16)
@@ -64,7 +64,22 @@ void waitForSPUDMADone(void) {
 	while (DMAC_CHCR(DMA_SPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 
-	delayMicroseconds(2 * DMA_MAX_CHUNK_SIZE);
+	delayMicroseconds(2 * DMA_CHUNK_SIZE);
+}
+
+static void setTransferMode(uint16_t mode) {
+	uint16_t attr = SPU_ATTR & ~SPU_ATTR_XFER_BITMASK;
+	SPU_ATTR      = attr | mode;
+
+	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != mode)
+		__asm__ volatile("");
+}
+
+static void setSPUDMADelay(unsigned int cycles) {
+	// SPU RAM writes can be performed with the default bus configuration, while
+	// reads require slightly increasing DMA waitstates.
+	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
+	BIU_DEV4_DELAY = ctrl | BIU_DEV_DELAY_DMA_CYCLES(cycles);
 }
 
 void sendSPURAMData(const void *data, unsigned int offset, size_t length) {
@@ -73,42 +88,32 @@ void sendSPURAMData(const void *data, unsigned int offset, size_t length) {
 	assert(!(offset % SPU_RAM_ADDR_UNIT));
 	assert((offset + length) <= SPU_RAM_SIZE);
 
-	length = (length + 3) / 4;
-	size_t chunkSize, numChunks;
+	setTransferMode(SPU_ATTR_XFER_NONE);
+	SPU_TSA = offset / SPU_RAM_ADDR_UNIT;
 
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
+	const uint16_t *ptr = (const uint16_t *) data;
+	length              = (length + 1) / 2;
 
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
+	if (length % (DMA_CHUNK_SIZE * 2)) {
+		for (; length % (DMA_CHUNK_SIZE * 2); length--)
+			SPU_DATA = *(ptr++);
+
+		setTransferMode(SPU_ATTR_XFER_WRITE);
+		delayMicroseconds(2 * DMA_CHUNK_SIZE);
 	}
 
-	uint16_t attr = SPU_ATTR & ~SPU_ATTR_XFER_BITMASK;
-	SPU_ATTR      = attr;
+	if (length) {
+		length /= DMA_CHUNK_SIZE * 2;
+		setTransferMode(SPU_ATTR_XFER_DMA_WRITE);
+		setSPUDMADelay(0);
 
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_NONE)
-		__asm__ volatile("");
-
-	SPU_TSA  = offset / SPU_RAM_ADDR_UNIT;
-	SPU_ATTR = attr | SPU_ATTR_XFER_DMA_WRITE;
-
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_DMA_WRITE)
-		__asm__ volatile("");
-
-	// SPU RAM writes can be performed with the default bus configuration, while
-	// reads require slightly increasing DMA waitstates.
-	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
-	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(0);
-
-	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
-	DMAC_CHCR(DMA_SPU) = 0
-		| DMAC_CHCR_DIR_WRITE
-		| DMAC_CHCR_MODE_SLICE
-		| DMAC_CHCR_ENABLE;
+		DMAC_MADR(DMA_SPU) = (uintptr_t) ptr;
+		DMAC_BCR (DMA_SPU) = DMA_CHUNK_SIZE | (length << 16);
+		DMAC_CHCR(DMA_SPU) = 0
+			| DMAC_CHCR_DIR_WRITE
+			| DMAC_CHCR_MODE_SLICE
+			| DMAC_CHCR_ENABLE;
+	}
 }
 
 void receiveSPURAMData(void *data, unsigned int offset, size_t length) {
@@ -117,36 +122,29 @@ void receiveSPURAMData(void *data, unsigned int offset, size_t length) {
 	assert(!(offset % SPU_RAM_ADDR_UNIT));
 	assert((offset + length) <= SPU_RAM_SIZE);
 
+	// SPU RAM can only be read through DMA, so transfers larger than 64 bytes
+	// must also be an exact multiple of 64 bytes.
+	size_t chunkSize;
 	length = (length + 3) / 4;
-	size_t chunkSize, numChunks;
 
-	if (length < DMA_MAX_CHUNK_SIZE) {
+	if (length < DMA_CHUNK_SIZE) {
 		chunkSize = length;
-		numChunks = 1;
+		length    = 1;
 	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
+		chunkSize = DMA_CHUNK_SIZE;
+		length   /= DMA_CHUNK_SIZE;
 
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
+		assert(!(length % DMA_CHUNK_SIZE));
 	}
 
-	uint16_t attr = SPU_ATTR & ~SPU_ATTR_XFER_BITMASK;
-	SPU_ATTR      = attr;
+	setTransferMode(SPU_ATTR_XFER_NONE);
+	SPU_TSA = offset / SPU_RAM_ADDR_UNIT;
 
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_NONE)
-		__asm__ volatile("");
-
-	SPU_TSA  = offset / SPU_RAM_ADDR_UNIT;
-	SPU_ATTR = attr | SPU_ATTR_XFER_DMA_READ;
-
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_DMA_READ)
-		__asm__ volatile("");
-
-	uint32_t ctrl  = BIU_DEV4_DELAY & ~BIU_DEV_DELAY_DMA_CYCLES_BITMASK;
-	BIU_DEV4_DELAY = ctrl           |  BIU_DEV_DELAY_DMA_CYCLES(2);
+	setTransferMode(SPU_ATTR_XFER_DMA_READ);
+	setSPUDMADelay(2);
 
 	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
+	DMAC_BCR (DMA_SPU) = chunkSize | (length << 16);
 	DMAC_CHCR(DMA_SPU) = 0
 		| DMAC_CHCR_DIR_READ
 		| DMAC_CHCR_MODE_SLICE

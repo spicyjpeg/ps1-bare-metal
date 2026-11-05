@@ -43,17 +43,28 @@
 #define SPU_RAM_ADDR_UNIT 8
 #define SPU_RAM_SIZE      (0x10000 * SPU_RAM_ADDR_UNIT)
 
-#define DMA_MAX_CHUNK_SIZE 16
+#define DMA_CHUNK_SIZE 16
 
 static void waitForSPUDMADone(void) {
 	// Wait for the SPU's DMA channel to finish any pending transfer first.
 	while (DMAC_CHCR(DMA_SPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
 
-	// As with the GPU, the SPU has an internal 64-byte (16-word) queue it
-	// receives DMA chunks into before writing them to SPU RAM. We'll wait the
-	// ~2 us per word it takes for the SPU to drain it.
-	delayMicroseconds(2 * DMA_MAX_CHUNK_SIZE);
+	// In a similar way to the GPU's GP0 FIFO, the SPU has an internal 64-byte
+	// (16-word) queue it receives DMA chunks into before writing them to SPU
+	// RAM. We'll wait the ~2 us per word it takes for the SPU to drain it.
+	delayMicroseconds(2 * DMA_CHUNK_SIZE);
+}
+
+static void setTransferMode(uint16_t mode) {
+	// Set the current SPU transfer mode (i.e. whether we are going to send data
+	// to it manually or through DMA) in the common attribute register and wait
+	// for it to acknowledge the change.
+	uint16_t attr = SPU_ATTR & ~SPU_ATTR_XFER_BITMASK;
+	SPU_ATTR      = attr | mode;
+
+	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != mode)
+		__asm__ volatile("");
 }
 
 static void sendSPURAMData(
@@ -64,50 +75,45 @@ static void sendSPURAMData(
 	waitForSPUDMADone();
 	assert(!((uintptr_t) data % 4));
 
-	// Make sure the destination offset is aligned and the transfer won't
-	// overflow SPU RAM.
+	// Make sure the destination offset is aligned to 8 bytes and the data won't
+	// overflow past the end of SPU RAM.
 	assert(!(offset % SPU_RAM_ADDR_UNIT));
 	assert((offset + length) <= SPU_RAM_SIZE);
 
-	// The logic for length rounding and chunking is pretty much identical to
-	// how we implemented VRAM DMA transfers, with the same data length
-	// requirements. Most BRR encoders pad samples to a multiple of 64 bytes by
-	// default, so this shouldn't be an issue.
-	length = (length + 3) / 4;
-	size_t chunkSize, numChunks;
+	// Disconnect the SPU from DMA and set the starting RAM address of the next
+	// transfer.
+	setTransferMode(SPU_ATTR_XFER_NONE);
+	SPU_TSA = offset / SPU_RAM_ADDR_UNIT;
 
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
+	// Split off the first few data words and push them directly to the SPU's
+	// FIFO to work around DMA only being able to send whole chunks in slice
+	// mode. The FIFO is then flushed by setting the transfer mode to "manual
+	// write" and waiting for the SPU to drain it.
+	// NOTE: while SPU DMA operates on 32-bit words, the SPU's data register is
+	// only 16 bits wide when accessed manually.
+	const uint16_t *ptr = (const uint16_t *) data;
+	length              = (length + 1) / 2;
 
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
+	if (length % (DMA_CHUNK_SIZE * 2)) {
+		for (; length % (DMA_CHUNK_SIZE * 2); length--)
+			SPU_DATA = *(ptr++);
+
+		setTransferMode(SPU_ATTR_XFER_WRITE);
+		delayMicroseconds(2 * DMA_CHUNK_SIZE);
 	}
 
-	// Terminate any previous transfer and disconnect the SPU from DMA.
-	uint16_t attr = SPU_ATTR & ~SPU_ATTR_XFER_BITMASK;
-	SPU_ATTR      = attr;
+	// Start the actual DMA transfer for the rest of the data (if any).
+	if (length) {
+		length /= DMA_CHUNK_SIZE * 2;
+		setTransferMode(SPU_ATTR_XFER_DMA_WRITE);
 
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_NONE)
-		__asm__ volatile("");
-
-	// Set where the next transfer shall be placed in SPU RAM (in 8-byte units)
-	// and re-enable DMA synchronization.
-	SPU_TSA  = offset / SPU_RAM_ADDR_UNIT;
-	SPU_ATTR = attr | SPU_ATTR_XFER_DMA_WRITE;
-
-	while ((SPU_STATX & SPU_STATX_XFER_BITMASK) != SPU_STATX_XFER_DMA_WRITE)
-		__asm__ volatile("");
-
-	// Kick off the transfer at the DMA side.
-	DMAC_MADR(DMA_SPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_SPU) = chunkSize | (numChunks << 16);
-	DMAC_CHCR(DMA_SPU) = 0
-		| DMAC_CHCR_DIR_WRITE
-		| DMAC_CHCR_MODE_SLICE
-		| DMAC_CHCR_ENABLE;
+		DMAC_MADR(DMA_SPU) = (uintptr_t) ptr;
+		DMAC_BCR (DMA_SPU) = DMA_CHUNK_SIZE | (length << 16);
+		DMAC_CHCR(DMA_SPU) = 0
+			| DMAC_CHCR_DIR_WRITE
+			| DMAC_CHCR_MODE_SLICE
+			| DMAC_CHCR_ENABLE;
+	}
 }
 
 // SPU RAM is shared between samples, audio capture buffers (in the first 4 KB)

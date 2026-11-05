@@ -101,7 +101,7 @@ static void sendGPULinkedList_(const void *data) {
 // Define a structure we'll allocate our linked list packets into. We are going
 // to use a fixed-size buffer and keep a pointer to the beginning of its free
 // area, incrementing it whenever we allocate a new packet.
-#define DMA_MAX_CHUNK_SIZE       16
+#define DMA_CHUNK_SIZE           16
 #define GPU_CHAIN_BUFFER_SIZE_ 4096
 
 typedef struct {
@@ -112,7 +112,7 @@ typedef struct {
 static uint32_t *allocateGP0Packet_(GPUDMAChain_ *chain, size_t numCommands) {
 	// Ensure no more than 16 command words are sent to the GPU at once, as they
 	// would overrun the GP0 FIFO.
-	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
+	assert(numCommands <= DMA_CHUNK_SIZE);
 
 	// Grab the current pointer to the next packet then increment it to allocate
 	// a new packet. We have to allocate an extra word for the packet's header,

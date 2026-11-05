@@ -49,7 +49,7 @@ void kernel_flushCache(void);
 void kernel_returnFromException(void);
 
 void kernel_resetEntryInt(void);
-void kernel_hookEntryInt (jmp_buf env);
+void kernel_hookEntryInt(const jmp_buf env);
 
 int kernel_read (int fd, void        *data, int length);
 int kernel_write(int fd, const void  *data, int length);

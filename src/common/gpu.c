@@ -11,7 +11,7 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define DMA_MAX_CHUNK_SIZE 16
+#define DMA_CHUNK_SIZE 16
 
 void setupGPU(
 	GP1VideoMode     mode,
@@ -52,6 +52,11 @@ void waitForGP0Ready(void) {
 		__asm__ volatile("");
 }
 
+void waitForGP0ReadReady(void) {
+	while (!(GPU_STAT & GPU_STAT_RFFL))
+		__asm__ volatile("");
+}
+
 void waitForGPUDMADone(void) {
 	while (DMAC_CHCR(DMA_GPU) & DMAC_CHCR_ENABLE)
 		__asm__ volatile("");
@@ -89,19 +94,6 @@ void sendVRAMData(
 	waitForGPUDMADone();
 	assert(!((uintptr_t) data % 4));
 
-	size_t length = (width * height + 1) / 2;
-	size_t chunkSize, numChunks;
-
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
-
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
-	}
-
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
 
 	waitForGP0Ready();
@@ -109,14 +101,25 @@ void sendVRAMData(
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
 
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
+	const uint32_t *ptr   = (const uint32_t *) data;
+	size_t         length = (width * height + 1) / 2;
 
-	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMAC_CHCR(DMA_GPU) = 0
-		| DMAC_CHCR_DIR_WRITE
-		| DMAC_CHCR_MODE_SLICE
-		| DMAC_CHCR_ENABLE;
+	waitForGP0Ready();
+
+	for (; length % DMA_CHUNK_SIZE; length--)
+		GPU_GP0 = *(ptr++);
+
+	if (length) {
+		length /= DMA_CHUNK_SIZE;
+		GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
+
+		DMAC_MADR(DMA_GPU) = (uintptr_t) ptr;
+		DMAC_BCR (DMA_GPU) = DMA_CHUNK_SIZE | (length << 16);
+		DMAC_CHCR(DMA_GPU) = 0
+			| DMAC_CHCR_DIR_WRITE
+			| DMAC_CHCR_MODE_SLICE
+			| DMAC_CHCR_ENABLE;
+	}
 }
 
 void receiveVRAMData(
@@ -129,19 +132,6 @@ void receiveVRAMData(
 	waitForGPUDMADone();
 	assert(!((uintptr_t) data % 4));
 
-	size_t length = (width * height + 1) / 2;
-	size_t chunkSize, numChunks;
-
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
-
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
-	}
-
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
 
 	waitForGP0Ready();
@@ -149,14 +139,25 @@ void receiveVRAMData(
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
 
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_READ);
+	uint32_t *ptr   = (uint32_t *) data;
+	size_t   length = (width * height + 1) / 2;
 
-	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMAC_CHCR(DMA_GPU) = 0
-		| DMAC_CHCR_DIR_READ
-		| DMAC_CHCR_MODE_SLICE
-		| DMAC_CHCR_ENABLE;
+	waitForGP0ReadReady();
+
+	for (; length % DMA_CHUNK_SIZE; length--)
+		*(ptr++) = GPU_GP0;
+
+	if (length) {
+		length /= DMA_CHUNK_SIZE;
+		GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_READ);
+
+		DMAC_MADR(DMA_GPU) = (uintptr_t) ptr;
+		DMAC_BCR (DMA_GPU) = DMA_CHUNK_SIZE | (length << 16);
+		DMAC_CHCR(DMA_GPU) = 0
+			| DMAC_CHCR_DIR_READ
+			| DMAC_CHCR_MODE_SLICE
+			| DMAC_CHCR_ENABLE;
+	}
 }
 
 void clearOrderingTable(uint32_t *table, size_t numEntries) {
@@ -176,7 +177,7 @@ void clearOrderingTable(uint32_t *table, size_t numEntries) {
 }
 
 uint32_t *allocateGP0Packet(GPUDMAChain *chain, size_t numCommands) {
-	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
+	assert(numCommands <= DMA_CHUNK_SIZE);
 
 	uint32_t *ptr      = chain->nextPacket;
 	chain->nextPacket += numCommands + 1;
@@ -192,7 +193,7 @@ uint32_t *allocateOrderedGP0Packet(
 	unsigned int       zIndex,
 	size_t             numCommands
 ) {
-	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
+	assert(numCommands <= DMA_CHUNK_SIZE);
 	assert(zIndex      <  GPU_ORDERING_TABLE_SIZE);
 
 	uint32_t *ptr      = chain->nextPacket;

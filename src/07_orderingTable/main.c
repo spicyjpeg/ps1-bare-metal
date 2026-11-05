@@ -33,7 +33,7 @@
 
 // We are going to store the ordering table for each frame as part of the DMA
 // chain structure. We'll have 32 different Z indices at our disposal.
-#define DMA_MAX_CHUNK_SIZE       16
+#define DMA_CHUNK_SIZE           16
 #define GPU_ORDERING_TABLE_SIZE_ 32
 
 typedef struct {
@@ -77,7 +77,7 @@ static uint32_t *allocateOrderedGP0Packet_(
 	size_t              numCommands
 ) {
 	// Ensure both the packet length and index are within valid range.
-	assert(numCommands <= DMA_MAX_CHUNK_SIZE);
+	assert(numCommands <= DMA_CHUNK_SIZE);
 	assert(zIndex      <  GPU_ORDERING_TABLE_SIZE_);
 
 	uint32_t *ptr      = chain->nextPacket;

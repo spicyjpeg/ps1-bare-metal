@@ -32,7 +32,7 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define DMA_MAX_CHUNK_SIZE 16
+#define DMA_CHUNK_SIZE 16
 
 static void sendVRAMData_(
 	const void   *data,
@@ -44,27 +44,6 @@ static void sendVRAMData_(
 	waitForGPUDMADone();
 	assert(!((uintptr_t) data % 4));
 
-	// Calculate how many 32-bit words will be sent from the width and height of
-	// the texture. If more than 16 words have to be sent, configure DMA to
-	// split the transfer into 16-word chunks in order to make sure the GPU will
-	// not miss any data.
-	size_t length = (width * height + 1) / 2;
-	size_t chunkSize, numChunks;
-
-	if (length < DMA_MAX_CHUNK_SIZE) {
-		chunkSize = length;
-		numChunks = 1;
-	} else {
-		chunkSize = DMA_MAX_CHUNK_SIZE;
-		numChunks = length / DMA_MAX_CHUNK_SIZE;
-
-		// Make sure the length is an exact multiple of 16 words, as otherwise
-		// the last chunk would be dropped (the DMA unit does not support
-		// "incomplete" chunks). Note that this will impose limitations on the
-		// size of VRAM uploads.
-		assert(!(length % DMA_MAX_CHUNK_SIZE));
-	}
-
 	// Disconnect the GPU from DMA and manually send the GP0 command header to
 	// kick off the VRAM upload.
 	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_NONE);
@@ -74,17 +53,35 @@ static void sendVRAMData_(
 	GPU_GP0 = gp0_xy(x, y);
 	GPU_GP0 = gp0_xy(width, height);
 
-	// Wire the GPU back to its DMA channel, then give DMA a pointer to the
-	// beginning of the data and tell it to send it in slice (chunked) mode.
-	// This will concatenate our data to the command header.
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
+	// Calculate how many 32-bit words need to be sent based on the texture's
+	// area, assuming 16bpp and rounding up.
+	const uint32_t *ptr   = (const uint32_t *) data;
+	size_t         length = (width * height + 1) / 2;
 
-	DMAC_MADR(DMA_GPU) = (uintptr_t) data;
-	DMAC_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
-	DMAC_CHCR(DMA_GPU) = 0
-		| DMAC_CHCR_DIR_WRITE
-		| DMAC_CHCR_MODE_SLICE
-		| DMAC_CHCR_ENABLE;
+	// We'll configure DMA for "slice" mode, which makes it send data to the GPU
+	// in 16-word chunks (with no headers) to maximize throughput without ever
+	// overrunning the GP0 FIFO. Since slice mode can only send whole chunks, we
+	// must ensure our transfer length is a multiple of 16 words; the easiest
+	// way to do so is to split off the first few words and write them to GP0
+	// manually.
+	waitForGP0Ready();
+
+	for (; length % DMA_CHUNK_SIZE; length--)
+		GPU_GP0 = *(ptr++);
+
+	// Wire the GPU back to its DMA channel and start sending the remainder of
+	// the data (if any) in the background.
+	if (length) {
+		length /= DMA_CHUNK_SIZE;
+		GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
+
+		DMAC_MADR(DMA_GPU) = (uintptr_t) ptr;
+		DMAC_BCR (DMA_GPU) = DMA_CHUNK_SIZE | (length << 16);
+		DMAC_CHCR(DMA_GPU) = 0
+			| DMAC_CHCR_DIR_WRITE
+			| DMAC_CHCR_MODE_SLICE
+			| DMAC_CHCR_ENABLE;
+	}
 }
 
 // Once our texture has been uploaded to VRAM, we are going to save the metadata

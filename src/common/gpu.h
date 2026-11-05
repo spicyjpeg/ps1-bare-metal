@@ -52,6 +52,7 @@ void setupGPU(
 	unsigned int     height
 );
 void waitForGP0Ready(void);
+void waitForGP0ReadReady(void);
 void waitForGPUDMADone(void);
 void waitForVSync(void);
 
