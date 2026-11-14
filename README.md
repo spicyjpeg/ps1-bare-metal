@@ -29,6 +29,7 @@ The following examples are currently available:
 | 15 | <img alt="Example 15" src="src/15_cdromData/screenshot.png"     width="100" /> | [Reading data sectors from the disc](src/15_cdromData/main.c)                     |
 | 16 | <img alt="Example 16" src="src/16_iso9660/screenshot.png"       width="100" /> | [Parsing the disc's filesystem and enumerating files](src/16_iso9660/main.c)      |
 | 17 | <img alt="Example 17" src="src/17_fileLoading/screenshot.png"   width="100" /> | [Resolving filesystem paths and loading files](src/17_fileLoading/main.c)         |
+| 18 | <img alt="Example 18" src="src/18_kernelIRQs/screenshot.png"    width="100" /> | [Handling hardware interrupts through the BIOS kernel](src/18_kernelIRQs/main.c)  |
 
 New examples demonstrating more hardware features will be added over time.
 *Since I strive for this repository to be a high-quality learning resource with*

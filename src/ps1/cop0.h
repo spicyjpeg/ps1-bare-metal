@@ -100,8 +100,8 @@ DEF(uint32_t) cop0_getReg(const COP0Register reg) {
 /* Critical section macro */
 
 DEF(void) _cop0_restoreStatus(const uint32_t *value) {
+	__atomic_signal_fence(__ATOMIC_SEQ_CST);
 	cop0_setReg(COP0_STATUS, *value);
-	__asm__ volatile("nop\n");
 }
 
 // GCC supports adding custom destructors to variables using the cleanup
@@ -112,6 +112,7 @@ DEF(void) _cop0_restoreStatus(const uint32_t *value) {
 	uint32_t _savedStatus __attribute__((cleanup(_cop0_restoreStatus))) = \
 		cop0_getReg(COP0_STATUS); \
 	\
-	cop0_setReg(COP0_STATUS, _savedStatus & ~COP0_STATUS_IEc);
+	cop0_setReg(COP0_STATUS, _savedStatus & ~COP0_STATUS_IEc); \
+	__atomic_signal_fence(__ATOMIC_SEQ_CST);
 
 #undef DEF

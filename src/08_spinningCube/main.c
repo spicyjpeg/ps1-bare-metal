@@ -272,7 +272,7 @@ int main(int argc, const char **argv) {
 			// to determine the ordering table bucket index for this face. No
 			// saving or restoring is needed here since the GTE is equipped with
 			// a 4-entry Z queue.
-			gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+			gte_command(GTE_CMD_AVSZ4);
 			int zIndex = (int) gte_getDataReg(GTE_OTZ);
 
 			if ((zIndex < 0) || (zIndex >= GPU_ORDERING_TABLE_SIZE))

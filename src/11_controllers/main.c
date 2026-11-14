@@ -21,9 +21,9 @@
  * and packet addressing is used to direct each packet at a specific device. The
  * bus is synchronous and full-duplex, meaning bytes are always sent and
  * received simultaneously - devices can only send us responses while we send
- * them packets. This may sound strange but is in fact a typical way to set up
+ * them packets. This may sound strange but is actually a typical way to set up
  * communications between electronics: the PS1's controller bus is in fact a
- * variant of the common SPI protocol.
+ * variant of the SPI protocol commonly used to this day.
  *
  * NOTE: this example uses device address, command and button definitions from
  * the ps1/ctpdef.h header, as listing them directly here would only add
@@ -72,8 +72,8 @@ static void delayMicroseconds(int time) {
 static void initSIO0(void) {
 	// Reset SIO0, initialize it with the standard settings used for controller
 	// and memory card communication (250000bps, 8 data bits) and configure it
-	// to send a signal to the interrupt controller whenever the DSR input is
-	// asserted (see waitForAcknowledge()).
+	// to generate an interrupt whenever its DSR input is asserted (see
+	// waitForAcknowledge()).
 	SIO_CR(0) = SIO_CR_INTRST;
 
 	SIO_MR(0) = 0
@@ -91,10 +91,11 @@ static void initSIO0(void) {
 }
 
 static inline void selectSIO0Port(int port) {
-	// Set or clear the bit that controls which set of controller and memory
-	// card ports is going to have its DTR (chip select) signal asserted.
-	// Devices will ignore any commands received while the chip select is not
-	// active on the port they are plugged into.
+	// Set or clear the bit that determines which set of controller and memory
+	// card ports is going to have its "data terminal ready" (DTR) pin asserted.
+	// This signal is typically used for flow control on a serial port, but the
+	// PS1 repurposes SIO0's DTR output as a "chip select" to indicate which
+	// devices shall respond to the current packet.
 	uint16_t cr = port ? SIO_CR_PORT_2 : SIO_CR_PORT_1;
 	SIO_CR(0)   = (SIO_CR(0) & ~SIO_CR_PORT_BITMASK) | cr;
 }
@@ -106,10 +107,10 @@ static uint8_t exchangeByte(uint8_t value) {
 
 	SIO_DR(0) = value;
 
-	// Wait for SIO0 to process the byte it received while sending ours. This
-	// will typically be a reply to the *last* byte we sent (i.e. responses "lag
-	// behind" commands by one byte) since the device starts replying before
-	// receiving all bits of the current byte.
+	// Wait for SIO0 to process the byte it received while sending ours, which
+	// will be a reply to the *last* byte we sent (i.e. responses "lag behind"
+	// commands by one byte) since the device starts replying before receiving
+	// all bits of the current byte.
 	while (!(SIO_SR(0) & SIO_SR_RXRDY))
 		__asm__ volatile("");
 
@@ -117,25 +118,27 @@ static uint8_t exchangeByte(uint8_t value) {
 }
 
 static bool waitForAcknowledge(void) {
-	// Devices will acknowledge received bytes and request more data by briefly
-	// pulsing the DSR line, which will cause SIO0 to set its respective
-	// interrupt flag in the IRQ controller (and leave it set until we clear
-	// it). This will obviously not happen if there is no device or no more data
-	// to exchange, so we'll impose a ~100 us timeout on receiving the pulse.
+	// Devices will acknowledge each received byte and request the next one by
+	// briefly pulsing SIO0's "data set ready" (DSR) input, another repurposed
+	// flow control signal. We can detect this by waiting for the IRQ we
+	// previously configured; this is more reliable than directly polling DSR as
+	// the IRQ flag is "sticky" and remains set even after the pulse ends. We
+	// won't receive an acknowledgement if there is no device or no more data to
+	// exchange, so we'll impose a ~100 us timeout.
 	for (int timeout = DSR_TIMEOUT; timeout > 0; timeout -= 5) {
 		if (INTC_REG & (1 << IRQ_SIO0)) {
 			// Wait for the pulse to end if it hasn't yet, in order to prevent
-			// SIO0 from triggering another IRQ for the same pulse after we
-			// clear the current one. The pulse is generally only 1-2 us long
-			// but there are controllers known to violate this rule, so we'll
-			// impose another safety timeout here.
+			// SIO0 from triggering a duplicate IRQ after we clear the current
+			// one. The pulse is generally only 1-2 us long but some controllers
+			// are known to assert DSR incorrectly due to bugs, so another
+			// safety timeout is needed.
 			for (int poll = NUM_DSR_POLLS; poll > 0; poll--) {
 				if (!(SIO_SR(0) & SIO_SR_DSR))
 					break;
 			}
 
-			// Reset the interrupt flag at both sides (IRQ controller and SIO0)
-			// so it can be triggered again.
+			// Reset the interrupt flag at both sides (interrupt controller and
+			// SIO0) so it can be triggered again.
 			INTC_REG   = ~(1 << IRQ_SIO0);
 			SIO_CR(0) |= SIO_CR_ERRRST;
 
@@ -159,9 +162,9 @@ static size_t exchangeCTPPacket(
 	while (SIO_SR(0) & SIO_SR_RXRDY)
 		SIO_DR(0);
 
-	// Clear any leftover interrupt flags and set DTR to mark the start of a new
-	// packet. Devices may take some time to prepare for incoming commands, so a
-	// small delay is needed afterwards.
+	// Clear any leftover interrupt flags and assert DTR to mark the start of a
+	// new packet. Devices may take some time to prepare for incoming commands,
+	// so a small delay is needed afterwards.
 	INTC_REG   = ~(1 << IRQ_SIO0);
 	SIO_CR(0) |= SIO_CR_DTR | SIO_CR_ERRRST;
 	delayMicroseconds(DTR_DELAY);
@@ -245,8 +248,8 @@ static void printControllerInfo(int port, char *output) {
 	// Prepare the CTP request. The first byte of the payload after the address
 	// is the command code, followed by any required parameters. All controllers
 	// support the READ_DATA command; more advanced ones such as the DualShock
-	// also have a "configuration mode" we won't cover in this example, which
-	// grants access to rumble and other functionality.
+	// also have a "configuration mode" not covered here, which grants access to
+	// rumble and other functionality.
 	uint8_t request[] = {
 		CTP_PAD_READ_DATA, // Command
 		CTP_TAP_NONE,      // Multitap port
@@ -254,9 +257,9 @@ static void printControllerInfo(int port, char *output) {
 		0                  // Rumble/actuator 2 control
 	};
 
-	// Send the request to the specified controller port. Note that this is a
-	// relatively slow process and should be done only once per frame, unless
-	// higher polling rates are desired.
+	// Send the request to the specified port and store the response (if any)
+	// into a buffer. To avoid slowing down the main loop significantly, only
+	// one command per port is normally sent each frame.
 	selectSIO0Port(port);
 
 	uint8_t response[8];

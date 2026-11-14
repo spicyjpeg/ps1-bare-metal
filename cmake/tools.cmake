@@ -88,12 +88,16 @@ find_program(
 	DOC "Path to psxavenc executable (if not present in PATH)"
 )
 
-function(convertAudioSample input sampleRate output)
+function(_psxavencCheck)
 	if("${PSXAVENC_PATH}" STREQUAL "PSXAVENC_PATH-NOTFOUND")
 		message(FATAL_ERROR "Unable to find psxavenc. Ensure your PATH \
 environment variable includes the full path to the directory containing it, or \
 pass -DPSXAVENC_PATH=... to CMake to specify its location manually.")
 	endif()
+endfunction()
+
+function(convertAudioSample input sampleRate output)
+	_psxavencCheck()
 
 	add_custom_command(
 		OUTPUT  "${output}"
@@ -109,11 +113,7 @@ pass -DPSXAVENC_PATH=... to CMake to specify its location manually.")
 endfunction()
 
 function(convertAudioStream input sampleRate channels interleave output)
-	if("${PSXAVENC_PATH}" STREQUAL "PSXAVENC_PATH-NOTFOUND")
-		message(FATAL_ERROR "Unable to find psxavenc. Ensure your PATH \
-environment variable includes the full path to the directory containing it, or \
-pass -DPSXAVENC_PATH=... to CMake to specify its location manually.")
-	endif()
+	_psxavencCheck()
 
 	add_custom_command(
 		OUTPUT  "${output}"

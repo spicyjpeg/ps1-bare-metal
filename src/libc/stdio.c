@@ -45,6 +45,8 @@ void initSIO1TTY(unsigned int baud) {
 		| SIO_CR_RXEN
 		| SIO_CR_RTS;
 
+	INTC_MASK &= ~(1 << IRQ_SIO1);
+
 	ttyFlags |= TTY_SIO1;
 }
 
@@ -66,6 +68,8 @@ void initATCONSTTY(void) {
 		| BIU_DEV_DELAY_READ_CYCLES(2)
 		| BIU_DEV_DELAY_WIDTH_16
 		| BIU_DEV_DELAY_ADDR_BITS(8);
+
+	DTLH_IRQ_MASK &= ~(1 << DTLH_IRQ_TTY_RX);
 
 	ttyFlags |= TTY_ATCONS;
 }

@@ -146,3 +146,13 @@ addPS1Executable(
 	src/17_fileLoading/main.c
 )
 addFontTexture(example17_fileLoading)
+
+addPS1Executable(
+	example18_kernelIRQs
+	src/common/font.c
+	src/common/gpu.c
+	src/common/sio0.c
+	src/ps1/kernel.s
+	src/18_kernelIRQs/main.c
+)
+addFontTexture(example18_kernelIRQs)

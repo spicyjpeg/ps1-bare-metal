@@ -234,7 +234,7 @@ int main(int argc, const char **argv) {
 			gte_loadV0(&planeVertices[face->vertices[3]]);
 			gte_command(GTE_CMD_RTPS | GTE_SF);
 
-			gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+			gte_command(GTE_CMD_AVSZ4);
 			int zIndex = (int) gte_getDataReg(GTE_OTZ);
 
 			if ((zIndex < 0) || (zIndex >= GPU_ORDERING_TABLE_SIZE))

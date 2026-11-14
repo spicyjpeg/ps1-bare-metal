@@ -71,7 +71,7 @@ static CDROMIRQType checkCDROMIRQ(uint8_t *response, size_t maxRespLength) {
 	// what exactly caused any IRQ sent to the main one.
 	CDROM_ADDRESS = 1;
 
-	// Bits 0-2 of HINTSTS were meant to represent three separate notification
+	// Bits 2:0 of HINTSTS were meant to represent three separate notification
 	// flags from the mechacon, but in practice the firmware uses them as a
 	// single 3-bit "interrupt type" code instead. The flags are not guaranteed
 	// to update at exactly the same time (they do not on earlier console models

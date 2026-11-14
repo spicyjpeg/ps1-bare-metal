@@ -61,14 +61,14 @@ static void setupGPU_(
 	);
 	GPU_GP1 = gp1_dispBlank(false);
 
-	// The GPU won't tell us directly whenever it is done sending a frame to the
-	// display, but it will send a signal to another peripheral known as the
-	// interrupt request (IRQ) controller. The IRQ controller may also force the
-	// CPU to jump to handling code outside of our control (typically in the
-	// console's BIOS kernel) when that happens, making us unable to reliably
-	// tell if it happened (especially if said code resets the IRQ flag before
-	// we ever see it). To prevent that we can "mask" the signal: the IRQ
-	// controller will still track it, but it will no longer invoke the handler.
+	// We cannot directly tell when the GPU is done sending a frame to the
+	// display, but we can rely on the vertical sync signal it sends to another
+	// peripheral known as the interrupt controller. The interrupt controller
+	// may have been previously configured to force the CPU to jump to code
+	// outside of our control (typically in the PS1's BIOS kernel) when vsync
+	// starts, which would interfere with our code waiting for it. We can
+	// prevent that by "masking" (disabling) the vsync interrupt: it will still
+	// be tracked but will no longer trigger any handler.
 	INTC_MASK &= ~(1 << IRQ_VSYNC);
 }
 
