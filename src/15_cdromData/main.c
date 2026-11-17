@@ -66,12 +66,8 @@ static void initCDROM_(void) {
 
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
-	CDROMIRQType irq;
-
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_ACKNOWLEDGE);
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_COMPLETE);
+	if (waitForCDROMIRQ(0, 0) == CDROM_IRQ_ACKNOWLEDGE)
+		waitForCDROMIRQ(0, 0);
 }
 
 static void waitForCDROMDMADone_(void) {
@@ -161,9 +157,9 @@ static size_t readCDROMSectorsBlocking_(
 	// internally. The drive supports returning this extra data by setting mode
 	// flags, so we must determine which sector size was requested and adjust
 	// our pointer arithmetic accordingly.
-	uint8_t *ptr         = (uint8_t *) data;
-	size_t  sectorLength = cdrom_sectorLength(mode);
-	size_t  sectorsRead  = 0;
+	uint8_t *ptr        = (uint8_t *) data;
+	size_t  sectorSize  = cdrom_sectorLength(mode);
+	size_t  sectorsRead = 0;
 
 	for (; sectorsRead < numSectors; sectorsRead++) {
 		// The "data ready" IRQ is used by the mechacon to signal that a new
@@ -173,10 +169,10 @@ static size_t readCDROMSectorsBlocking_(
 		if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_DATA_READY)
 			break;
 
-		receiveCDROMSector_(ptr, sectorLength);
+		receiveCDROMSector_(ptr, sectorSize);
 		waitForCDROMDMADone_();
 
-		ptr += sectorLength;
+		ptr += sectorSize;
 	}
 
 	// Halt reading as soon as all requested data has been received, or if an
@@ -187,7 +183,7 @@ static size_t readCDROMSectorsBlocking_(
 	return sectorsRead;
 }
 
-#define SECTOR_LENGTH   2048
+#define SECTOR_SIZE     2048
 #define ISO9660_PVD_LBA   16
 
 static void printDiscInfo(char *output) {
@@ -198,7 +194,7 @@ static void printDiscInfo(char *output) {
 	// the ISO 9660 "primary volume descriptor" structure present at LBA 16 on
 	// all PS1 games and most other data CDs. This structure spans one sector
 	// and holds basic metadata about the contents of the disc.
-	uint8_t pvd[SECTOR_LENGTH];
+	uint8_t pvd[SECTOR_SIZE];
 
 	// We only need the 2048-byte data area of the sector. We are no longer
 	// beholden to CD-DA timings so we can increase the read speed from 1x to 2x
@@ -233,7 +229,7 @@ static void printDiscInfo(char *output) {
 			&pvd[0x337], // Creation date, minute
 			&pvd[0x339], // Creation date, second
 			capacity,
-			capacity / (0x100000 / SECTOR_LENGTH)
+			capacity / (0x100000 / SECTOR_SIZE)
 		);
 	} else {
 		output += sprintf(output, "  Unknown (data read failed)\n");

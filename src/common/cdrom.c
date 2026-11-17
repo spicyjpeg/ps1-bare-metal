@@ -42,12 +42,8 @@ void initCDROM(void) {
 
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
-	CDROMIRQType irq;
-
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_ACKNOWLEDGE);
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_COMPLETE);
+	if (waitForCDROMIRQ(0, 0) == CDROM_IRQ_ACKNOWLEDGE)
+		waitForCDROMIRQ(0, 0);
 }
 
 void setupCDROMAudio(bool mono) {
@@ -210,18 +206,18 @@ size_t readCDROMSectorsBlocking(
 	if (!startCDROMRead(lba, mode, true))
 		return 0;
 
-	uint8_t *ptr         = (uint8_t *) data;
-	size_t  sectorLength = cdrom_sectorLength(mode);
-	size_t  sectorsRead  = 0;
+	uint8_t *ptr        = (uint8_t *) data;
+	size_t  sectorSize  = cdrom_sectorLength(mode);
+	size_t  sectorsRead = 0;
 
 	for (; sectorsRead < numSectors; sectorsRead++) {
 		if (waitForCDROMIRQ(0, 0) != CDROM_IRQ_DATA_READY)
 			break;
 
-		receiveCDROMSector(ptr, sectorLength);
+		receiveCDROMSector(ptr, sectorSize);
 		waitForCDROMDMADone();
 
-		ptr += sectorLength;
+		ptr += sectorSize;
 	}
 
 	pauseCDROMRead();

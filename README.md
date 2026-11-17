@@ -30,6 +30,7 @@ The following examples are currently available:
 | 16 | <img alt="Example 16" src="src/16_iso9660/screenshot.png"       width="100" /> | [Parsing the disc's filesystem and enumerating files](src/16_iso9660/main.c)      |
 | 17 | <img alt="Example 17" src="src/17_fileLoading/screenshot.png"   width="100" /> | [Resolving filesystem paths and loading files](src/17_fileLoading/main.c)         |
 | 18 | <img alt="Example 18" src="src/18_kernelIRQs/screenshot.png"    width="100" /> | [Handling hardware interrupts through the BIOS kernel](src/18_kernelIRQs/main.c)  |
+| 19 | <img alt="Example 19" src="src/19_customIRQs/screenshot.png"    width="100" /> | [Handling hardware interrupts using a custom ISR](src/19_customIRQs/main.c)       |
 
 New examples demonstrating more hardware features will be added over time.
 *Since I strive for this repository to be a high-quality learning resource with*

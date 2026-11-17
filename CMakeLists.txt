@@ -156,3 +156,14 @@ addPS1Executable(
 	src/18_kernelIRQs/main.c
 )
 addFontTexture(example18_kernelIRQs)
+
+addPS1Executable(
+	example19_customIRQs
+	src/common/cache.s
+	src/common/font.c
+	src/common/gpu.c
+	src/common/sio0.c
+	src/19_customIRQs/isr.s
+	src/19_customIRQs/main.c
+)
+addFontTexture(example19_customIRQs)

@@ -209,7 +209,7 @@ int main(int argc, const char **argv) {
 
 	GPUOrderedDMAChain dmaChains[2];
 	bool               usingSecondFrame = false;
-	int                frameCounter     = 0;
+	unsigned int       frameCounter     = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;

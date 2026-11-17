@@ -13,7 +13,7 @@
 #define DEF(type)     static inline type __attribute__((always_inline))
 #define DIV(num, den) (((num) + (den) - 1) / (den))
 
-#define SECTOR_LENGTH   2048
+#define SECTOR_SIZE     2048
 #define ISO9660_PVD_LBA   16
 
 DEF(uint16_t) parseUint16(const uint8_t *data) {
@@ -24,8 +24,8 @@ DEF(uint32_t) parseUint32(const uint8_t *data) {
 }
 
 ISOError readISOData(ISOData *handle, unsigned int lba, size_t length) {
-	size_t numSectors = DIV(length, SECTOR_LENGTH);
-	void   *ptr       = malloc(numSectors * SECTOR_LENGTH);
+	size_t numSectors = DIV(length, SECTOR_SIZE);
+	void   *ptr       = malloc(numSectors * SECTOR_SIZE);
 
 	if (!ptr)
 		return ISO_ALLOC_FAILED;
@@ -49,7 +49,7 @@ ISOError readISOData(ISOData *handle, unsigned int lba, size_t length) {
 }
 
 ISOError initISOFilesystem(ISOFilesystem *fs) {
-	uint8_t pvd[SECTOR_LENGTH];
+	uint8_t pvd[SECTOR_SIZE];
 	uint8_t mode = 0
 		| CDROM_MODE_SIZE_2048
 		| CDROM_MODE_SPEED_2X;
@@ -57,16 +57,16 @@ ISOError initISOFilesystem(ISOFilesystem *fs) {
 	if (readCDROMSectorsBlocking(pvd, ISO9660_PVD_LBA, 1, mode) != 1)
 		return ISO_READ_ERROR;
 
-	const uint8_t *magic       = &pvd[0x000];
-	const uint8_t *volumeID    = &pvd[0x028];
-	uint32_t      capacity     = parseUint32(&pvd[0x050]);
-	uint16_t      sectorLength = parseUint16(&pvd[0x080]);
-	uint32_t      rootLBA      = parseUint32(&pvd[0x09c + 0x02]);
-	uint32_t      rootLength   = parseUint32(&pvd[0x09c + 0x0a]);
+	const uint8_t *magic     = &pvd[0x000];
+	const uint8_t *volumeID  = &pvd[0x028];
+	uint32_t      capacity   = parseUint32(&pvd[0x050]);
+	uint16_t      sectorSize = parseUint16(&pvd[0x080]);
+	uint32_t      rootLBA    = parseUint32(&pvd[0x09c + 0x02]);
+	uint32_t      rootLength = parseUint32(&pvd[0x09c + 0x0a]);
 
 	if (__builtin_memcmp(magic, "\x01" "CD001" "\x01", 7))
 		return ISO_NO_FILESYSTEM;
-	if (sectorLength != SECTOR_LENGTH)
+	if (sectorSize != SECTOR_SIZE)
 		return ISO_NO_FILESYSTEM;
 
 	ISOError error = readISOData(&fs->root, rootLBA, rootLength);

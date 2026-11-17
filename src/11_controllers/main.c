@@ -25,9 +25,9 @@
  * communications between electronics: the PS1's controller bus is in fact a
  * variant of the SPI protocol commonly used to this day.
  *
- * NOTE: this example uses device address, command and button definitions from
- * the ps1/ctpdef.h header, as listing them directly here would only add
- * unnecessary clutter.
+ * This example uses device address, command and button definitions from the
+ * ps1/ctpdef.h header, as listing them directly here would only add unnecessary
+ * clutter.
  */
 
 #include <stdbool.h>

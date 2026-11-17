@@ -108,11 +108,15 @@ DEF(void) _cop0_restoreStatus(const uint32_t *value) {
 // attribute. We can use this to implement a critical section macro that backs
 // up the status register, manipulates it to disable interrupts then restores it
 // once the function returns.
-#define COP0_CRITICAL_SECTION() \
+#define COP0_CRITICAL_SECTION_THEN_SET(flags) \
 	uint32_t _savedStatus __attribute__((cleanup(_cop0_restoreStatus))) = \
 		cop0_getReg(COP0_STATUS); \
 	\
 	cop0_setReg(COP0_STATUS, _savedStatus & ~COP0_STATUS_IEc); \
-	__atomic_signal_fence(__ATOMIC_SEQ_CST);
+	__atomic_signal_fence(__ATOMIC_SEQ_CST); \
+	\
+	_savedStatus |= (flags);
+
+#define COP0_CRITICAL_SECTION() COP0_CRITICAL_SECTION_THEN_SET(0)
 
 #undef DEF

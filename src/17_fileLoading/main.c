@@ -35,8 +35,6 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define SECTOR_LENGTH 2048
-
 static inline uint16_t parseUint16(const uint8_t *data) {
 	return data[0] | (data[1] << 8);
 }

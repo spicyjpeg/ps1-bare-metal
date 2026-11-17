@@ -17,7 +17,7 @@
  * but we can seek some hardware help as well. The interrupt controller has the
  * ability to generate an exception when certain IRQs occur, forcing the CPU out
  * of our code's control flow and into an interrupt service routine (ISR), which
- * can handle the IRQ shortly after it occurs then resume execution of the
+ * can service the IRQ as quickly as possible then resume execution of the
  * interrupted function. By default the ISR is provided by the BIOS kernel and
  * used to dispatch interrupts to its built-in drivers, but we may also request
  * it to dispatch to a custom handler through its APIs.
@@ -44,7 +44,7 @@
 // increment a global frame counter we can then read from our main loop. This
 // will give us a reliable timing source that is not affected by frame rate or
 // main loop slowdowns.
-static int vsyncCounter = 0;
+static unsigned int vsyncCounter = 0;
 
 static void interruptHandler(void) {
 	// Check for and clear the vsync IRQ flag in the interrupt controller. Most
@@ -68,19 +68,14 @@ static void interruptHandler(void) {
 		vsyncCounter++;
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
 	}
-
-	// Request the kernel to quit the ISR and resume execution of any code
-	// interrupted by it. Returning from the handler without calling this API
-	// would crash the kernel.
-	kernel_returnFromException();
 }
 
-static inline int getVSyncCounter(void) {
+static inline unsigned int getVSyncCounter(void) {
 	// Temporarily defer any CPU exceptions caused by interrupts by clearing the
 	// interrupt enable flag in MIPS coprocessor 0's status register. This is
 	// known as a "critical section" and acts as a lock on vsyncCounter,
 	// stopping the ISR from firing and manipulating it while we access it. In
-	// this specific case we could get away without one - a single variable read
+	// this specific case we could get away without one - a single 32-bit read
 	// is inherently atomic and not interruptible - but it's good practice to
 	// always use one when accessing variables modified by our handler.
 	// NOTE: observe how the ISR may still fire between the following two lines,
@@ -90,12 +85,13 @@ static inline int getVSyncCounter(void) {
 	// sources from an ISR is a relatively common practice and would corrupt the
 	// register if the main loop tried to manipulate it concurrently.
 	uint32_t status = cop0_getReg(COP0_STATUS);
+
 	cop0_setReg(COP0_STATUS, status & ~COP0_STATUS_IEc);
 
 	// Fetch the counter. The barriers ensure the read will be performed after
 	// disabling interrupts but before restoring the status register.
 	__atomic_signal_fence(__ATOMIC_SEQ_CST);
-	int counter = vsyncCounter;
+	unsigned int counter = vsyncCounter;
 	__atomic_signal_fence(__ATOMIC_SEQ_CST);
 
 	// Terminate the critical section by restoring the initial COP0 status. If
@@ -111,9 +107,9 @@ static inline int getVSyncCounter(void) {
 // one that cooperates with our handler in its place. Since we already have a
 // counter we update each time the IRQ occurs, we can simply poll that instead.
 static void waitForISRVSync(void) {
-	int currentCount = getVSyncCounter();
+	unsigned int counter = getVSyncCounter();
 
-	while (getVSyncCounter() == currentCount)
+	while (getVSyncCounter() == counter)
 		__asm__ volatile("");
 }
 
@@ -125,20 +121,31 @@ static void waitForISRVSync(void) {
 // safer to set one up manually with its own isolated stack and $gp pointer (see
 // the linker script for more details). You may have to enlarge the stack if
 // your handler uses large local arrays or structures.
-static uint8_t isrStack[1024];
+#define ISR_STACK_SIZE 256
 
-extern uint8_t _gp[];
+static uint32_t isrStack[ISR_STACK_SIZE];
+extern uint8_t  _gp[];
+
+// We cannot return from the fallback hook due to how longjmp() works, so the
+// kernel expects us to call back into it to quit the ISR and resume execution
+// of any interrupted code. We can adapt our handler using a simple wrapper
+// function.
+static void isrWrapper(void) {
+	interruptHandler();
+	kernel_returnFromException();
+}
 
 static const jmp_buf isrContext = {{
-	.ra = (uintptr_t) interruptHandler,
-	.sp = (uintptr_t) &isrStack[sizeof(isrStack) - 16],
+	.ra = (uintptr_t) isrWrapper,
+	.sp = (uintptr_t) &isrStack[ISR_STACK_SIZE - 4],
 	.gp = (uintptr_t) _gp
 }};
 
-static void initKernelInterrupts(void) {
+static void initKernelISR(void) {
 	// Start a new critical section, as required when calling the BIOS kernel's
 	// interrupt setup APIs.
 	uint32_t status = cop0_getReg(COP0_STATUS);
+
 	cop0_setReg(COP0_STATUS, status & ~COP0_STATUS_IEc);
 
 	// Configure the kernel to use our fallback handler and prevent its own
@@ -153,7 +160,11 @@ static void initKernelInterrupts(void) {
 	// Leave the critical section with COP0 interrupts enabled regardless of
 	// whether they were before and with the IRQ output from the interrupt
 	// controller unmasked (enabled) at the COP0 side.
-	cop0_setReg(COP0_STATUS, status | COP0_STATUS_IEc | COP0_STATUS_Im2);
+	status |= 0
+		| COP0_STATUS_IEc
+		| COP0_STATUS_Im2;
+
+	cop0_setReg(COP0_STATUS, status);
 }
 
 #define SCREEN_HRES   GP1_HRES_320
@@ -181,7 +192,7 @@ int main(int argc, const char **argv) {
 		SCREEN_HEIGHT
 	);
 	initSIO0();
-	initKernelInterrupts();
+	initKernelISR();
 
 	TextureInfo font;
 
@@ -204,9 +215,9 @@ int main(int argc, const char **argv) {
 	INTC_REG   = ~(1 << IRQ_VSYNC);
 	INTC_MASK |=   1 << IRQ_VSYNC;
 
-	GPUDMAChain dmaChains[2];
-	bool        usingSecondFrame = false;
-	int         frameCounter     = 0;
+	GPUDMAChain  dmaChains[2];
+	bool         usingSecondFrame = false;
+	unsigned int frameCounter     = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
@@ -247,8 +258,8 @@ int main(int argc, const char **argv) {
 		snprintf(
 			buffer,
 			sizeof(buffer),
-			"Main loop counter:\t%d\n"
-			"Interrupt counter:\t%d",
+			"Main loop counter:\t%u\n"
+			"Interrupt counter:\t%u",
 			frameCounter,
 			getVSyncCounter()
 		);

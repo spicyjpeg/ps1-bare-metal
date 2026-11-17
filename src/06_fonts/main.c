@@ -251,9 +251,9 @@ int main(int argc, const char **argv) {
 		FONT_COLOR_DEPTH
 	);
 
-	GPUDMAChain dmaChains[2];
-	bool        usingSecondFrame = false;
-	int         frameCounter     = 0;
+	GPUDMAChain  dmaChains[2];
+	bool         usingSecondFrame = false;
+	unsigned int frameCounter     = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
@@ -296,7 +296,7 @@ int main(int argc, const char **argv) {
 		// temporary buffer then printing it.
 		char buffer[32];
 
-		snprintf(buffer, sizeof(buffer), "Current frame: %d", frameCounter);
+		snprintf(buffer, sizeof(buffer), "Current frame: %u", frameCounter);
 		printString(chain, &font, 16, 64, buffer);
 
 		*(chain->nextPacket) = gp0_endTag(0);

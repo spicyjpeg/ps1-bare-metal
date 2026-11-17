@@ -155,12 +155,8 @@ static void initCDROM(void) {
 	// send certain commands between the acknowledge and complete IRQs.
 	issueCDROMCommand(CDROM_CMD_INIT, 0, 0);
 
-	CDROMIRQType irq;
-
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_ACKNOWLEDGE);
-	irq = waitForCDROMIRQ(0, 0);
-	assert(irq == CDROM_IRQ_COMPLETE);
+	if (waitForCDROMIRQ(0, 0) == CDROM_IRQ_ACKNOWLEDGE)
+		waitForCDROMIRQ(0, 0);
 }
 
 static void printCDROMInfo(char *output) {
@@ -290,17 +286,17 @@ int main(int argc, const char **argv) {
 		FONT_COLOR_DEPTH
 	);
 
-	char info[256], status[256];
-	int  nextPoll = 0;
+	char         info[256], status[256];
+	unsigned int nextPoll = 0;
 
 	// Probe the drive's firmware information and initial status once, before
 	// entering the main loop.
 	printCDROMInfo(info);
 	printCDROMStatus(status);
 
-	GPUDMAChain dmaChains[2];
-	bool        usingSecondFrame = false;
-	int         frameCounter     = 0;
+	GPUDMAChain  dmaChains[2];
+	bool         usingSecondFrame = false;
+	unsigned int frameCounter     = 0;
 
 	for (;;) {
 		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;

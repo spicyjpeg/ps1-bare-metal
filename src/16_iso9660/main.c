@@ -36,7 +36,7 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define SECTOR_LENGTH   2048
+#define SECTOR_SIZE     2048
 #define ISO9660_PVD_LBA   16
 
 typedef enum {
@@ -66,8 +66,8 @@ static ISOError readISOData(ISOData *handle, unsigned int lba, size_t length) {
 	// round it up to the nearest one before allocation. Allocating the exact
 	// length requested would result in readCDROMSectorsBlocking() overflowing
 	// the buffer and corrupting memory when reading the last sector.
-	size_t numSectors = (length + SECTOR_LENGTH - 1) / SECTOR_LENGTH;
-	void   *ptr       = malloc(numSectors * SECTOR_LENGTH);
+	size_t numSectors = (length + SECTOR_SIZE - 1) / SECTOR_SIZE;
+	void   *ptr       = malloc(numSectors * SECTOR_SIZE);
 
 	if (!ptr)
 		return ISO_ALLOC_FAILED;
@@ -130,7 +130,7 @@ static ISOError initISOFilesystem(ISOFilesystem *fs) {
 	// LBA 16. This is the starting point for parsing the filesystem: we already
 	// saw how it contains basic disc metadata, but it also holds the LBA and
 	// size of the root directory descriptor.
-	uint8_t pvd[SECTOR_LENGTH];
+	uint8_t pvd[SECTOR_SIZE];
 	uint8_t mode = 0
 		| CDROM_MODE_SIZE_2048
 		| CDROM_MODE_SPEED_2X;
@@ -138,16 +138,16 @@ static ISOError initISOFilesystem(ISOFilesystem *fs) {
 	if (readCDROMSectorsBlocking(pvd, ISO9660_PVD_LBA, 1, mode) != 1)
 		return ISO_READ_ERROR;
 
-	const uint8_t *magic       = &pvd[0x000];
-	const uint8_t *volumeID    = &pvd[0x028];
-	uint32_t      capacity     = parseUint32(&pvd[0x050]);
-	uint16_t      sectorLength = parseUint16(&pvd[0x080]);
-	uint32_t      rootLBA      = parseUint32(&pvd[0x09c + 0x02]);
-	uint32_t      rootLength   = parseUint32(&pvd[0x09c + 0x0a]);
+	const uint8_t *magic     = &pvd[0x000];
+	const uint8_t *volumeID  = &pvd[0x028];
+	uint32_t      capacity   = parseUint32(&pvd[0x050]);
+	uint16_t      sectorSize = parseUint16(&pvd[0x080]);
+	uint32_t      rootLBA    = parseUint32(&pvd[0x09c + 0x02]);
+	uint32_t      rootLength = parseUint32(&pvd[0x09c + 0x0a]);
 
 	if (__builtin_memcmp(magic, "\x01" "CD001" "\x01", 7))
 		return ISO_NO_FILESYSTEM;
-	if (sectorLength != SECTOR_LENGTH)
+	if (sectorSize != SECTOR_SIZE)
 		return ISO_NO_FILESYSTEM;
 
 	// Allocate a buffer for and load the root directory descriptor, then fill

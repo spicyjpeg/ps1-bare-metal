@@ -79,7 +79,7 @@ link_libraries(flags)
 
 # Define a helper function to embed binary data into executables and libraries.
 function(addBinaryFile target name path)
-	set(asmFile "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
+	set(asmFile "${PROJECT_BINARY_DIR}/includes/${target}--${name}.s")
 	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE fullPath)
 
 	# Generate an assembly listing that uses the .incbin directive to embed the
@@ -95,11 +95,11 @@ function(addBinaryFile target name path)
 
 .global ${name}
 .type   ${name}, @object
-.size   ${name}, (${name}_end - ${name})
+.size   ${name}, (.L${name}End - ${name})
 
 ${name}:
 	.incbin "${fullPath}"
-${name}_end:
+.L${name}End:
 ]]
 		ESCAPE_QUOTES
 		NEWLINE_STYLE LF
@@ -112,7 +112,7 @@ ${name}_end:
 endfunction()
 
 function(addBinaryFileWithSize target name sizeName path)
-	set(asmFile "${PROJECT_BINARY_DIR}/includes/${target}_${name}.s")
+	set(asmFile "${PROJECT_BINARY_DIR}/includes/${target}--${name}.s")
 	cmake_path(ABSOLUTE_PATH path OUTPUT_VARIABLE fullPath)
 
 	file(
@@ -124,11 +124,11 @@ function(addBinaryFileWithSize target name sizeName path)
 
 .global ${name}
 .type   ${name}, @object
-.size   ${name}, (${name}_end - ${name})
+.size   ${name}, (.L${name}End - ${name})
 
 ${name}:
 	.incbin "${fullPath}"
-${name}_end:
+.L${name}End:
 
 .section .rodata.${sizeName}, "a"
 .balign  4
@@ -138,7 +138,7 @@ ${name}_end:
 .size   ${sizeName}, 4
 
 ${sizeName}:
-	.int (${name}_end - ${name})
+	.int (.L${name}End - ${name})
 ]]
 		ESCAPE_QUOTES
 		NEWLINE_STYLE LF
