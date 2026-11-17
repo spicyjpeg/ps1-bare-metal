@@ -10,16 +10,15 @@
 #include "common/iso9660.h"
 #include "ps1/cdromdef.h"
 
-#define DEF(type)     static inline type __attribute__((always_inline))
 #define DIV(num, den) (((num) + (den) - 1) / (den))
 
 #define SECTOR_SIZE     2048
 #define ISO9660_PVD_LBA   16
 
-DEF(uint16_t) parseUint16(const uint8_t *data) {
+[[gnu::always_inline]] static inline uint16_t parseUint16(const uint8_t *data) {
 	return data[0] | (data[1] << 8);
 }
-DEF(uint32_t) parseUint32(const uint8_t *data) {
+[[gnu::always_inline]] static inline uint32_t parseUint32(const uint8_t *data) {
 	return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
 }
 
@@ -218,5 +217,4 @@ ISOError loadISOFile(
 		return readISOData(handle, record.lba, record.length);
 }
 
-#undef DEF
 #undef DIV

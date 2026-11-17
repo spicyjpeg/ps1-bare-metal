@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEF(type) static inline type __attribute__((always_inline))
+#define DEF(type) [[gnu::always_inline]] static inline type
 
 /* CD-ROM drive command and status definitions */
 

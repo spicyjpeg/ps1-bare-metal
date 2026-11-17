@@ -8,8 +8,6 @@
 #include <assert.h>
 #include "ps1/gte.h"
 
-#define DEF(type) static inline type __attribute__((always_inline))
-
 #define GTE_UNIT   (1 << 12)
 #define GTE_SQRT2  (GTE_UNIT * 141421 / 100000)
 #define GTE_RSQRT2 (GTE_UNIT *  70711 / 100000)
@@ -20,14 +18,14 @@
 extern "C" {
 #endif
 
-DEF(unsigned int) floorLog2(int x) {
+[[gnu::always_inline]] static inline unsigned int floorLog2(int x) {
 	assert(x > 0);
 
 	gte_setDataReg(GTE_LZCS, x);
 	gte_loadDelay();
 	return 31 - gte_getDataReg(GTE_LZCR);
 }
-DEF(unsigned int) ceilLog2(int x) {
+[[gnu::always_inline]] static inline unsigned int ceilLog2(int x) {
 	assert(x > 0);
 
 	gte_setDataReg(GTE_LZCS, x - 1);
@@ -50,5 +48,3 @@ void transformLightMatrix(void);
 #ifdef __cplusplus
 }
 #endif
-
-#undef DEF

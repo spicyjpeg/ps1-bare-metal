@@ -5,8 +5,6 @@
 
 #pragma once
 
-#define DEF(type) static inline type __attribute__((always_inline))
-
 #define ISIN_SHIFT  10
 #define ISIN2_SHIFT 15
 #define ISIN_PI     (1 << (ISIN_SHIFT  + 1))
@@ -19,15 +17,13 @@ extern "C" {
 int isin(int x);
 int isin2(int x);
 
-DEF(int) icos(int x) {
+[[gnu::always_inline]] static inline int icos(int x) {
 	return isin(x + (1 << ISIN_SHIFT));
 }
-DEF(int) icos2(int x) {
+[[gnu::always_inline]] static inline int icos2(int x) {
 	return isin2(x + (1 << ISIN2_SHIFT));
 }
 
 #ifdef __cplusplus
 }
 #endif
-
-#undef DEF

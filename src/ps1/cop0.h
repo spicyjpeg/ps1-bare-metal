@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#define DEF(type) static inline type __attribute__((always_inline))
+#define DEF(type) [[gnu::always_inline]] static inline type
 
 /* Register definitions */
 
@@ -109,7 +109,7 @@ DEF(void) _cop0_restoreStatus(const uint32_t *value) {
 // up the status register, manipulates it to disable interrupts then restores it
 // once the function returns.
 #define COP0_CRITICAL_SECTION_THEN_SET(flags) \
-	uint32_t _savedStatus __attribute__((cleanup(_cop0_restoreStatus))) = \
+	[[gnu::cleanup(_cop0_restoreStatus)]] uint32_t _savedStatus = \
 		cop0_getReg(COP0_STATUS); \
 	\
 	cop0_setReg(COP0_STATUS, _savedStatus & ~COP0_STATUS_IEc); \

@@ -7,10 +7,9 @@
 
 #include "ps1/registers.h"
 
-#define DEF(type)     static inline type __attribute__((always_inline))
 #define DIV(num, den) (((num) + (den) / 2) / (den))
 
-DEF(void) delayCycles(int time) {
+[[gnu::always_inline]] static inline void delayCycles(int time) {
 	__asm__ volatile(
 		".set push\n"
 		".set noreorder\n"
@@ -21,9 +20,8 @@ DEF(void) delayCycles(int time) {
 	);
 }
 
-DEF(void) delayMicroseconds(int time) {
+[[gnu::always_inline]] static inline void delayMicroseconds(int time) {
 	delayCycles(DIV(time * DIV(F_CPU * 8, 1000000), 8));
 }
 
-#undef DEF
 #undef DIV

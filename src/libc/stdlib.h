@@ -8,16 +8,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEF(type) static inline type __attribute__((always_inline))
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-DEF(int) abs(int value) {
+[[gnu::always_inline]] static inline int abs(int value) {
 	return (value < 0) ? (-value) : value;
 }
-DEF(long) labs(long value) {
+[[gnu::always_inline]] static inline long labs(long value) {
 	return (value < 0) ? (-value) : value;
 }
 
@@ -40,7 +38,7 @@ long long strtoll(
 	int                    base
 );
 
-DEF(long) strtol(
+[[gnu::always_inline]] static inline long strtol(
 	const char *__restrict str,
 	char **__restrict      strEnd,
 	int                    base
@@ -51,5 +49,3 @@ DEF(long) strtol(
 #ifdef __cplusplus
 }
 #endif
-
-#undef DEF

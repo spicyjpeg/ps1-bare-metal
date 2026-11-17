@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#define DEF(type) static inline type __attribute__((always_inline))
+#define DEF(type) [[gnu::always_inline]] static inline type
 
 /* GTE data types */
 
