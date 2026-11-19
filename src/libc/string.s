@@ -9,7 +9,9 @@
 .set noat
 
 .set LARGE_FILL_THRESHOLD, 32
+.set LARGE_FILL_DUFF_SIZE, 32
 .set LARGE_COPY_THRESHOLD, 32
+.set LARGE_COPY_DUFF_SIZE, 32
 
 .set temp,      $at
 .set destCopy,  $v0
@@ -91,43 +93,35 @@ memset:
 	la    storeJumpPtr, .LlargeFillDuff
 
 .LlargeFillLoop: # while (length > 0) {
-	# If 64 bytes or more still have to be written, skip calculating the jump
+	# If 32 bytes or more still have to be written, skip calculating the jump
 	# offset and execute the whole block of sw opcodes. Otherwise, adjust the
 	# destination pointer and jump into the middle of the block, using the
 	# length as an index. No multiplication or division is needed as each
 	# instruction is 4 bytes long and also writes 4 bytes.
-	addiu length, -64
+	addiu length, -LARGE_FILL_DUFF_SIZE
 	bgez  length, .LlargeFillDuff
 	subu  temp, storeJumpPtr, length
 
-	# dest -= 64 - length;
-	# goto &largeFillDuff[(64 - length) / 4 * 4];
+	# dest -= LARGE_FILL_DUFF_SIZE - length;
+	# goto &largeFillDuff[(LARGE_FILL_DUFF_SIZE - length) / 4 * 4];
 	jr    temp
 	addu  dest, length
 
 .LlargeFillDuff:
-	sw    value, 0x00(dest)
-	sw    value, 0x04(dest)
-	sw    value, 0x08(dest)
-	sw    value, 0x0c(dest)
-	sw    value, 0x10(dest)
-	sw    value, 0x14(dest)
-	sw    value, 0x18(dest)
-	sw    value, 0x1c(dest)
-	sw    value, 0x20(dest)
-	sw    value, 0x24(dest)
-	sw    value, 0x28(dest)
-	sw    value, 0x2c(dest)
-	sw    value, 0x30(dest)
-	sw    value, 0x34(dest)
-	sw    value, 0x38(dest)
-	sw    value, 0x3c(dest)
+	sw    value, (0 * 4)(dest)
+	sw    value, (1 * 4)(dest)
+	sw    value, (2 * 4)(dest)
+	sw    value, (3 * 4)(dest)
+	sw    value, (4 * 4)(dest)
+	sw    value, (5 * 4)(dest)
+	sw    value, (6 * 4)(dest)
+	sw    value, (7 * 4)(dest)
 
-	# length -= 64;
-	# dest   += 64;
+	# length -= LARGE_FILL_DUFF_SIZE;
+	# dest   += LARGE_FILL_DUFF_SIZE;
 	# }
 	bgtz  length, .LlargeFillLoop
-	addiu dest, 64
+	addiu dest, LARGE_FILL_DUFF_SIZE
 
 	# Fill the remaining 1-4 bytes using another unaligned store.
 	addu  dest, remainder
@@ -191,7 +185,9 @@ memcpy:
 	# alternate code block that performs unaligned stores in place of aligned
 	# ones.
 
-	# void *storeJumpPtr = (dest % 4) ? largeUnalignedStoreDuff : largeAlignedStoreDuff;
+	# void *storeJumpPtr = (dest % 4)
+	#     ? largeUnalignedStoreDuff
+	#     : largeAlignedStoreDuff;
 	# int  instLength    = (dest % 4) ? 8 : 4;
 	la    loadJumpPtr, .LlargeLoadDuff
 	addiu storeJumpPtr, loadJumpPtr, .LlargeAlignedStoreDuff - .LlargeLoadDuff
@@ -207,33 +203,33 @@ memcpy:
 	# offset and execute the whole block of lw opcodes. Otherwise, adjust the
 	# destination pointer and jump into the middle of the block, using the
 	# length as an index.
-	addiu length, -32
+	addiu length, -LARGE_COPY_DUFF_SIZE
 	bgez  length, .LlargeLoadDuff
 	subu  temp, loadJumpPtr, length
 
-	# source -= 32 - length;
-	# goto &LlargeLoadDuff[(32 - length) / 4 * 4];
+	# source -= LARGE_COPY_DUFF_SIZE - length;
+	# goto &LlargeLoadDuff[(LARGE_COPY_DUFF_SIZE - length) / 4 * 4];
 	jr    temp
 	addu  source, length
 
 .LlargeLoadDuff:
-	lw    value0, 0x00(source)
-	lw    value1, 0x04(source)
-	lw    value2, 0x08(source)
-	lw    value3, 0x0c(source)
-	lw    value4, 0x10(source)
-	lw    value5, 0x14(source)
-	lw    value6, 0x18(source)
-	lw    value7, 0x1c(source)
+	lw    value0, (0 * 4)(source)
+	lw    value1, (1 * 4)(source)
+	lw    value2, (2 * 4)(source)
+	lw    value3, (3 * 4)(source)
+	lw    value4, (4 * 4)(source)
+	lw    value5, (5 * 4)(source)
+	lw    value6, (6 * 4)(source)
+	lw    value7, (7 * 4)(source)
 
 	# Do the same for the block of store instructions. An extra branch is needed
 	# here for the >=32 byte case due to there being no conditional variant of
 	# the jr instruction.
 	bgez  length, .LjumpToLargeStoreDuff
-	addiu source, 32
+	addiu source, LARGE_COPY_DUFF_SIZE
 
-	# dest -= 32 - length;
-	# goto &storeJumpPtr[(32 - length) / 4 * instLength];
+	# dest -= LARGE_COPY_DUFF_SIZE - length;
+	# goto &storeJumpPtr[(LARGE_COPY_DUFF_SIZE - length) / 4 * instLength];
 	sllv  temp, length, instLength
 	subu  temp, storeJumpPtr, temp
 	jr    temp
@@ -244,45 +240,45 @@ memcpy:
 	nop
 
 .LlargeUnalignedStoreDuff:
-	swr   value0, 0x00(dest)
-	swl   value0, 0x03(dest)
-	swr   value1, 0x04(dest)
-	swl   value1, 0x07(dest)
-	swr   value2, 0x08(dest)
-	swl   value2, 0x0b(dest)
-	swr   value3, 0x0c(dest)
-	swl   value3, 0x0f(dest)
-	swr   value4, 0x10(dest)
-	swl   value4, 0x13(dest)
-	swr   value5, 0x14(dest)
-	swl   value5, 0x17(dest)
-	swr   value6, 0x18(dest)
-	swl   value6, 0x1b(dest)
-	swr   value7, 0x1c(dest)
-	swl   value7, 0x1f(dest)
+	swr   value0, (0 * 4 + 0)(dest)
+	swl   value0, (0 * 4 + 3)(dest)
+	swr   value1, (1 * 4 + 0)(dest)
+	swl   value1, (1 * 4 + 3)(dest)
+	swr   value2, (2 * 4 + 0)(dest)
+	swl   value2, (2 * 4 + 3)(dest)
+	swr   value3, (3 * 4 + 0)(dest)
+	swl   value3, (3 * 4 + 3)(dest)
+	swr   value4, (4 * 4 + 0)(dest)
+	swl   value4, (4 * 4 + 3)(dest)
+	swr   value5, (5 * 4 + 0)(dest)
+	swl   value5, (5 * 4 + 3)(dest)
+	swr   value6, (6 * 4 + 0)(dest)
+	swl   value6, (6 * 4 + 3)(dest)
+	swr   value7, (7 * 4 + 0)(dest)
+	swl   value7, (7 * 4 + 3)(dest)
 
 	bgtz  length, .LlargeCopyLoop
-	addiu dest, 32
+	addiu dest, LARGE_COPY_DUFF_SIZE
 
 	b     .LlargeCopyDone
 	addu  source, remainder
 
 .LlargeAlignedStoreDuff:
-	sw    value0, 0x00(dest)
-	sw    value1, 0x04(dest)
-	sw    value2, 0x08(dest)
-	sw    value3, 0x0c(dest)
-	sw    value4, 0x10(dest)
-	sw    value5, 0x14(dest)
-	sw    value6, 0x18(dest)
-	sw    value7, 0x1c(dest)
+	sw    value0, (0 * 4)(dest)
+	sw    value1, (1 * 4)(dest)
+	sw    value2, (2 * 4)(dest)
+	sw    value3, (3 * 4)(dest)
+	sw    value4, (4 * 4)(dest)
+	sw    value5, (5 * 4)(dest)
+	sw    value6, (6 * 4)(dest)
+	sw    value7, (7 * 4)(dest)
 
-	# length -= 32;
-	# source += 32;
-	# dest   += 32;
+	# length -= LARGE_COPY_DUFF_SIZE;
+	# source += LARGE_COPY_DUFF_SIZE;
+	# dest   += LARGE_COPY_DUFF_SIZE;
 	# }
 	bgtz  length, .LlargeCopyLoop
-	addiu dest, 32
+	addiu dest, LARGE_COPY_DUFF_SIZE
 
 	addu  source, remainder
 

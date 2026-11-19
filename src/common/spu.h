@@ -10,7 +10,7 @@
 
 #define SPU_RAM_ADDR_UNIT 8
 #define SPU_RAM_SIZE      (0x10000 * SPU_RAM_ADDR_UNIT)
-#define SPU_SAMPLE_OFFSET 0x1000
+#define SPU_SAMPLE_OFFSET (512 * 2 * 4)
 
 #define SPU_NUM_CHANNELS 24
 #define SPU_PITCH_UNIT   (1 << 12)

@@ -24,7 +24,7 @@
 .set COP0_CAUSE, $13
 .set COP0_EPC,   $14
 
-.set COP0_CAUSE_EXC_BITMASK, 31 << 2
+.set COP0_CAUSE_EXC_BITMASK, (31 << 2)
 
 # Declare isrStub() as a global function (visible to main.c) and place it in
 # the .text section that holds all code in the executable.

@@ -120,7 +120,7 @@ static void sendSPURAMData(
 // and reverb buffers (at the end, with a configurable size but no less than 16
 // bytes). We'll have to ensure we don't bump into either when uploading our
 // samples.
-#define SPU_SAMPLE_OFFSET    0x1000
+#define SPU_SAMPLE_OFFSET    (512 * 2 * 4)
 #define DUMMY_BLOCK_OFFSET   (SPU_RAM_SIZE - 32)
 #define REVERB_BUFFER_OFFSET (SPU_RAM_SIZE - 16)
 

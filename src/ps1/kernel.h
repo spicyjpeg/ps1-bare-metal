@@ -46,7 +46,7 @@ void kernel_flushCache(void);
 
 /* B0 functions */
 
-void kernel_returnFromException(void);
+[[noreturn]] void kernel_returnFromException(void);
 
 void kernel_resetEntryInt(void);
 void kernel_hookEntryInt(const jmp_buf env);

@@ -197,9 +197,10 @@ int main(int argc, const char **argv) {
 			// the command. The LM flag saturates negative lights to zero,
 			// preventing the GTE from darkening the face below the ambient
 			// color.
-			uint32_t cmd0 = face->color | gp0_shadedQuad(false, false, false);
-
-			gte_setDataReg(GTE_RGBC, cmd0);
+			gte_setDataReg(
+				GTE_RGBC,
+				face->color | gp0_shadedQuad(false, false, false)
+			);
 			gte_loadV0(&cubeNormals[face->normal]);
 			gte_command(GTE_CMD_NCCS | GTE_SF | GTE_LM);
 

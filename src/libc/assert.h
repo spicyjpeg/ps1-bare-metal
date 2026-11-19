@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-void _assertAbort(const char *file, int line, const char *expr);
+[[noreturn]] void _assertAbort(const char *file, int line, const char *expr);
 
 #ifdef __cplusplus
 }

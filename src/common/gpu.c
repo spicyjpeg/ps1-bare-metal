@@ -65,10 +65,10 @@ void waitForGPUDMADone(void) {
 }
 
 void waitForVSync(void) {
+	INTC_REG = ~(1 << IRQ_VSYNC);
+
 	while (!(INTC_REG & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
-
-	INTC_REG = ~(1 << IRQ_VSYNC);
 }
 
 void sendGPULinkedList(const void *data) {

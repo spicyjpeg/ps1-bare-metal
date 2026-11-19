@@ -73,13 +73,13 @@ static void setupGPU_(
 }
 
 static void waitForVSync_(void) {
-	// With the vsync IRQ masked, we can safely poll its respective flag and
-	// wait until it gets set, then reset (acknowledge) it so that it can be set
-	// again by the GPU.
+	// With the interrupt masked, we can safely reset (acknowledge) its
+	// respective flag then wait for it to be set again by the GPU, indicating
+	// vertical blanking has started.
+	INTC_REG = ~(1 << IRQ_VSYNC);
+
 	while (!(INTC_REG & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
-
-	INTC_REG = ~(1 << IRQ_VSYNC);
 }
 
 #define SCREEN_HRES   GP1_HRES_320

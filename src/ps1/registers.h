@@ -266,8 +266,8 @@ typedef enum {
 	TIMER_MODE_OVFL            = 1 <<  5,
 	TIMER_MODE_REPT            = 1 <<  6,
 	TIMER_MODE_LEVL            = 1 <<  7,
-	TIMER_MODE_EXTC            = 1 <<  8,
-	TIMER_MODE_PSCL            = 1 <<  9,
+	TIMER_MODE_EXTC            = 1 <<  8, // Timers 0 and 1 only
+	TIMER_MODE_PSCL            = 1 <<  9, // Timer 2 only
 	TIMER_MODE_INTF            = 1 << 10,
 	TIMER_MODE_EQUF            = 1 << 11,
 	TIMER_MODE_OVFF            = 1 << 12

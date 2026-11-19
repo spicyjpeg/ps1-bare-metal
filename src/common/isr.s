@@ -7,7 +7,7 @@
 .set COP0_CAUSE, $13
 .set COP0_EPC,   $14
 
-.set COP0_CAUSE_EXC_BITMASK, 31 << 2
+.set COP0_CAUSE_EXC_BITMASK, (31 << 2)
 
 .section .text.isrStub, "ax", @progbits
 .global  isrStub
