@@ -74,7 +74,7 @@ typedef enum {
 	COP0_CAUSE_Ip1         =  1 <<  9, // IRQ 1 pending (software interrupt)
 	COP0_CAUSE_Ip2         =  1 << 10, // IRQ 2 pending (hardware interrupt)
 	COP0_CAUSE_CE_BITMASK  =  3 << 28,
-	COP0_CAUSE_BD          =  1 << 30  // Exception occurred in delay slot
+	COP0_CAUSE_BD          =  1 << 31  // Exception occurred in delay slot
 } COP0CauseFlag;
 
 // The mtc0/mfc0 instructions only support addressing coprocessor registers
